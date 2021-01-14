@@ -1,0 +1,16 @@
+com.lanternsoftware.datamodel.currentmonitor.dao.AccountSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.AuthCodeSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerConfigSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerGroupEnergySerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerGroupSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerGroupSummarySerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerHubSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerPanelSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerPowerMinuteSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerPowerSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BreakerSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.EnergyBlockSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.HubPowerMinuteSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.MeterSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.SequenceSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.SignupResponseSerializer

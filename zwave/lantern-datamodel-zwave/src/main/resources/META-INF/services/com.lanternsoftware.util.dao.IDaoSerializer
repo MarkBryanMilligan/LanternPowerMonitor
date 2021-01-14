@@ -1,0 +1,3 @@
+com.lanternsoftware.datamodel.zwave.dao.SwitchScheduleSerializer
+com.lanternsoftware.datamodel.zwave.dao.SwitchSerializer
+com.lanternsoftware.datamodel.zwave.dao.ZWaveConfigSerializer
