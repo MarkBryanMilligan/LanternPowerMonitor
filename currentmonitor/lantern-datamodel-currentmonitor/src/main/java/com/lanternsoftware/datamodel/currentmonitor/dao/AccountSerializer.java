@@ -32,6 +32,7 @@ public class AccountSerializer extends AbstractDaoSerializer<Account>
 		d.put("_id", String.valueOf(_o.getId()));
 		d.put("username", _o.getUsername());
 		d.put("password", _o.getPassword());
+		d.put("timezone", _o.getTimezone());
 		if (CollectionUtils.isNotEmpty(_o.getAuxiliaryAccountIds()))
 			d.put("aux_account_ids", CollectionUtils.toByteArray(_o.getAuxiliaryAccountIds()));
 		return d;
@@ -44,6 +45,7 @@ public class AccountSerializer extends AbstractDaoSerializer<Account>
 		o.setId(DaoSerializer.getInteger(_d, "_id"));
 		o.setUsername(DaoSerializer.getString(_d, "username"));
 		o.setPassword(DaoSerializer.getString(_d, "password"));
+		o.setTimezone(DaoSerializer.getString(_d, "timezone"));
 		o.setAuxiliaryAccountIds(CollectionUtils.fromByteArrayOfIntegers(DaoSerializer.getByteArray(_d, "aux_account_ids")));
 		return o;
 	}

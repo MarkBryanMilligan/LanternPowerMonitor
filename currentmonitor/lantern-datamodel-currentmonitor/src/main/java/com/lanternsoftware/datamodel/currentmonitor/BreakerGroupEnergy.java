@@ -28,38 +28,41 @@ public class BreakerGroupEnergy {
 	private List<EnergyBlock> energyBlocks;
 	private double toGrid;
 	private double fromGrid;
+	private TimeZone timezone;
 
 	public BreakerGroupEnergy() {
 	}
 
-	public BreakerGroupEnergy(BreakerGroup _group, Map<String, List<BreakerPower>> _powerReadings, EnergyBlockViewMode _viewMode, Date _start, TimeZone _tz) {
+	public BreakerGroupEnergy(BreakerGroup _group, Map<String, List<BreakerPower>> _powerReadings, EnergyBlockViewMode _viewMode, Date _start, TimeZone _timezone) {
 		groupId = _group.getId();
 		groupName = _group.getName();
 		viewMode = _viewMode;
 		start = _start;
 		accountId = _group.getAccountId();
-		subGroups = CollectionUtils.transform(_group.getSubGroups(), _g -> new BreakerGroupEnergy(_g, _powerReadings, _viewMode, _start, _tz));
+		timezone = _timezone;
+		subGroups = CollectionUtils.transform(_group.getSubGroups(), _g -> new BreakerGroupEnergy(_g, _powerReadings, _viewMode, _start, timezone));
 		energyBlocks = new ArrayList<>();
 		List<String> breakerKeys = CollectionUtils.transform(_group.getBreakers(), Breaker::getKey);
 		if (!breakerKeys.isEmpty()) {
 			for (BreakerPower power : CollectionUtils.aggregate(breakerKeys, _powerReadings::get)) {
-				addEnergy(groupId, power.getReadTime(), power.getPower(), _tz);
+				addEnergy(groupId, power.getReadTime(), power.getPower());
 			}
 		}
 	}
 
-	public BreakerGroupEnergy(BreakerGroup _group, List<HubPowerMinute> _power, EnergyBlockViewMode _viewMode, Date _start, TimeZone _tz) {
+	public BreakerGroupEnergy(BreakerGroup _group, List<HubPowerMinute> _power, EnergyBlockViewMode _viewMode, Date _start, TimeZone _timezone) {
 		groupId = _group.getId();
 		groupName = _group.getName();
 		viewMode = _viewMode;
 		start = _start;
 		accountId = _group.getAccountId();
-		subGroups = CollectionUtils.transform(_group.getSubGroups(), _g -> new BreakerGroupEnergy(_g, (List<HubPowerMinute>)null, _viewMode, _start, _tz));
+		timezone = _timezone;
+		subGroups = CollectionUtils.transform(_group.getSubGroups(), _g -> new BreakerGroupEnergy(_g, (List<HubPowerMinute>)null, _viewMode, _start, timezone));
 		energyBlocks = new ArrayList<>();
-		addEnergy(_group, _power, _tz);
+		addEnergy(_group, _power);
 	}
 
-	public void addEnergy(BreakerGroup _group, List<HubPowerMinute> _hubPower, TimeZone _tz) {
+	public void addEnergy(BreakerGroup _group, List<HubPowerMinute> _hubPower) {
 		Map<String, Breaker> breakers = CollectionUtils.transformToMap(_group.getAllBreakers(), Breaker::getKey);
 		Map<String, BreakerGroup> breakerKeyToGroup = new HashMap<>();
 		for (BreakerGroup group : _group.getAllBreakerGroups()) {
@@ -67,14 +70,14 @@ public class BreakerGroupEnergy {
 				breakerKeyToGroup.put(b.getKey(), group);
 			}
 		}
-		addEnergy(breakers, breakerKeyToGroup, _hubPower, _tz);
+		addEnergy(breakers, breakerKeyToGroup, _hubPower);
 	}
 
-	public void addEnergy(Map<String, Breaker> _breakers, Map<String, BreakerGroup> _breakerKeyToGroup, List<HubPowerMinute> _hubPower, TimeZone _tz) {
+	public void addEnergy(Map<String, Breaker> _breakers, Map<String, BreakerGroup> _breakerKeyToGroup, List<HubPowerMinute> _hubPower) {
 		if (CollectionUtils.isEmpty(_hubPower) || CollectionUtils.anyQualify(_hubPower, _p->_p.getAccountId() != accountId))
 			return;
 		Date minute = CollectionUtils.getFirst(_hubPower).getMinuteAsDate();
-		resetEnergy(minute, _tz);
+		resetEnergy(minute);
 		Map<Integer, MeterMinute> meters = new HashMap<>();
 		for (HubPowerMinute hubPower : _hubPower) {
 			for (BreakerPowerMinute breaker : CollectionUtils.makeNotNull(hubPower.getBreakers())) {
@@ -92,7 +95,7 @@ public class BreakerGroupEnergy {
 					else
 						meter.solar[idx] += -power;
 					if (power != 0.0)
-						addEnergy(group.getId(), minute, power, _tz);
+						addEnergy(group.getId(), minute, power);
 					idx++;
 				}
 			}
@@ -108,21 +111,21 @@ public class BreakerGroupEnergy {
 		}
 	}
 
-	public void resetEnergy(Date _readTime, TimeZone _tz) {
-		EnergyBlock block = getBlock(_readTime, _tz, false);
+	public void resetEnergy(Date _readTime) {
+		EnergyBlock block = getBlock(_readTime, false);
 		if (block != null)
 			block.setJoules(0);
 		for (BreakerGroupEnergy subGroup : CollectionUtils.makeNotNull(subGroups)) {
-			subGroup.resetEnergy(_readTime, _tz);
+			subGroup.resetEnergy(_readTime);
 		}
 	}
 
-	public void addEnergy(String _groupId, Date _readTime, double _joules, TimeZone _tz) {
+	public void addEnergy(String _groupId, Date _readTime, double _joules) {
 		if (NullUtils.isEqual(groupId, _groupId))
-			getBlock(_readTime, _tz).addJoules(_joules);
+			getBlock(_readTime).addJoules(_joules);
 		else {
 			for (BreakerGroupEnergy subGroup : CollectionUtils.makeNotNull(subGroups)) {
-				subGroup.addEnergy(_groupId, _readTime, _joules, _tz);
+				subGroup.addEnergy(_groupId, _readTime, _joules);
 			}
 		}
 	}
@@ -134,9 +137,10 @@ public class BreakerGroupEnergy {
 		energy.setAccountId(_group.getAccountId());
 		energy.setViewMode(_viewMode);
 		energy.setStart(_start);
+		energy.setTimeZone(_tz);
 		energy.setSubGroups(CollectionUtils.transform(_group.getSubGroups(), _g -> BreakerGroupEnergy.summary(_g, _energies, _viewMode, _start, _tz)));
 		for (BreakerGroupSummary curEnergy : CollectionUtils.makeNotNull(_energies.get(_group.getId()))) {
-			EnergyBlock block = energy.getBlock(curEnergy.getStart(), _tz);
+			EnergyBlock block = energy.getBlock(curEnergy.getStart());
 			block.addJoules(curEnergy.getJoules());
 			energy.setToGrid(energy.getToGrid()+curEnergy.getToGrid());
 			energy.setFromGrid(energy.getFromGrid()+curEnergy.getFromGrid());
@@ -144,20 +148,20 @@ public class BreakerGroupEnergy {
 		return energy;
 	}
 
-	private EnergyBlock getBlock(Date _readTime, TimeZone _tz) {
-		return getBlock(_readTime, _tz, true);
+	private EnergyBlock getBlock(Date _readTime) {
+		return getBlock(_readTime, true);
 	}
 
-	private EnergyBlock getBlock(Date _readTime, TimeZone _tz, boolean _add) {
+	private EnergyBlock getBlock(Date _readTime, boolean _add) {
 		int size = CollectionUtils.size(energyBlocks);
-		int idx = viewMode.blockIndex(_readTime, _tz);
+		int idx = viewMode.blockIndex(_readTime, timezone);
 		if (_add && (idx >= size)) {
 			if (energyBlocks == null)
 				energyBlocks = new ArrayList<>();
 			LinkedList<EnergyBlock> newBlocks = new LinkedList<>();
-			Date end = viewMode.toBlockEnd(_readTime, _tz);
+			Date end = viewMode.toBlockEnd(_readTime, timezone);
 			while (idx >= size) {
-				Date start = viewMode.decrementBlock(end, _tz);
+				Date start = viewMode.decrementBlock(end, timezone);
 				newBlocks.add(new EnergyBlock(start, end, 0));
 				end = start;
 				size++;
@@ -252,6 +256,14 @@ public class BreakerGroupEnergy {
 
 	public void setFromGrid(double _fromGrid) {
 		fromGrid = _fromGrid;
+	}
+
+	public TimeZone getTimeZone() {
+		return timezone;
+	}
+
+	public void setTimeZone(TimeZone _timezone) {
+		timezone = _timezone;
 	}
 
 	public double wattHours() {

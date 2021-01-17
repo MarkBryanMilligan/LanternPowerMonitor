@@ -4,6 +4,7 @@ import com.lanternsoftware.datamodel.currentmonitor.BreakerGroupEnergy;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyBlock;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyBlockViewMode;
 import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.dao.AbstractDaoSerializer;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoProxyType;
@@ -41,10 +42,11 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 		d.put("view_mode", DaoSerializer.toEnumName(_o.getViewMode()));
 		d.put("start", DaoSerializer.toLong(_o.getStart()));
 		d.put("sub_groups", DaoSerializer.toDaoEntities(_o.getSubGroups(), DaoProxyType.MONGO));
+		TimeZone tz = DateUtils.defaultTimeZone(_o.getTimeZone());
+		d.put("timezone", tz.getID());
 		if (CollectionUtils.size(_o.getEnergyBlocks()) > 0) {
 			Date start = _o.getStart();
 			Date now = new Date();
-			TimeZone tz = TimeZone.getTimeZone("America/Chicago");
 			ByteBuffer bb = ByteBuffer.allocate(_o.getViewMode().blockCount(start, tz) * 4);
 			for (EnergyBlock b : _o.getEnergyBlocks()) {
 				if (b.getStart().before(start))
@@ -71,7 +73,6 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 	@Override
 	public BreakerGroupEnergy fromDaoEntity(DaoEntity _d)
 	{
-		TimeZone tz = TimeZone.getTimeZone("America/Chicago");
 		BreakerGroupEnergy o = new BreakerGroupEnergy();
 		o.setGroupId(DaoSerializer.getString(_d, "group_id"));
 		o.setAccountId(DaoSerializer.getInteger(_d, "account_id"));
@@ -79,13 +80,14 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 		o.setViewMode(DaoSerializer.getEnum(_d, "view_mode", EnergyBlockViewMode.class));
 		o.setStart(DaoSerializer.getDate(_d, "start"));
 		o.setSubGroups(DaoSerializer.getList(_d, "sub_groups", BreakerGroupEnergy.class));
+		o.setTimeZone(DateUtils.fromTimeZoneId(DaoSerializer.getString(_d, "timezone")));
 		List<EnergyBlock> blocks = new ArrayList<>();
 		byte[] blockData = DaoSerializer.getByteArray(_d, "blocks");
 		if (CollectionUtils.length(blockData) > 0) {
 			ByteBuffer bb = ByteBuffer.wrap(blockData);
 			Date start = o.getStart();
 			while (bb.hasRemaining()) {
-				EnergyBlock block = new EnergyBlock(start, o.getViewMode().toBlockEnd(start, tz), bb.getFloat());
+				EnergyBlock block = new EnergyBlock(start, o.getViewMode().toBlockEnd(start, o.getTimeZone()), bb.getFloat());
 				blocks.add(block);
 				start = block.getEnd();
 			}

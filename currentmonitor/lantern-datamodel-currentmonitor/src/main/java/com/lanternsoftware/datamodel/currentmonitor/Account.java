@@ -10,6 +10,7 @@ public class Account {
 	@PrimaryKey	private int id;
 	private String username;
 	private String password;
+	private String timezone;
 	private List<Integer> auxiliaryAccountIds;
 
 	public int getId() {
@@ -34,6 +35,14 @@ public class Account {
 
 	public void setPassword(String _password) {
 		password = _password;
+	}
+
+	public String getTimezone() {
+		return timezone;
+	}
+
+	public void setTimezone(String _timezone) {
+		timezone = _timezone;
 	}
 
 	public List<Integer> getAuxiliaryAccountIds() {

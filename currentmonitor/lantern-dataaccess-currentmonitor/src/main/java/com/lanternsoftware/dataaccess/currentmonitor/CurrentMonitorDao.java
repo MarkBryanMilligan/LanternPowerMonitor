@@ -33,13 +33,14 @@ public interface CurrentMonitorDao {
 	void updateSummaries(BreakerGroup _rootGroup, Set<Date> _daysToSummarize, TimeZone _tz);
 
 	String authenticateAccount(String _username, String _password);
-	String getAuthCodeForEmail(String _email);
+	String getAuthCodeForEmail(String _email, TimeZone _tz);
 	Account authCodeToAccount(String _authCode);
 	AuthCode decryptAuthCode(String _authCode);
 
 	Account putAccount(Account _account);
 	Account getAccount(int _accountId);
 	Account getAccountByUsername(String _username);
+	TimeZone getTimeZoneForAccount(int _accountId);
 
 	MongoProxy getProxy();
 }

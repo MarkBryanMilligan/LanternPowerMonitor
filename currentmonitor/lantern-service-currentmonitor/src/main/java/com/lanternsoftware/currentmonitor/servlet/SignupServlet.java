@@ -3,9 +3,8 @@ package com.lanternsoftware.currentmonitor.servlet;
 import com.lanternsoftware.currentmonitor.context.Globals;
 import com.lanternsoftware.datamodel.currentmonitor.Account;
 import com.lanternsoftware.datamodel.currentmonitor.SignupResponse;
+import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.NullUtils;
-import com.lanternsoftware.util.dao.DaoEntity;
-import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.email.EmailValidator;
 import com.lanternsoftware.util.servlet.BasicAuth;
 
@@ -38,6 +37,7 @@ public class SignupServlet extends CMServlet {
 		acct = new Account();
 		acct.setUsername(auth.getUsername());
 		acct.setPassword(auth.getPassword());
+		acct.setTimezone(DateUtils.fromTimeZoneId(_req.getHeader("timezone")).getID());
 		Globals.dao.putAccount(acct);
 		String authCode = Globals.dao.authenticateAccount(auth.getUsername(), auth.getPassword());
 		jsonResponse(_rep, SignupResponse.success(authCode));

@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
@@ -55,7 +54,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		proxy.ensureIndex(BreakerPower.class, DaoSort.sort("account_id").then("key"));
 		proxy.ensureIndex(HubPowerMinute.class, DaoSort.sort("account_id").then("minute"));
 		proxy.ensureIndex(BreakerGroupEnergy.class, DaoSort.sort("account_id").then("group_id").then("view_mode"));
-		proxy.ensureIndex(BreakerGroupSummary.class, DaoSort.sort("account_id").then("group_id").then("view_mode"));
+		proxy.ensureIndex(BreakerGroupSummary.class, DaoSort.sort("account_id").then("group_id").then("view_mode").then("start"));
 		proxy.ensureIndex(DirtyMinute.class, DaoSort.sort("posted"));
 		for (DirtyMinute minute : proxy.queryAll(DirtyMinute.class)) {
 			updateSummaries(minute);
@@ -95,7 +94,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	private void updateSummaries(DirtyMinute _minute) {
 		DebugTimer timer = new DebugTimer("Updating summaries", logger);
 		List<HubPowerMinute> minutes = proxy.query(HubPowerMinute.class, new DaoQuery("account_id", _minute.getAccountId()).and("minute", _minute.getMinute()));
-		TimeZone tz = TimeZone.getTimeZone("America/Chicago");
+		TimeZone tz = getTimeZoneForAccount(_minute.getAccountId());
 		BreakerConfig config = getConfig(_minute.getAccountId());
 		BreakerGroup group = CollectionUtils.getFirst(config.getBreakerGroups());
 		Date day = DateUtils.getMidnightBefore(_minute.getMinuteAsDate(), tz);
@@ -103,7 +102,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		if (summary == null)
 			summary = new BreakerGroupEnergy(group, minutes, EnergyBlockViewMode.DAY, day, tz);
 		else
-			summary.addEnergy(group, minutes, tz);
+			summary.addEnergy(group, minutes);
 		putBreakerGroupEnergy(summary);
 		updateSummaries(group, CollectionUtils.asHashSet(day), tz);
 		timer.stop();
@@ -216,12 +215,13 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	}
 
 	@Override
-	public String getAuthCodeForEmail(String _email) {
+	public String getAuthCodeForEmail(String _email, TimeZone _tz) {
 		_email = _email.toLowerCase().trim();
 		Account account = getAccountByUsername(_email);
 		if (account == null) {
 			account = new Account();
 			account.setUsername(_email);
+			account.setTimezone(_tz.getID());
 			putAccount(account);
 		}
 		return aes.encryptToBase64(DaoSerializer.toZipBson(new AuthCode(account.getId(), account.getAuxiliaryAccountIds())));
@@ -257,6 +257,20 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	@Override
 	public Account getAccountByUsername(String _username) {
 		return clearPassword(proxy.queryOne(Account.class, new DaoQuery("username", NullUtils.makeNotNull(_username).toLowerCase().trim())));
+	}
+
+	@Override
+	public TimeZone getTimeZoneForAccount(int _accountId) {
+		String timezone = proxy.queryForOneField(Account.class, new DaoQuery("_id", String.valueOf(_accountId)), "timezone");
+		TimeZone tz = null;
+		try {
+			if (NullUtils.isNotEmpty(timezone))
+				tz = TimeZone.getTimeZone(timezone);
+		}
+		catch (Exception _e) {
+			logger.error("TimeZone not configured correctly for account {}", _accountId);
+		}
+		return tz == null ? TimeZone.getTimeZone("America/Chicago") : tz;
 	}
 
 	private Account clearPassword(Account _account) {

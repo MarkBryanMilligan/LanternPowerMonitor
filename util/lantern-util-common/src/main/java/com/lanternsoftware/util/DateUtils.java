@@ -1,5 +1,6 @@
 package com.lanternsoftware.util;
 
+import java.sql.Time;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -655,4 +656,27 @@ public abstract class DateUtils {
         return cal;
     }
 
+    public static String getTimeZoneId(TimeZone _tz) {
+        return getTimeZoneId(_tz, "America/Chicago");
+    }
+
+    public static String getTimeZoneId(TimeZone _tz, String _default) {
+        return (_tz == null) ? _default : _tz.getID();
+    }
+
+    public static TimeZone defaultTimeZone(TimeZone _tz) {
+        return defaultTimeZone(_tz, "America/Chicago");
+    }
+
+    public static TimeZone defaultTimeZone(TimeZone _tz, String _default) {
+        return (_tz == null) ? TimeZone.getTimeZone(_default) : _tz;
+    }
+
+    public static TimeZone fromTimeZoneId(String _id) {
+        return fromTimeZoneId(_id, "America/Chicago");
+    }
+
+    public static TimeZone fromTimeZoneId(String _id, String _defaultId) {
+        return TimeZone.getTimeZone(NullUtils.isEmpty(_id) ? _defaultId : _id);
+    }
 }

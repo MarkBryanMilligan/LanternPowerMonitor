@@ -5,6 +5,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.lanternsoftware.currentmonitor.context.Globals;
+import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
@@ -38,7 +39,7 @@ public class AuthServlet extends CMServlet {
 					if (idToken != null) {
 						GoogleIdToken.Payload payload = idToken.getPayload();
 						String email = payload.getEmail();
-						authCode = Globals.dao.getAuthCodeForEmail(email);
+						authCode = Globals.dao.getAuthCodeForEmail(email, DateUtils.fromTimeZoneId(_req.getHeader("timezone")));
 					}
 				}
 				catch (Exception _e) {

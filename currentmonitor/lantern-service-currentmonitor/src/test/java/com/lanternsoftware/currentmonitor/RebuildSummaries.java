@@ -26,7 +26,7 @@ public class RebuildSummaries {
 	public static void main(String[] args) {
 		int accountId = 1;
 		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
-		TimeZone tz = TimeZone.getTimeZone("America/Chicago");
+		TimeZone tz = dao.getTimeZoneForAccount(accountId);
 		Date start = DateUtils.date(1, 7, 2021, tz);
 //		Date start = DateUtils.getMidnightBeforeNow(tz);
 		Date end = DateUtils.getMidnightAfterNow(tz);
@@ -49,7 +49,7 @@ public class RebuildSummaries {
 				if (energy == null)
 					energy = new BreakerGroupEnergy(root, minute, EnergyBlockViewMode.DAY, day.getKey(), tz);
 				else
-					energy.addEnergy(breakers, breakerKeyToGroup, minute, tz);
+					energy.addEnergy(breakers, breakerKeyToGroup, minute);
 			}
 			timer.stop();
 			if (energy != null)
