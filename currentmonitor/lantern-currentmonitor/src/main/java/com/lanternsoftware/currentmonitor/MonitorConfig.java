@@ -14,6 +14,8 @@ public class MonitorConfig {
 	private int connectTimeout;
 	private int socketTimeout;
 	private int updateInterval;
+	private float autoCalibrationVoltage;
+	private boolean needsCalibration;
 
 	public MonitorConfig() {
 	}
@@ -93,5 +95,21 @@ public class MonitorConfig {
 
 	public void setUpdateInterval(int _updateInterval) {
 		updateInterval = _updateInterval;
+	}
+
+	public float getAutoCalibrationVoltage() {
+		return autoCalibrationVoltage;
+	}
+
+	public void setAutoCalibrationVoltage(float _autoCalibrationVoltage) {
+		autoCalibrationVoltage = _autoCalibrationVoltage;
+	}
+
+	public boolean isNeedsCalibration() {
+		return needsCalibration;
+	}
+
+	public void setNeedsCalibration(boolean _needsCalibration) {
+		needsCalibration = _needsCalibration;
 	}
 }

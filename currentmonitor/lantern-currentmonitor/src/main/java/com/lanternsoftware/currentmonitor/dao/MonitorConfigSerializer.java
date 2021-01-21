@@ -5,7 +5,6 @@ import com.lanternsoftware.util.dao.AbstractDaoSerializer;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoProxyType;
 import com.lanternsoftware.util.dao.DaoSerializer;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -32,9 +31,11 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		d.put("password", _o.getPassword());
 		d.put("hub", _o.getHub());
 		d.put("debug", _o.isDebug());
-		d.put("socket_timeout", _o.getSocketTimeout());
 		d.put("connect_timeout", _o.getConnectTimeout());
+		d.put("socket_timeout", _o.getSocketTimeout());
 		d.put("update_interval", _o.getUpdateInterval());
+		d.put("auto_calibration_voltage", _o.getAutoCalibrationVoltage());
+		d.put("needs_calibration", _o.isNeedsCalibration());
 		return d;
 	}
 
@@ -48,9 +49,11 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		o.setPassword(DaoSerializer.getString(_d, "password"));
 		o.setHub(DaoSerializer.getInteger(_d, "hub"));
 		o.setDebug(DaoSerializer.getBoolean(_d, "debug"));
-		o.setSocketTimeout(DaoSerializer.getInteger(_d, "socket_timeout"));
 		o.setConnectTimeout(DaoSerializer.getInteger(_d, "connect_timeout"));
+		o.setSocketTimeout(DaoSerializer.getInteger(_d, "socket_timeout"));
 		o.setUpdateInterval(DaoSerializer.getInteger(_d, "update_interval"));
+		o.setAutoCalibrationVoltage(DaoSerializer.getFloat(_d, "auto_calibration_voltage"));
+		o.setNeedsCalibration(DaoSerializer.getBoolean(_d, "needs_calibration"));
 		return o;
 	}
 }

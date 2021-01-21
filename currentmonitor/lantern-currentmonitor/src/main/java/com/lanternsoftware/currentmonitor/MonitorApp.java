@@ -179,9 +179,17 @@ public class MonitorApp {
 			ConcurrencyUtils.sleep(5000);
 		}
 		LOG.info("Breaker Config loaded");
-		LOG.debug(DaoSerializer.toJson(breakerConfig));
 		BreakerHub hub = breakerConfig.getHub(config.getHub());
 		if (hub != null) {
+			if (config.isNeedsCalibration() && (config.getAutoCalibrationVoltage() != 0.0)) {
+				double newCal = monitor.calibrateVoltage(hub.getVoltageCalibrationFactor(), config.getAutoCalibrationVoltage());
+				if (newCal != 0.0) {
+					hub.setVoltageCalibrationFactor(newCal);
+					config.setNeedsCalibration(false);
+					ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
+					post(DaoSerializer.toZipBson(breakerConfig), "currentmonitor/config");
+				}
+			}
 			List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
 			LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(breakers), hub.getHub());
 			monitor.monitorPower(hub, breakers, 1000, logger);

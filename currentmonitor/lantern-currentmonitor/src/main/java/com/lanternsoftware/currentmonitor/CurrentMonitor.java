@@ -62,6 +62,39 @@ public class CurrentMonitor {
 		debug = _debug;
 	}
 
+	public double calibrateVoltage(double _curCalibration, float _voltage) {
+		GpioPinAnalogInput voltagePin = getPin(0, 0);
+		if (voltagePin == null)
+			return 0.0;
+		List<Double> samples = new ArrayList<>(120000);
+		long intervalEnd = System.nanoTime() + 2000000000L; //Scan voltage for 2 seconds
+		while (System.nanoTime() < intervalEnd) {
+			samples.add(voltagePin.getValue());
+		}
+
+		double vOffset = 0.0;
+		for (Double sample : samples) {
+			vOffset += sample;
+		}
+		vOffset /= samples.size();
+		double vRms = 0.0;
+		for (Double sample : samples) {
+			sample -= vOffset;
+			vRms += sample * sample;
+		}
+		vRms /= samples.size();
+		double oldVrms = _curCalibration * Math.sqrt(vRms);
+		if (oldVrms < 20) {
+			LOG.info("Could not get a valid voltage read, please check that your AC/AC transformer is connected");
+			return 0.0;
+		}
+		double newCal = (_voltage/oldVrms) * _curCalibration;
+		double newVrms = newCal * Math.sqrt(vRms);
+		LOG.info("Old Voltage Calibration: {}  Old vRMS: {}", _curCalibration, oldVrms);
+		LOG.info("New Voltage Calibration: {}  New vRMS: {}", newCal, newVrms);
+		return newCal;
+	}
+
 	public void monitorPower(BreakerHub _hub, List<Breaker> _breakers, int _intervalMs, PowerListener _listener) {
 		stopMonitoring();
 		listener = _listener;
