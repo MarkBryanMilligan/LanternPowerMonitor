@@ -85,7 +85,7 @@ public class CurrentMonitor {
 		vRms /= samples.size();
 		double oldVrms = _curCalibration * Math.sqrt(vRms);
 		if (oldVrms < 20) {
-			LOG.info("Could not get a valid voltage read, please check that your AC/AC transformer is connected");
+			LOG.error("Could not get a valid voltage read, please check that your AC/AC transformer is connected");
 			return 0.0;
 		}
 		double newCal = (_voltage/oldVrms) * _curCalibration;
@@ -235,7 +235,7 @@ public class CurrentMonitor {
 							vRms /= validSamples.size();
 							vRms = hub.getVoltageCalibrationFactor() * Math.sqrt(vRms);
 							int lowSampleRatio = (lowSamples * 100) / samples.getSampleCnt();
-							double realPower = Math.abs((hub.getVoltageCalibrationFactor() * samples.getBreaker().getFinalCalibrationFactor() * pSum) / samples.getSampleCnt());
+							double realPower = Math.abs((hub.getVoltageCalibrationFactor() * hub.getPortCalibrationFactor() * samples.getBreaker().getFinalCalibrationFactor() * pSum) / samples.getSampleCnt());
 							if ((lowSampleRatio > 75) && realPower < 13.0)
 								realPower = 0.0;
 							if (samples.getBreaker().getPolarity() == BreakerPolarity.SOLAR)

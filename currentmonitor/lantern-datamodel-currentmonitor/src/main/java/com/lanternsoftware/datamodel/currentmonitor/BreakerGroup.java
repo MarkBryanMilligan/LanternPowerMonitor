@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @DBSerializable()
 public class BreakerGroup {
@@ -169,11 +170,11 @@ public class BreakerGroup {
 		return null;
 	}
 
-	public boolean removeInvalidGroups() {
+	public boolean removeInvalidGroups(Set<Integer> _validPanels) {
 		if (subGroups != null)
-			subGroups.removeIf(_g->!_g.removeInvalidGroups());
+			subGroups.removeIf(_g->!_g.removeInvalidGroups(_validPanels));
 		if (breakers != null)
-			breakers.removeIf(_b->(_b.getType() == null) || (_b.getType() == BreakerType.EMPTY) || (_b.getPort() < 1));
+			breakers.removeIf(_b->(_b.getType() == null) || (_b.getType() == BreakerType.EMPTY) || (_b.isTandemBreaker() && (_b.getPort() < 1)) || !_validPanels.contains(_b.getPanel()));
 		return CollectionUtils.isNotEmpty(subGroups) || CollectionUtils.isNotEmpty(breakers);
 	}
 

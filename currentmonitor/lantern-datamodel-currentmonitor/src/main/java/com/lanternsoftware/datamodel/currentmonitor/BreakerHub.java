@@ -7,6 +7,7 @@ import com.lanternsoftware.util.dao.annotations.DBSerializable;
 public class BreakerHub {
 	private int hub;
 	private double voltageCalibrationFactor;
+	private double portCalibrationFactor;
 	private int frequency;
 	private String bluetoothMac;
 
@@ -19,11 +20,19 @@ public class BreakerHub {
 	}
 
 	public double getVoltageCalibrationFactor() {
-		return voltageCalibrationFactor;
+		return voltageCalibrationFactor == 0.0?1.0:voltageCalibrationFactor;
 	}
 
 	public void setVoltageCalibrationFactor(double _voltageCalibrationFactor) {
 		voltageCalibrationFactor = _voltageCalibrationFactor;
+	}
+
+	public double getPortCalibrationFactor() {
+		return portCalibrationFactor == 0.0?1.0:portCalibrationFactor;
+	}
+
+	public void setPortCalibrationFactor(double _portCalibrationFactor) {
+		portCalibrationFactor = _portCalibrationFactor;
 	}
 
 	public int getFrequency() {

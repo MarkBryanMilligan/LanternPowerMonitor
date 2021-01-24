@@ -160,10 +160,8 @@ public class MonitorApp {
 			}
 		});
 		monitor.submit(bluetoothConfig);
-		if (NullUtils.isNotEmpty(config.getAuthCode())) {
+		if (NullUtils.isNotEmpty(config.getAuthCode()))
 			authCode = config.getAuthCode();
-			//TODO: check auth code validity
-		}
 		else {
 			HttpGet auth = new HttpGet(host + "auth");
 			HttpPool.addBasicAuthHeader(auth, config.getUsername(), config.getPassword());
@@ -187,7 +185,7 @@ public class MonitorApp {
 					hub.setVoltageCalibrationFactor(newCal);
 					config.setNeedsCalibration(false);
 					ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-					post(DaoSerializer.toZipBson(breakerConfig), "currentmonitor/config");
+					post(DaoSerializer.toZipBson(breakerConfig), "config");
 				}
 			}
 			List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
@@ -341,6 +339,7 @@ public class MonitorApp {
 				if (CollectionUtils.length(jar) == DaoSerializer.getInteger(meta, "size") && NullUtils.isEqual(DigestUtils.md5Hex(jar), DaoSerializer.getString(meta, "checksum"))) {
 					LOG.info("Update downloaded, writing jar and restarting...");
 					ResourceLoader.writeFile(WORKING_DIR + "lantern-currentmonitor.jar", jar);
+					ConcurrencyUtils.sleep(5000);
 					try {
 						Runtime.getRuntime().exec("service currentmonitor restart");
 					} catch (IOException _e) {

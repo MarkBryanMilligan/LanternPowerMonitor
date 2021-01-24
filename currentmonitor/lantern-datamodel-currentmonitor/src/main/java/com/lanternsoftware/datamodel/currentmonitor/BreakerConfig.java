@@ -2,6 +2,7 @@ package com.lanternsoftware.datamodel.currentmonitor;
 
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
+import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 import com.lanternsoftware.util.dao.annotations.PrimaryKey;
 
@@ -102,7 +103,7 @@ public class BreakerConfig {
 
 	public String nextGroupId() {
 		List<Integer> ids = CollectionUtils.transform(getAllBreakerGroupIds(), NullUtils::toInteger);
-		return String.valueOf(CollectionUtils.getLargest(ids) + 1);
+		return String.valueOf(DaoSerializer.toInteger(CollectionUtils.getLargest(ids)) + 1);
 	}
 
 	public void addGroup(BreakerGroup _group) {
@@ -116,7 +117,7 @@ public class BreakerConfig {
 
 	public void removeInvalidGroups() {
 		if (breakerGroups != null)
-			breakerGroups.removeIf(_g->!_g.removeInvalidGroups());
+			breakerGroups.removeIf(_g->!_g.removeInvalidGroups(CollectionUtils.transformToSet(panels, BreakerPanel::getIndex)));
 	}
 
 	public String getGroupIdForBreaker(Breaker _breaker) {
