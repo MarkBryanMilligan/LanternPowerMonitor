@@ -19,6 +19,7 @@
 		<module>lantern-util-dao</module>
 		<module>lantern-util-dao-ephemeral</module>
 		<module>lantern-util-dao-mongo</module>
+		<module>lantern-util-excel</module>
 		<module>lantern-util-http</module>
 		<module>lantern-util-servlet</module>
 	</modules>

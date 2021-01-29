@@ -188,8 +188,10 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	public void putConfig(BreakerConfig _config) {
 		DaoQuery configQuery = new DaoQuery("_id", String.valueOf(_config.getAccountId()));
 		BreakerConfig oldConfig = proxy.queryOne(BreakerConfig.class, configQuery);
-		if (oldConfig != null)
-			proxy.delete(BreakerGroup.class, DaoQuery.in("_id", oldConfig.getAllBreakerGroupIds()));
+		if (oldConfig != null) {
+			proxy.saveEntity("config_archive", DaoSerializer.toDaoEntity(oldConfig));
+			_config.setVersion(oldConfig.getVersion() + 1);
+		}
 		proxy.save(_config);
 	}
 

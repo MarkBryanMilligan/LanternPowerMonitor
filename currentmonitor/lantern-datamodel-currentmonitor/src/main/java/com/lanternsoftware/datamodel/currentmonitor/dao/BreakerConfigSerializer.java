@@ -35,6 +35,7 @@ public class BreakerConfigSerializer extends AbstractDaoSerializer<BreakerConfig
 		d.put("panels", DaoSerializer.toDaoEntities(_o.getPanels(), DaoProxyType.MONGO));
 		d.put("breaker_hubs", DaoSerializer.toDaoEntities(_o.getBreakerHubs(), DaoProxyType.MONGO));
 		d.put("breaker_groups", DaoSerializer.toDaoEntities(_o.getBreakerGroups(), DaoProxyType.MONGO));
+		d.put("version", _o.getVersion());
 		return d;
 	}
 
@@ -47,6 +48,7 @@ public class BreakerConfigSerializer extends AbstractDaoSerializer<BreakerConfig
 		o.setPanels(DaoSerializer.getList(_d, "panels", BreakerPanel.class));
 		o.setBreakerHubs(DaoSerializer.getList(_d, "breaker_hubs", BreakerHub.class));
 		o.setBreakerGroups(DaoSerializer.getList(_d, "breaker_groups", BreakerGroup.class));
+		o.setVersion(DaoSerializer.getInteger(_d, "version"));
 		return o;
 	}
 }

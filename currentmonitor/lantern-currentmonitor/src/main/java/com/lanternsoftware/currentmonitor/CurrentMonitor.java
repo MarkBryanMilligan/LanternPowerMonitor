@@ -51,7 +51,8 @@ public class CurrentMonitor {
 	public void stop() {
 		stopMonitoring();
 		ConcurrencyUtils.sleep(1000);
-		executor.shutdownNow();
+		executor.shutdown();
+		ConcurrencyUtils.sleep(1000);
 		chips.clear();
 		pins.clear();
 		gpio.shutdown();

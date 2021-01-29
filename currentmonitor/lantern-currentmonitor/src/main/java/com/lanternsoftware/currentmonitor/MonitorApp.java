@@ -130,7 +130,7 @@ public class MonitorApp {
 						case Restart:
 							LOG.info("Restarting Current Monitor...");
 							try {
-								Runtime.getRuntime().exec("service currentmonitor restart");
+								Runtime.getRuntime().exec("echo \"sudo systemctl restart currentmonitor\" | at now + 1 minute");
 							} catch (IOException _e) {
 								LOG.error("Exception occurred while trying to restart", _e);
 							}
@@ -138,7 +138,7 @@ public class MonitorApp {
 						case Reboot:
 							LOG.info("Rebooting Pi...");
 							try {
-								Runtime.getRuntime().exec("reboot now");
+								Runtime.getRuntime().exec("sudo reboot now");
 							} catch (IOException _e) {
 								LOG.error("Exception occurred while trying to reboot", _e);
 							}
@@ -339,9 +339,9 @@ public class MonitorApp {
 				if (CollectionUtils.length(jar) == DaoSerializer.getInteger(meta, "size") && NullUtils.isEqual(DigestUtils.md5Hex(jar), DaoSerializer.getString(meta, "checksum"))) {
 					LOG.info("Update downloaded, writing jar and restarting...");
 					ResourceLoader.writeFile(WORKING_DIR + "lantern-currentmonitor.jar", jar);
-					ConcurrencyUtils.sleep(5000);
+					ConcurrencyUtils.sleep(10000);
 					try {
-						Runtime.getRuntime().exec("service currentmonitor restart");
+						Runtime.getRuntime().exec("echo \"sudo systemctl restart currentmonitor\" | at now + 1 minute");
 					} catch (IOException _e) {
 						LOG.error("Exception occurred while trying to restart", _e);
 					}
@@ -375,9 +375,9 @@ public class MonitorApp {
 				else if (NullUtils.isEqual(command, "extend_filesystem")) {
 					LOG.info("Extending filesystem and rebooting");
 					try {
-						Runtime.getRuntime().exec("raspi-config --expand-rootfs");
-						ConcurrencyUtils.sleep(3000);
-						Runtime.getRuntime().exec("reboot");
+						Runtime.getRuntime().exec("sudo raspi-config --expand-rootfs");
+						ConcurrencyUtils.sleep(5000);
+						Runtime.getRuntime().exec("sudo reboot now");
 					} catch (IOException _e) {
 						LOG.error("Exception occurred while trying to extend filesystem", _e);
 					}
@@ -386,7 +386,7 @@ public class MonitorApp {
 				else if (NullUtils.isEqual(command, "restart")) {
 					LOG.info("Restarting...");
 					try {
-						Runtime.getRuntime().exec("service currentmonitor restart");
+						Runtime.getRuntime().exec("echo \"sudo systemctl restart currentmonitor\" | at now + 1 minute");
 					} catch (IOException _e) {
 						LOG.error("Exception occurred while trying to restart", _e);
 					}

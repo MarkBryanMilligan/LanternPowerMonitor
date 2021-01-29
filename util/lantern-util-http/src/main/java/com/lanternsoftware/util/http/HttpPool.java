@@ -91,7 +91,7 @@ public class HttpPool {
             }
             return null;
         }
-        catch (IOException _e) {
+        catch (Exception _e) {
             LOG.error("Failed to make http request to " + _request.getURI().toString(), _e);
             return null;
         }

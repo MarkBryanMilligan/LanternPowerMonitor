@@ -17,6 +17,7 @@ public class BreakerConfig {
 	private List<BreakerPanel> panels;
 	private List<BreakerHub> breakerHubs;
 	private List<BreakerGroup> breakerGroups;
+	private int version;
 
 	public BreakerConfig() {
 	}
@@ -63,6 +64,14 @@ public class BreakerConfig {
 
 	public void setBreakerGroups(List<BreakerGroup> _breakerGroups) {
 		breakerGroups = _breakerGroups;
+	}
+
+	public int getVersion() {
+		return version;
+	}
+
+	public void setVersion(int _version) {
+		version = _version;
 	}
 
 	public List<Breaker> getAllBreakers() {
