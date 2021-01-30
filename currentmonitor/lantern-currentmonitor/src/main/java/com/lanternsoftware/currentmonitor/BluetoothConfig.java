@@ -9,10 +9,8 @@ import com.lanternsoftware.datamodel.currentmonitor.HubConfigService;
 import com.lanternsoftware.util.CollectionUtils;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class BluetoothConfig implements Runnable {
-	private final AtomicBoolean running = new AtomicBoolean(true);
+public class BluetoothConfig {
 	private final BleApplication app;
 
 	public BluetoothConfig(String _hubName, BleCharacteristicListener _listener) {
@@ -25,15 +23,11 @@ public class BluetoothConfig implements Runnable {
 		app = new BleApplication("Lantern", _hubName, new BleService("HubConfig", service.getServiceUUID(), chars));
 	}
 
-	@Override
-	public void run() {
+	public void start() {
 		app.start();
 	}
 
 	public void stop() {
-		synchronized (running) {
-			running.set(false);
-		}
 		app.stop();
 	}
 }

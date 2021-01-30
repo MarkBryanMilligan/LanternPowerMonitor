@@ -53,8 +53,8 @@ public class Controller {
 			CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(_port);
 			serialPort = portIdentifier.open("zwaveport", 2000);
 			serialPort.setSerialPortParams(115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
-			serialPort.enableReceiveThreshold(1);
-			serialPort.enableReceiveTimeout(1000);
+			serialPort.disableReceiveThreshold();
+			serialPort.enableReceiveTimeout(500);
 			os = serialPort.getOutputStream();
 			running = true;
 			executor.submit(new MessageReceiver());

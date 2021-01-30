@@ -1,5 +1,7 @@
 package com.lanternsoftware.currentmonitor.wifi;
 
+import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -11,28 +13,17 @@ public abstract class WifiConfig {
 	private static final Logger LOG = LoggerFactory.getLogger(WifiConfig.class);
 
 	private static final String WIFI_CONFIG_PATH = "/etc/wpa_supplicant/wpa_supplicant.conf";
-	private static final String CONF_FORMAT = "ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\ncountry=US\nnetwork={\n\tssid=\"%s\"\n\t%s\n}\n";
+	private static final String CONF_FORMAT = "ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=1\ncountry=US\n";
 
 	public static void setCredentials(String _ssid, String _password) {
-		String[] commands = {"wpa_passphrase", _ssid, _password};
 		InputStream is = null;
 		try {
-			is = Runtime.getRuntime().exec(commands).getInputStream();
-			String newConf = IOUtils.toString(is);
+			is = Runtime.getRuntime().exec(new String[]{"wpa_passphrase", _ssid, _password}).getInputStream();
+			String newConf = CollectionUtils.delimit(CollectionUtils.filter(CollectionUtils.asArrayList(NullUtils.cleanSplit(IOUtils.toString(is), "\\r?\\n")), _s->!_s.trim().startsWith("#")), "\n");
 			if (newConf == null)
 				return;
-			int idx = newConf.indexOf("psk=");
-			if (idx > 0) {
-				if (newConf.charAt(idx-1) == '#')
-					idx = newConf.indexOf("psk=", idx+1);
-				if (idx > 0) {
-					int endIdx = newConf.indexOf("\n", idx);
-					if (endIdx > 0) {
-						String finalConf = String.format(CONF_FORMAT, _ssid, newConf.substring(idx, endIdx));
-						ResourceLoader.writeFile(WIFI_CONFIG_PATH, finalConf);
-					}
-				}
-			}
+			ResourceLoader.writeFile(WIFI_CONFIG_PATH, CONF_FORMAT+newConf);
+			Runtime.getRuntime().exec(new String[]{"wpa_cli","-i","wlan0","reconfigure"});
 		}
 		catch (Exception _e) {
 			LOG.error("Failed to write wifi credentials", _e);

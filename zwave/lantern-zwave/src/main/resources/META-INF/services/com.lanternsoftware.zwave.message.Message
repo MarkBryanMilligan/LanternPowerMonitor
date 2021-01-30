@@ -1,5 +1,6 @@
 com.lanternsoftware.zwave.message.impl.ApplicationUpdateRequest
 com.lanternsoftware.zwave.message.impl.BinarySwitchSetRequest
+com.lanternsoftware.zwave.message.impl.BinarySwitchReportRequest
 com.lanternsoftware.zwave.message.impl.ByteMessage
 com.lanternsoftware.zwave.message.impl.ControllerCapabilitiesRequest
 com.lanternsoftware.zwave.message.impl.ControllerCapabilitiesResponse

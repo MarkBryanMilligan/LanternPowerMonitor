@@ -90,59 +90,65 @@ public class MonitorApp {
 				HubConfigCharacteristic ch = NullUtils.toEnum(HubConfigCharacteristic.class, _name);
 				LOG.info("Char Received, Name: {} Value: {}", _name, _value);
 				monitor.submit(()->{
-					switch (ch) {
-						case HubIndex:
-							if ((_value.length > 0)) {
-								config.setHub(_value[0]);
-								ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-							}
-							break;
-						case AuthCode:
-							String value = NullUtils.toString(_value);
-							if (NullUtils.isNotEmpty(value)) {
-								authCode = value;
-								config.setAuthCode(value);
-								ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-							}
-							break;
-						case WifiCredentials:
-							String ssid = HubConfigService.decryptWifiSSID(_value);
-							String pwd = HubConfigService.decryptWifiPassword(_value);
-							if (NullUtils.isNotEmpty(ssid) && NullUtils.isNotEmpty(pwd))
-								WifiConfig.setCredentials(ssid, pwd);
-							break;
-						case Flash:
-							if ((CollectionUtils.length(_value) == 0) || (_value[0] == 0)) {
-								if (flasher != null) {
-									flasher.stop();
-									flasher = null;
+					synchronized (monitor) {
+						switch (ch) {
+							case Host:
+								if ((_value.length > 0)) {
+									config.setHost(NullUtils.terminateWith(NullUtils.toString(_value), "/") + "currentmonitor/");
+									ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 								}
-								else
-									LEDFlasher.setLEDOn(false);
-							}
-							else {
-								if (flasher == null) {
-									flasher = new LEDFlasher();
-									monitor.submit(flasher);
+								break;
+							case HubIndex:
+								if ((_value.length > 0)) {
+									config.setHub(_value[0]);
+									ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 								}
-							}
-							break;
-						case Restart:
-							LOG.info("Restarting Current Monitor...");
-							try {
-								Runtime.getRuntime().exec("echo \"sudo systemctl restart currentmonitor\" | at now + 1 minute");
-							} catch (IOException _e) {
-								LOG.error("Exception occurred while trying to restart", _e);
-							}
-							break;
-						case Reboot:
-							LOG.info("Rebooting Pi...");
-							try {
-								Runtime.getRuntime().exec("sudo reboot now");
-							} catch (IOException _e) {
-								LOG.error("Exception occurred while trying to reboot", _e);
-							}
-							break;
+								break;
+							case AuthCode:
+								String value = NullUtils.toString(_value);
+								if (NullUtils.isNotEmpty(value)) {
+									authCode = value;
+									config.setAuthCode(value);
+									ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
+								}
+								break;
+							case WifiCredentials:
+								String ssid = HubConfigService.decryptWifiSSID(_value);
+								String pwd = HubConfigService.decryptWifiPassword(_value);
+								if (NullUtils.isNotEmpty(ssid) && NullUtils.isNotEmpty(pwd))
+									WifiConfig.setCredentials(ssid, pwd);
+								break;
+							case Flash:
+								if ((CollectionUtils.length(_value) == 0) || (_value[0] == 0)) {
+									if (flasher != null) {
+										flasher.stop();
+										flasher = null;
+									} else
+										LEDFlasher.setLEDOn(false);
+								} else {
+									if (flasher == null) {
+										flasher = new LEDFlasher();
+										monitor.submit(flasher);
+									}
+								}
+								break;
+							case Restart:
+								LOG.info("Restarting Current Monitor...");
+								try {
+									Runtime.getRuntime().exec(new String[]{"systemctl","restart","currentmonitor"});
+								} catch (IOException _e) {
+									LOG.error("Exception occurred while trying to restart", _e);
+								}
+								break;
+							case Reboot:
+								LOG.info("Rebooting Pi...");
+								try {
+									Runtime.getRuntime().exec(new String[]{"reboot","now"});
+								} catch (IOException _e) {
+									LOG.error("Exception occurred while trying to reboot", _e);
+								}
+								break;
+						}
 					}
 				});
 			}
@@ -159,7 +165,7 @@ public class MonitorApp {
 				return null;
 			}
 		});
-		monitor.submit(bluetoothConfig);
+		bluetoothConfig.start();
 		if (NullUtils.isNotEmpty(config.getAuthCode()))
 			authCode = config.getAuthCode();
 		else {
@@ -190,7 +196,8 @@ public class MonitorApp {
 			}
 			List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
 			LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(breakers), hub.getHub());
-			monitor.monitorPower(hub, breakers, 1000, logger);
+			if (CollectionUtils.size(breakers) > 0)
+				monitor.monitorPower(hub, breakers, 1000, logger);
 		}
 		monitor.submit(new PowerPoster());
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -341,7 +348,7 @@ public class MonitorApp {
 					ResourceLoader.writeFile(WORKING_DIR + "lantern-currentmonitor.jar", jar);
 					ConcurrencyUtils.sleep(10000);
 					try {
-						Runtime.getRuntime().exec("echo \"sudo systemctl restart currentmonitor\" | at now + 1 minute");
+						Runtime.getRuntime().exec(new String[]{"systemctl","restart","currentmonitor"});
 					} catch (IOException _e) {
 						LOG.error("Exception occurred while trying to restart", _e);
 					}
@@ -375,9 +382,9 @@ public class MonitorApp {
 				else if (NullUtils.isEqual(command, "extend_filesystem")) {
 					LOG.info("Extending filesystem and rebooting");
 					try {
-						Runtime.getRuntime().exec("sudo raspi-config --expand-rootfs");
+						Runtime.getRuntime().exec(new String[]{"sudo","raspi-config","--expand-rootfs"});
 						ConcurrencyUtils.sleep(5000);
-						Runtime.getRuntime().exec("sudo reboot now");
+						Runtime.getRuntime().exec(new String[]{"reboot","now"});
 					} catch (IOException _e) {
 						LOG.error("Exception occurred while trying to extend filesystem", _e);
 					}
@@ -386,7 +393,7 @@ public class MonitorApp {
 				else if (NullUtils.isEqual(command, "restart")) {
 					LOG.info("Restarting...");
 					try {
-						Runtime.getRuntime().exec("echo \"sudo systemctl restart currentmonitor\" | at now + 1 minute");
+						Runtime.getRuntime().exec(new String[]{"systemctl","restart","currentmonitor"});
 					} catch (IOException _e) {
 						LOG.error("Exception occurred while trying to restart", _e);
 					}

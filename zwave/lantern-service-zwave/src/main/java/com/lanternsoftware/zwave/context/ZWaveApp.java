@@ -17,6 +17,7 @@ import com.lanternsoftware.zwave.controller.Controller;
 import com.lanternsoftware.zwave.dao.MongoZWaveDao;
 import com.lanternsoftware.zwave.message.IMessageSubscriber;
 import com.lanternsoftware.zwave.message.MessageEngine;
+import com.lanternsoftware.zwave.message.impl.BinarySwitchReportRequest;
 import com.lanternsoftware.zwave.message.impl.BinarySwitchSetRequest;
 import com.lanternsoftware.zwave.message.impl.MultilevelSensorGetRequest;
 import com.lanternsoftware.zwave.message.impl.MultilevelSensorReportRequest;
@@ -45,7 +46,7 @@ public class ZWaveApp {
 	private ZWaveConfig config;
 	private Controller controller;
 	private final Map<Integer, Switch> switches = new HashMap<>();
-	private final Map<Integer, List<Integer>> peers = new HashMap<>();
+	private final Map<Integer, List<Switch>> peers = new HashMap<>();
 	private Timer timer;
 	private HttpPool pool;
 	private SwitchScheduleTask nextScheduleTask;
@@ -78,17 +79,17 @@ public class ZWaveApp {
 			t.printStackTrace();
 		}
 		config = dao.getConfig(1);
-		Map<String, List<Integer>> groups = new HashMap<>();
+		Map<String, List<Switch>> groups = new HashMap<>();
 		for (Switch sw : CollectionUtils.makeNotNull(config.getSwitches())) {
 			switches.put(sw.getNodeId(), sw);
-			CollectionUtils.addToMultiMap(sw.getRoom() + ":" + sw.getName(), sw.getNodeId(), groups);
+			CollectionUtils.addToMultiMap(sw.getRoom() + ":" + sw.getName(), sw, groups);
 		}
 		if (CollectionUtils.filterOne(config.getSwitches(), Switch::isUrlThermostat) != null) {
 			timer.scheduleAtFixedRate(new ThermostatTask(), 0, 30000);
 		}
-		for (List<Integer> group : groups.values()) {
-			for (Integer node : group) {
-				peers.put(node, CollectionUtils.filter(group, _i -> !_i.equals(node)));
+		for (List<Switch> group : groups.values()) {
+			for (Switch sw : group) {
+				peers.put(sw.getNodeId(), CollectionUtils.filter(group, _sw -> _sw.getNodeId() != sw.getNodeId()));
 			}
 		}
 		scheduleNextTransition();
@@ -136,19 +137,19 @@ public class ZWaveApp {
 
 			@Override
 			public void onMessage(MultilevelSwitchReportRequest _message) {
-				synchronized (switches) {
-					Switch sw = switches.get((int) _message.getNodeId());
-					if (sw != null) {
-						sw.setLevel(_message.getLevel());
-						for (Integer node : CollectionUtils.makeNotNull(peers.get((int) _message.getNodeId()))) {
-							sw = switches.get(node);
-							sw.setLevel(_message.getLevel());
-							logger.info("Mirror Event from node {} to node {}", _message.getNodeId(), node);
-							controller.send(new MultilevelSwitchSetRequest(node.byteValue(), _message.getLevel()));
-						}
-						persistConfig();
-					}
-				}
+				onSwitchLevelChange(_message.getNodeId(), _message.getLevel());
+			}
+		});
+
+		MessageEngine.subscribe(new IMessageSubscriber<BinarySwitchReportRequest>() {
+			@Override
+			public Class<BinarySwitchReportRequest> getHandledMessageClass() {
+				return BinarySwitchReportRequest.class;
+			}
+
+			@Override
+			public void onMessage(BinarySwitchReportRequest _message) {
+				onSwitchLevelChange(_message.getNodeId(), _message.getLevel());
 			}
 		});
 
@@ -162,6 +163,28 @@ public class ZWaveApp {
 //		controller.send(new ThermostatSetPointSetRequest((byte)11, ThermostatSetPointIndex.HEATING_ECON, 72));
 //		controller.send(new ThermostatModeSetRequest((byte)11, ThermostatMode.HEAT));
 //		controller.send(new ThermostatModeGetRequest((byte)11));
+	}
+
+	private void onSwitchLevelChange(int _primaryNodeId, int _primaryLevel) {
+		synchronized (switches) {
+			Switch sw = switches.get(_primaryNodeId);
+			if (sw != null) {
+				int newLevel = sw.isMultilevel()?_primaryLevel:((_primaryLevel == 0)?0:99);
+				sw.setLevel(newLevel);
+				for (Switch peer : CollectionUtils.makeNotNull(peers.get(_primaryNodeId))) {
+					logger.info("Mirror Event from node {} to node {}", _primaryNodeId, peer.getNodeId());
+					if (peer.isMultilevel()) {
+						peer.setLevel(newLevel);
+						controller.send(new MultilevelSwitchSetRequest((byte)peer.getNodeId(), newLevel));
+					}
+					else {
+						peer.setLevel(newLevel > 0?0xff:0);
+						controller.send(new BinarySwitchSetRequest((byte)peer.getNodeId(), newLevel > 0));
+					}
+				}
+				persistConfig();
+			}
+		}
 	}
 
 	private void scheduleNextTransition() {
@@ -185,7 +208,7 @@ public class ZWaveApp {
 			return;
 		sw.setLevel(_level);
 		if (!sw.isThermostat()) {
-			setGroupSwitchLevel(_nodeId, _level, sw.isMultilevel());
+			setGroupSwitchLevel(sw, _level);
 		} else if (sw.isZWaveThermostat()) {
 			controller.send(new ThermostatSetPointSetRequest((byte) sw.getNodeId(), sw.getThermostatMode() == ThermostatMode.COOL ? ThermostatSetPointIndex.COOLING : ThermostatSetPointIndex.HEATING, _level));
 		} else {
@@ -252,11 +275,13 @@ public class ZWaveApp {
 		}
 	}
 
-	private void setGroupSwitchLevel(int _primary, int _level, boolean _multilevel) {
-		List<Integer> nodes = CollectionUtils.asArrayList(_primary);
-		nodes.addAll(CollectionUtils.makeNotNull(peers.get(_primary)));
-		for (int node : nodes) {
-			controller.send(_multilevel ? new MultilevelSwitchSetRequest((byte) node, _level) : new BinarySwitchSetRequest((byte) node, _level > 0));
+	private void setGroupSwitchLevel(Switch _primary, int _level) {
+		if (_primary == null)
+			return;
+		List<Switch> nodes = CollectionUtils.asArrayList(_primary);
+		nodes.addAll(CollectionUtils.makeNotNull(peers.get(_primary.getNodeId())));
+		for (Switch node : nodes) {
+			controller.send(node.isMultilevel() ? new MultilevelSwitchSetRequest((byte) node.getNodeId(), _level) : new BinarySwitchSetRequest((byte) node.getNodeId(), _level > 0));
 		}
 	}
 
@@ -268,10 +293,10 @@ public class ZWaveApp {
 					if (sw.isUrlThermostat() && !sw.isThermometer()) {
 						double tempF = getTemperatureCelsius(sw) * 1.8 + 32;
 						if (tempF > sw.getLevel() + 0.4) {
-							setGroupSwitchLevel(sw.getNodeId(), 0, false);
+							setGroupSwitchLevel(sw, 0);
 							logger.info("Turning {} {} off, temp is: {} set to: {}", sw.getRoom(), sw.getName(), tempF + " set to: ", sw.getLevel());
 						} else if (tempF < sw.getLevel() - 0.4) {
-							setGroupSwitchLevel(sw.getNodeId(), (byte) 0xf, false);
+							setGroupSwitchLevel(sw, (byte) 0xf);
 							logger.info("Turning {} {} on, temp is: {} set to: {}", sw.getRoom(), sw.getName(), tempF + " set to: ", sw.getLevel());
 						}
 					}
