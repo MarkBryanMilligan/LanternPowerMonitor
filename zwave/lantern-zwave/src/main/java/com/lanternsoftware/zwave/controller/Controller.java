@@ -161,7 +161,7 @@ public class Controller {
 						callbacks.put(callback, message.getNodeId());
 						log += " callback: " + callback;
 					}
-					logger.info(log);
+					logger.debug(log);
 					byte[] data = message.toByteArray((byte) 0, callback);
 					logger.debug("Sending outbound: {}", NullUtils.toHexBytes(data));
 					responseReceived = false;
@@ -206,7 +206,7 @@ public class Controller {
 		sendRaw(new byte[]{ACK});
 		Message message = MessageEngine.decode(_buffer);
 		if (message != null) {
-			logger.info("Received message inbound: {}", message.describe());
+			logger.debug("Received message inbound: {}", message.describe());
 			MessageEngine.publish(message);
 			if (message instanceof ResponseMessage) {
 				synchronized (responseMutex) {

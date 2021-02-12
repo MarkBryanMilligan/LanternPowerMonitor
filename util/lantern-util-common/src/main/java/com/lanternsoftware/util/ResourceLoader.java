@@ -118,6 +118,8 @@ public abstract class ResourceLoader {
         try {
             os = new FileOutputStream(_sFile, false);
             os.write(_btData);
+            os.flush();
+            os.getFD().sync();
         }
         catch (Throwable t) {
             LOG.error("Failed to write file: " + _sFile, t);
