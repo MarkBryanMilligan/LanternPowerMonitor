@@ -1,6 +1,10 @@
 # LanternPowerMonitor
 The Lantern Power Monitor is a Raspberry Pi service, Java Web Service, and Android application that allow you to monitor every electrical breaker in your house, regardless of how many panels or breakers you have.
 <br><br>
+Here's an imgur album showing what this is and how it works:
+<br>
+[Lantern Power Monitor - Imgur](https://imgur.com/gallery/SPOJYBR)
+<br><br>
 The android application is available here:
 <br>
 [Lantern Power Monitor - Google Play](https://play.google.com/store/apps/details?id=com.lanternsoftware.lantern)
