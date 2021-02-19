@@ -3,7 +3,6 @@ package com.lanternsoftware.datamodel.currentmonitor;
 
 import com.lanternsoftware.util.DateUtils;
 
-import javax.management.remote.rmi._RMIConnection_Stub;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
