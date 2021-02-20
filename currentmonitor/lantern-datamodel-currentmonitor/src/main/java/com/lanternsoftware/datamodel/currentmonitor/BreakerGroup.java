@@ -174,7 +174,7 @@ public class BreakerGroup {
 		if (subGroups != null)
 			subGroups.removeIf(_g->!_g.removeInvalidGroups(_validPanels));
 		if (breakers != null)
-			breakers.removeIf(_b->(_b.getType() == null) || (_b.getType() == BreakerType.EMPTY) || (_b.isTandemBreaker() && (_b.getPort() < 1)) || !_validPanels.contains(_b.getPanel()));
+			breakers.removeIf(_b->(_b.getType() == null) || (_b.getType() == BreakerType.EMPTY) || !_validPanels.contains(_b.getPanel()));
 		return CollectionUtils.isNotEmpty(subGroups) || CollectionUtils.isNotEmpty(breakers);
 	}
 
