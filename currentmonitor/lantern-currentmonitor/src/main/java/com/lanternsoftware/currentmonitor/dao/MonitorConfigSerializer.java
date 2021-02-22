@@ -1,6 +1,7 @@
 package com.lanternsoftware.currentmonitor.dao;
 
 import com.lanternsoftware.currentmonitor.MonitorConfig;
+import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.util.dao.AbstractDaoSerializer;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoProxyType;
@@ -36,6 +37,13 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		d.put("update_interval", _o.getUpdateInterval());
 		d.put("auto_calibration_voltage", _o.getAutoCalibrationVoltage());
 		d.put("needs_calibration", _o.isNeedsCalibration());
+		d.put("mqtt_broker_url", _o.getMqttBrokerUrl());
+		d.put("mqtt_user_name", _o.getMqttUserName());
+		d.put("mqtt_password", _o.getMqttPassword());
+		d.put("mqtt_voltage_calibration_factor", _o.getMqttVoltageCalibrationFactor());
+		d.put("mqtt_port_calibration_factor", _o.getMqttPortCalibrationFactor());
+		d.put("mqtt_frequency", _o.getMqttFrequency());
+		d.put("mqtt_breakers", DaoSerializer.toDaoEntities(_o.getMqttBreakers(), DaoProxyType.MONGO));
 		return d;
 	}
 
@@ -54,6 +62,13 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		o.setUpdateInterval(DaoSerializer.getInteger(_d, "update_interval"));
 		o.setAutoCalibrationVoltage(DaoSerializer.getFloat(_d, "auto_calibration_voltage"));
 		o.setNeedsCalibration(DaoSerializer.getBoolean(_d, "needs_calibration"));
+		o.setMqttBrokerUrl(DaoSerializer.getString(_d, "mqtt_broker_url"));
+		o.setMqttUserName(DaoSerializer.getString(_d, "mqtt_user_name"));
+		o.setMqttPassword(DaoSerializer.getString(_d, "mqtt_password"));
+		o.setMqttVoltageCalibrationFactor(DaoSerializer.getDouble(_d, "mqtt_voltage_calibration_factor"));
+		o.setMqttPortCalibrationFactor(DaoSerializer.getDouble(_d, "mqtt_port_calibration_factor"));
+		o.setMqttFrequency(DaoSerializer.getInteger(_d, "mqtt_frequency"));
+		o.setMqttBreakers(DaoSerializer.getList(_d, "mqtt_breakers", Breaker.class));
 		return o;
 	}
 }

@@ -71,7 +71,10 @@ public class BleApplication implements GattApplication1, ObjectManager {
         try {
             advertisement.stop();
             appManager.UnregisterApplication(appPath);
+            BleHelper.unExportObject(this);
+            getManagedObjects().forEach(BleHelper::unExportObject);
             BleHelper.connection.disconnect();
+            LOG.info("Bluetooth service and advertisement stopped");
         }
         catch (Exception _e) {
             LOG.error("Failed to unregister application", _e);

@@ -136,7 +136,7 @@ public class Breaker {
 	}
 
 	public double getLowPassFilter() {
-		return lowPassFilter;
+		return Math.abs(lowPassFilter) < 0.05 ? 1.6: lowPassFilter;
 	}
 
 	public void setLowPassFilter(double _lowPassFilter) {
