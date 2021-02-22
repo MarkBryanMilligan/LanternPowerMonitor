@@ -23,7 +23,7 @@ public class MqttPoster {
             if (NullUtils.isNotEmpty(_config.getMqttUserName()))
                 options.setUserName(_config.getMqttUserName());
             if (NullUtils.isNotEmpty(_config.getMqttPassword()))
-                options.setUserName(_config.getMqttPassword());
+                options.setPassword(_config.getMqttPassword().toCharArray());
             c.connect(options);
         } catch (MqttException e) {
             LOG.error("Failed to create MQTT client", e);
