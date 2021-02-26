@@ -99,7 +99,8 @@ public class CurrentMonitor {
 	public void monitorPower(BreakerHub _hub, List<Breaker> _breakers, int _intervalMs, PowerListener _listener) {
 		stopMonitoring();
 		listener = _listener;
-		sampler = new Sampler(_hub, _breakers, _intervalMs, 2);
+		List<Breaker> validBreakers = CollectionUtils.filter(_breakers, _b->_b.getPort() > 0 && _b.getPort() < 16);
+		sampler = new Sampler(_hub, validBreakers, _intervalMs, 2);
 		LOG.info("Starting to monitor ports {}", CollectionUtils.transformToCommaSeparated(_breakers, _b->String.valueOf(_b.getPort())));
 		executor.submit(sampler);
 	}
@@ -241,6 +242,8 @@ public class CurrentMonitor {
 								realPower = 0.0;
 							if (samples.getBreaker().getPolarity() == BreakerPolarity.SOLAR)
 								realPower = -realPower;
+							if (samples.getBreaker().isDoublePower())
+								realPower *= 2.0;
 							if (debug) {
 								synchronized (CurrentMonitor.this) {
 									LOG.info("===========================Start Port {}", samples.getBreaker().getPort());

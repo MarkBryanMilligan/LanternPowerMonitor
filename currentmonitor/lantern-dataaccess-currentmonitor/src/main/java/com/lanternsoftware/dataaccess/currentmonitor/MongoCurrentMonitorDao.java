@@ -110,7 +110,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 
 	@Override
 	public List<BreakerPower> getBreakerPowerForAccount(int _accountId) {
-		return proxy.query(BreakerPower.class, new DaoQuery("account_id", _accountId));
+		return proxy.query(BreakerPower.class, new DaoQuery("account_id", _accountId).andGt("read_time", DateUtils.minutesFromNow(-1).getTime()));
 	}
 
 	@Override

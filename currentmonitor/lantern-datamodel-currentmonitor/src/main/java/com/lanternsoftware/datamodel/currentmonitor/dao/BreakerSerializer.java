@@ -38,6 +38,7 @@ public class BreakerSerializer extends AbstractDaoSerializer<Breaker>
 		d.put("calibration_factor", _o.getCalibrationFactor());
 		d.put("low_pass_filter", _o.getLowPassFilter());
 		d.put("polarity", DaoSerializer.toEnumName(_o.getPolarity()));
+		d.put("double_power", _o.isDoublePower());
 		d.put("type", DaoSerializer.toEnumName(_o.getType()));
 		return d;
 	}
@@ -57,6 +58,7 @@ public class BreakerSerializer extends AbstractDaoSerializer<Breaker>
 		o.setCalibrationFactor(DaoSerializer.getDouble(_d, "calibration_factor"));
 		o.setLowPassFilter(DaoSerializer.getDouble(_d, "low_pass_filter"));
 		o.setPolarity(DaoSerializer.getEnum(_d, "polarity", BreakerPolarity.class));
+		o.setDoublePower(DaoSerializer.getBoolean(_d, "double_power"));
 		o.setType(DaoSerializer.getEnum(_d, "type", BreakerType.class));
 		return o;
 	}

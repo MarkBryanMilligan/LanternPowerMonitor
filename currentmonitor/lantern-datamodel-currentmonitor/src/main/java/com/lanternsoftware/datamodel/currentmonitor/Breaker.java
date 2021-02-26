@@ -21,6 +21,7 @@ public class Breaker {
 	private double calibrationFactor;
 	private double lowPassFilter;
 	private BreakerPolarity polarity;
+	private boolean doublePower;
 	private BreakerType type;
 	private transient String key;
 
@@ -149,6 +150,14 @@ public class Breaker {
 
 	public void setPolarity(BreakerPolarity _polarity) {
 		polarity = _polarity;
+	}
+
+	public boolean isDoublePower() {
+		return doublePower;
+	}
+
+	public void setDoublePower(boolean _doublePower) {
+		doublePower = _doublePower;
 	}
 
 	public double getCalibrationFactor() {

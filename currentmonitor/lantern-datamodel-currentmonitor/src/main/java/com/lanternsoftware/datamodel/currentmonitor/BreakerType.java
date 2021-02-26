@@ -9,7 +9,8 @@ public enum BreakerType {
 	EMPTY("Empty"),
 	SINGLE_POLE("Single Pole"),
 	SINGLE_POLE_TANDEM("Single Pole Tandem (Two Breakers in One)"),
-	DOUBLE_POLE_TOP("Double Pole (240V)"),
+	DOUBLE_POLE_TOP("Double Pole (240V) Two CTs"),
+	DOUBLE_POLE_TOP_ONE_CT("Double Pole (240V) One CT Doubled"),
 	DOUBLE_POLE_BOTTOM("Double Pole (240V)");
 
 	private final String display;
@@ -23,7 +24,7 @@ public enum BreakerType {
 	}
 
 	public static List<BreakerType> selectable() {
-		return CollectionUtils.asArrayList(EMPTY, SINGLE_POLE, SINGLE_POLE_TANDEM, DOUBLE_POLE_TOP);
+		return CollectionUtils.asArrayList(EMPTY, SINGLE_POLE, SINGLE_POLE_TANDEM, DOUBLE_POLE_TOP, DOUBLE_POLE_TOP_ONE_CT);
 	}
 
 	public static BreakerType fromDisplay(String _display) {
@@ -32,5 +33,9 @@ public enum BreakerType {
 				return type;
 		}
 		return null;
+	}
+
+	public static boolean isDoublePoleTop(BreakerType _type) {
+		return NullUtils.isOneOf(_type, DOUBLE_POLE_TOP, DOUBLE_POLE_TOP_ONE_CT);
 	}
 }
