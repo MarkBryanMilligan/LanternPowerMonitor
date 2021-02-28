@@ -38,7 +38,7 @@ This is only tangentially related.  A java library for running a zwave controlle
 
 # Ok, how do I run this thing?
 The easiest way to run the software on a hub is to download a pre-built SD card image.  One can be downloaded here:<br>
-[hub_1.0.img](https://lanternsoftware.com:13781/hub_1.0.img)<br>
+[hub_1.0.0.zip](https://lanternsoftware.com:13781/hub_1.0.0.zip)<br>
 Flash this to any micro sd card (4gig or larger) and you're good to go.  Fire up the hub and the phone app should be able to connect to it via bluetooth to finish the configuration.<br>
 This image will post the data to lanternsoftware.com.  It's stored there securely and only you will have access to it; the data won't be shared or sold to anyone.  If you really want to run your own server, you're of course welcome to do that instead, instructions are located further down.
 
