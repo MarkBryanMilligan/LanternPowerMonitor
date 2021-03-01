@@ -13,10 +13,12 @@ import com.lanternsoftware.datamodel.currentmonitor.BreakerPowerMinute;
 import com.lanternsoftware.datamodel.currentmonitor.HubConfigCharacteristic;
 import com.lanternsoftware.datamodel.currentmonitor.HubConfigService;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
+import com.lanternsoftware.datamodel.currentmonitor.NetworkStatus;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
+import com.lanternsoftware.util.ZipUtils;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoSerializer;
@@ -39,6 +41,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -165,20 +168,32 @@ public class MonitorApp {
 					return ByteBuffer.allocate(4).putInt(breakerConfig == null?0:breakerConfig.getAccountId()).array();
 				if (HubConfigCharacteristic.NetworkState == ch)
 					return new byte[]{NetworkMonitor.getNetworkStatus().toMask()};
+				if (HubConfigCharacteristic.NetworkDetails == ch) {
+					NetworkStatus status = NetworkMonitor.getNetworkStatus();
+					DaoEntity meta = DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
+					status.setPingSuccessful(CollectionUtils.isNotEmpty(meta));
+					return DaoSerializer.toZipBson(status);
+				}
+				if (HubConfigCharacteristic.Log == ch) {
+					String[] log = NullUtils.cleanSplit(ResourceLoader.loadFileAsString(WORKING_DIR + "log/log.txt"), "\n");
+					if (log.length > 10)
+						log = Arrays.copyOfRange(log, log.length-10, log.length);
+					return ZipUtils.zip(NullUtils.toByteArray(CollectionUtils.delimit(Arrays.asList(log), "\n")));
+				}
 				return null;
 			}
 		});
 		bluetoothConfig.start();
 		if (NullUtils.isNotEmpty(config.getAuthCode()))
 			authCode = config.getAuthCode();
-		else if (NullUtils.isNotEmpty(host)) {
+		else if (NullUtils.isNotEmpty(host) && NullUtils.isNotEmpty(config.getUsername()) && NullUtils.isNotEmpty(config.getPassword())) {
 			HttpGet auth = new HttpGet(host + "auth");
 			HttpPool.addBasicAuthHeader(auth, config.getUsername(), config.getPassword());
 			authCode = DaoSerializer.getString(DaoSerializer.parse(pool.executeToString(auth)), "auth_code");
 		}
 		if (NullUtils.isNotEmpty(config.getMqttBrokerUrl()))
 			mqttPoster = new MqttPoster(config);
-		if (NullUtils.isNotEmpty(host)) {
+		if (NullUtils.isNotEmpty(host) && NullUtils.isNotEmpty(authCode)) {
 			while (true) {
 				HttpGet get = new HttpGet(host + "config");
 				get.addHeader("auth_code", authCode);
@@ -209,24 +224,26 @@ public class MonitorApp {
 				breakerConfig.getBreakerGroups().add(g);
 			}
 		}
-		LOG.info("Breaker Config loaded");
-		BreakerHub hub = breakerConfig.getHub(config.getHub());
-		if (hub != null) {
-			if (config.isNeedsCalibration() && (config.getAutoCalibrationVoltage() != 0.0)) {
-				double newCal = monitor.calibrateVoltage(hub.getVoltageCalibrationFactor(), config.getAutoCalibrationVoltage());
-				if (newCal != 0.0) {
-					hub.setVoltageCalibrationFactor(newCal);
-					config.setNeedsCalibration(false);
-					ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-					post(DaoSerializer.toZipBson(breakerConfig), "config");
+		if (breakerConfig != null) {
+			LOG.info("Breaker Config loaded");
+			BreakerHub hub = breakerConfig.getHub(config.getHub());
+			if (hub != null) {
+				if (config.isNeedsCalibration() && (config.getAutoCalibrationVoltage() != 0.0)) {
+					double newCal = monitor.calibrateVoltage(hub.getVoltageCalibrationFactor(), config.getAutoCalibrationVoltage());
+					if (newCal != 0.0) {
+						hub.setVoltageCalibrationFactor(newCal);
+						config.setNeedsCalibration(false);
+						ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
+						post(DaoSerializer.toZipBson(breakerConfig), "config");
+					}
 				}
+				List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
+				LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(breakers), hub.getHub());
+				if (CollectionUtils.size(breakers) > 0)
+					monitor.monitorPower(hub, breakers, 1000, logger);
 			}
-			List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
-			LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(breakers), hub.getHub());
-			if (CollectionUtils.size(breakers) > 0)
-				monitor.monitorPower(hub, breakers, 1000, logger);
+			monitor.submit(new PowerPoster());
 		}
-		monitor.submit(new PowerPoster());
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			synchronized (running) {
 				running.set(false);

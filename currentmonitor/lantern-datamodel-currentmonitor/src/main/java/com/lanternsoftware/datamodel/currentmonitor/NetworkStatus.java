@@ -1,13 +1,16 @@
 package com.lanternsoftware.datamodel.currentmonitor;
 
 import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
 import java.util.EnumSet;
 import java.util.List;
 
+@DBSerializable
 public class NetworkStatus {
 	private List<String> wifiIPs;
 	private List<String> ethernetIPs;
+	private boolean pingSuccessful = true;
 
 	public List<String> getWifiIPs() {
 		return wifiIPs;
@@ -25,6 +28,14 @@ public class NetworkStatus {
 		ethernetIPs = _ethernetIPs;
 	}
 
+	public boolean isPingSuccessful() {
+		return pingSuccessful;
+	}
+
+	public void setPingSuccessful(boolean _pingSuccessful) {
+		pingSuccessful = _pingSuccessful;
+	}
+
 	public boolean isWifiConnected() {
 		return CollectionUtils.isNotEmpty(wifiIPs);
 	}
@@ -35,9 +46,9 @@ public class NetworkStatus {
 
 	public byte toMask() {
 		EnumSet<NetworkAdapter> adapters = EnumSet.noneOf(NetworkAdapter.class);
-		if (isWifiConnected())
+		if (isWifiConnected() && isPingSuccessful())
 			adapters.add(NetworkAdapter.WIFI);
-		if (isEthernetConnected())
+		if (isEthernetConnected() && isPingSuccessful())
 			adapters.add(NetworkAdapter.ETHERNET);
 		return NetworkAdapter.toMask(adapters);
 	}

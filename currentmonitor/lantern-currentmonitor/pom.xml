@@ -3,7 +3,7 @@
 	<groupId>com.lanternsoftware.currentmonitor</groupId>
 	<artifactId>lantern-currentmonitor</artifactId>
 	<packaging>jar</packaging>
-	<version>0.9.6</version>
+	<version>1.0.1</version>
 	<name>lantern-currentmonitor</name>
 
 	<properties>

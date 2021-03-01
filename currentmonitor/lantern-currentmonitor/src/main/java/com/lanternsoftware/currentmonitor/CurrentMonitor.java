@@ -101,7 +101,7 @@ public class CurrentMonitor {
 		listener = _listener;
 		List<Breaker> validBreakers = CollectionUtils.filter(_breakers, _b->_b.getPort() > 0 && _b.getPort() < 16);
 		sampler = new Sampler(_hub, validBreakers, _intervalMs, 2);
-		LOG.info("Starting to monitor ports {}", CollectionUtils.transformToCommaSeparated(_breakers, _b->String.valueOf(_b.getPort())));
+		LOG.info("Starting to monitor ports {}", CollectionUtils.transformToCommaSeparated(validBreakers, _b->String.valueOf(_b.getPort())));
 		executor.submit(sampler);
 	}
 
