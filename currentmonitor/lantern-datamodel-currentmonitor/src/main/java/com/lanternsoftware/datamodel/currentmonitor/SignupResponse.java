@@ -7,6 +7,7 @@ import com.lanternsoftware.util.dao.annotations.DBSerializable;
 public class SignupResponse {
 	private String error;
 	private String authCode;
+	private String timezone;
 
 	public SignupResponse() {
 	}
@@ -17,9 +18,10 @@ public class SignupResponse {
 		return response;
 	}
 
-	public static SignupResponse success(String _authCode) {
+	public static SignupResponse success(String _authCode, String _timezone) {
 		SignupResponse response = new SignupResponse();
 		response.setAuthCode(_authCode);
+		response.setTimezone(_timezone);
 		return response;
 	}
 
@@ -37,6 +39,14 @@ public class SignupResponse {
 
 	public void setAuthCode(String _authCode) {
 		authCode = _authCode;
+	}
+
+	public String getTimezone() {
+		return timezone;
+	}
+
+	public void setTimezone(String _timezone) {
+		timezone = _timezone;
 	}
 
 	public boolean isSuccess() {

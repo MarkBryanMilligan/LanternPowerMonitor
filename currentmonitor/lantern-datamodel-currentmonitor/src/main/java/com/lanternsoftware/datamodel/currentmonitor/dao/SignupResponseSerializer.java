@@ -27,6 +27,7 @@ public class SignupResponseSerializer extends AbstractDaoSerializer<SignupRespon
 		DaoEntity d = new DaoEntity();
 		d.put("error", _o.getError());
 		d.put("auth_code", _o.getAuthCode());
+		d.put("timezone", _o.getTimezone());
 		return d;
 	}
 
@@ -36,6 +37,7 @@ public class SignupResponseSerializer extends AbstractDaoSerializer<SignupRespon
 		SignupResponse o = new SignupResponse();
 		o.setError(DaoSerializer.getString(_d, "error"));
 		o.setAuthCode(DaoSerializer.getString(_d, "auth_code"));
+		o.setTimezone(DaoSerializer.getString(_d, "timezone"));
 		return o;
 	}
 }

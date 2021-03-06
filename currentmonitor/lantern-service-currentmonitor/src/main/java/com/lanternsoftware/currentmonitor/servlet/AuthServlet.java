@@ -56,7 +56,7 @@ public class AuthServlet extends CMServlet {
 			} else
 				authCode = Globals.dao.authenticateAccount(auth.getUsername(), auth.getPassword());
 		}
-		DaoEntity rep = new DaoEntity("auth_code", authCode);
+		DaoEntity rep = new DaoEntity("auth_code", authCode).and("timezone", Globals.dao.getTimeZoneForAccount(authCode));
 		if (isPath(_req, 0, "bin"))
 			zipBsonResponse(_rep, rep);
 		else

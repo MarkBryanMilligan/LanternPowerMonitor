@@ -2,6 +2,7 @@ package com.lanternsoftware.datamodel.currentmonitor.bom;
 
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
+import com.lanternsoftware.datamodel.currentmonitor.BreakerType;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.csv.CSV;
 import com.lanternsoftware.util.dao.DaoSerializer;
@@ -18,7 +19,33 @@ public class BOM {
 	public static BOM fromConfig(BreakerConfig _config) {
 		BOM bom = new BOM();
 		bom.setLineItems(new ArrayList<>());
-		int hubCnt = (int)Math.ceil(CollectionUtils.size(_config.getAllBreakers())/15.0);
+		Map<Integer, AtomicInteger> ctCnts = new TreeMap<>();
+		Map<Integer, AtomicInteger> ctDuplicates = new TreeMap<>();
+		for (Breaker breaker : CollectionUtils.makeNotNull(_config.getAllBreakers())) {
+			if (breaker.getSizeAmps() <= 20) {
+				ctCnts.computeIfAbsent(20, (_k) -> new AtomicInteger(0)).getAndIncrement();
+				if (breaker.getType() == BreakerType.DOUBLE_POLE_TOP_ONE_CT)
+					ctDuplicates.computeIfAbsent(20, (_k) -> new AtomicInteger(0)).getAndIncrement();
+			}
+			else if (breaker.getSizeAmps() <= 30) {
+				ctCnts.computeIfAbsent(30, (_k) -> new AtomicInteger(0)).getAndIncrement();
+				if (breaker.getType() == BreakerType.DOUBLE_POLE_TOP_ONE_CT)
+					ctDuplicates.computeIfAbsent(30, (_k) -> new AtomicInteger(0)).getAndIncrement();
+			}
+			else {
+				ctCnts.computeIfAbsent(50, (_k) -> new AtomicInteger(0)).getAndIncrement();
+				if (breaker.getType() == BreakerType.DOUBLE_POLE_TOP_ONE_CT)
+					ctDuplicates.computeIfAbsent(50, (_k) -> new AtomicInteger(0)).getAndIncrement();
+			}
+		}
+		for (Map.Entry<Integer, AtomicInteger> ctCnt : ctDuplicates.entrySet()) {
+			AtomicInteger cnt = ctCnts.get(ctCnt.getKey());
+			if (cnt != null)
+				cnt.getAndAdd(-ctCnt.getValue().get());
+		}
+		int breakerCnt = CollectionUtils.sumIntegers(CollectionUtils.transform(ctCnts.values(), AtomicInteger::get));
+		int hubCnt = (int)Math.ceil(breakerCnt/15.0);
+
 		bom.getLineItems().add(new LineItem("Lantern Power Monitor Case", "LPMC1", "https://github.com/MarkBryanMilligan/LanternPowerMonitor/tree/main/case", 0.10, 3.00, hubCnt));
 		bom.getLineItems().add(new LineItem("Lantern Power Monitor Case Lid", "LPMCL1", "https://github.com/MarkBryanMilligan/LanternPowerMonitor/tree/main/case", 0.10, 2.00, hubCnt));
 		bom.getLineItems().add(new LineItem("Lantern Power Monitor Soldering Jig", "LPMSJ1", "https://github.com/MarkBryanMilligan/LanternPowerMonitor/tree/main/case", 0.10, 4.00, 1));
@@ -39,15 +66,6 @@ public class BOM {
 		bom.getLineItems().add(new LineItem("M2.5x10mm Cap Screw", "A15120300ux0225", "https://www.amazon.com/gp/product/B01B1OD7IK", 0.10, 0.20, hubCnt*8));
 		bom.getLineItems().add(new LineItem("M2.5x11mm Female x Female Standoff", "", "https://www.ebay.com/itm/50pcs-M2-5-Female-Hex-Screw-Brass-PCB-Standoffs-Hexagonal-Spacers/172746413434", 0.15, 0.25, hubCnt*4));
 		bom.getLineItems().add(new LineItem("M2.5x12mm Female x Male Standoff", "", "https://www.ebay.com/itm/M2-5-2-5mm-Thread-6mm-Brass-Standoff-Spacer-Male-x-Female-20-50pcs-New/283432513974", 0.15, 0.25, hubCnt*4));
-		Map<Integer, AtomicInteger> ctCnts = new TreeMap<>();
-		for (Breaker breaker : CollectionUtils.makeNotNull(_config.getAllBreakers())) {
-			if (breaker.getSizeAmps() <= 20)
-				ctCnts.computeIfAbsent(20, (_k)->new AtomicInteger(0)).getAndIncrement();
-			else if (breaker.getSizeAmps() <= 30)
-				ctCnts.computeIfAbsent(30, (_k)->new AtomicInteger(0)).getAndIncrement();
-			else
-				ctCnts.computeIfAbsent(50, (_k)->new AtomicInteger(0)).getAndIncrement();
-		}
 		for (Map.Entry<Integer, AtomicInteger> ctCnt : ctCnts.entrySet()) {
 			bom.getLineItems().add(new LineItem(String.format("%d Amp Current Transformer", ctCnt.getKey()), String.format("SCT-013-0%d", ctCnt.getKey()), "N/A", 5.00, 7.00, ctCnt.getValue().get()));
 		}

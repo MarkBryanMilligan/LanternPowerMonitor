@@ -200,7 +200,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		Account acct = proxy.queryOne(Account.class, new DaoQuery("username", _username));
 		if ((acct == null) || !BCrypt.checkpw(_password, acct.getPassword()))
 			return null;
-		return aes.encryptToBase64(DaoSerializer.toZipBson(new AuthCode(acct.getId(), acct.getAuxiliaryAccountIds())));
+		return toAuthCode(acct.getId(), acct.getAuxiliaryAccountIds());
 	}
 
 	@Override
@@ -226,7 +226,13 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 			account.setTimezone(_tz.getID());
 			putAccount(account);
 		}
-		return aes.encryptToBase64(DaoSerializer.toZipBson(new AuthCode(account.getId(), account.getAuxiliaryAccountIds())));
+		return toAuthCode(account.getId(), account.getAuxiliaryAccountIds());
+	}
+
+	public String toAuthCode(int _acctId, List<Integer> _auxAcctIds) {
+		if (_acctId < 1)
+			return null;
+		return aes.encryptToBase64(DaoSerializer.toZipBson(new AuthCode(_acctId, _auxAcctIds)));
 	}
 
 	@Override
@@ -273,6 +279,14 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 			logger.error("TimeZone not configured correctly for account {}", _accountId);
 		}
 		return tz == null ? TimeZone.getTimeZone("America/Chicago") : tz;
+	}
+
+	@Override
+	public String getTimeZoneForAccount(String _authCode) {
+		AuthCode code = decryptAuthCode(_authCode);
+		if (code == null)
+			return null;
+		return getTimeZoneForAccount(code.getAccountId()).getID();
 	}
 
 	private Account clearPassword(Account _account) {

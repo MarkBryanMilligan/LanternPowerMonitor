@@ -41,6 +41,7 @@ public interface CurrentMonitorDao {
 	Account getAccount(int _accountId);
 	Account getAccountByUsername(String _username);
 	TimeZone getTimeZoneForAccount(int _accountId);
+	String getTimeZoneForAccount(String _authCode);
 
 	MongoProxy getProxy();
 }

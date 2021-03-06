@@ -40,6 +40,6 @@ public class SignupServlet extends CMServlet {
 		acct.setTimezone(DateUtils.fromTimeZoneId(_req.getHeader("timezone")).getID());
 		Globals.dao.putAccount(acct);
 		String authCode = Globals.dao.authenticateAccount(auth.getUsername(), auth.getPassword());
-		jsonResponse(_rep, SignupResponse.success(authCode));
+		jsonResponse(_rep, SignupResponse.success(authCode, acct.getTimezone()));
 	}
 }
