@@ -153,7 +153,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 			BreakerGroupEnergy summary = BreakerGroupEnergy.summary(_rootGroup, energies, EnergyBlockViewMode.YEAR, year, _tz);
 			putBreakerGroupEnergy(summary);
 		}
-		List<BreakerGroupSummary> groupEnergies = CollectionUtils.aggregate(proxy.query(BreakerGroupSummary.class, new DaoQuery("group_id", _rootGroup.getId()).and("view_mode", EnergyBlockViewMode.YEAR.name())), BreakerGroupSummary::getAllGroups);
+		List<BreakerGroupSummary> groupEnergies = CollectionUtils.aggregate(proxy.query(BreakerGroupSummary.class, new DaoQuery("account_id", _rootGroup.getAccountId()).and("group_id", _rootGroup.getId()).and("view_mode", EnergyBlockViewMode.YEAR.name())), BreakerGroupSummary::getAllGroups);
 		Map<String, List<BreakerGroupSummary>> energies = CollectionUtils.transformToMultiMap(groupEnergies, BreakerGroupSummary::getGroupId);
 		BreakerGroupEnergy summary = BreakerGroupEnergy.summary(_rootGroup, energies, EnergyBlockViewMode.ALL, new Date(0), _tz);
 		putBreakerGroupEnergy(summary);
