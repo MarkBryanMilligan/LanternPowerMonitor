@@ -154,6 +154,14 @@ public class MonitorApp {
 									LOG.error("Exception occurred while trying to reboot", _e);
 								}
 								break;
+							case Shutdown:
+								LOG.info("Shutting down Pi...");
+								try {
+									Runtime.getRuntime().exec(new String[]{"shutdown","now"});
+								} catch (IOException _e) {
+									LOG.error("Exception occurred while trying to shutdown", _e);
+								}
+								break;
 						}
 					}
 				});
