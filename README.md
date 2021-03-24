@@ -38,9 +38,9 @@ This is only tangentially related.  A java library for running a zwave controlle
 
 # Ok, how do I run this thing?
 The easiest way to run the software on a hub is to download a pre-built SD card image.  One can be downloaded here:<br>
-[hub_1.0.1.zip](https://lanternsoftware.com:13781/hub_1.0.1.zip)<br><br>
+[hub_1.0.3.zip](https://lanternsoftware.com:13781/hub_1.0.3.zip)<br><br>
 Flash this to any micro sd card (4gig or larger) and you're good to go.  Fire up the hub and the phone app should be able to connect to it via bluetooth to finish the configuration.  The default password on this image is pi/LanternPowerMonitor<br><br>
-By default, this image will post the data to lanternsoftware.com, but you can change that using the android app or by changing the config file at /opt/currentmonitor.  It's stored there securely and only you will have access to it; the data won't be shared or sold to anyone.  If you really want to run your own server, you're of course welcome to do that instead, instructions are located further down.
+When you add the hub to your configuration via the app, you can change where the hub posts data.  If you use lanternsoftware.com (the default host), your data will be stored there securely and won't be shared with or sold to anyone.  If you really want to run your own server, you're of course welcome to do that instead, instructions are located further down.
 
 ## Now that the service is running on the pi, how do I configure everything in the android app?
 1. Create your panel in the "Configure Panels" page from the main menu. Before you have your hub connected, there will be no place to select a hub and port for each breaker. Don't worry, we'll get to that later.
