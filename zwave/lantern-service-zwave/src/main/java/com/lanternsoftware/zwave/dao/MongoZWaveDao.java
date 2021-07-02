@@ -12,6 +12,7 @@ public class MongoZWaveDao implements ZWaveDao {
 		proxy = new MongoProxy(_config);
 	}
 
+	@Override
 	public void shutdown() {
 		proxy.shutdown();
 	}

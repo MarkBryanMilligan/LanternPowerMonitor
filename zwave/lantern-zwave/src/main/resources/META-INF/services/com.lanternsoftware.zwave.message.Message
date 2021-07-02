@@ -1,4 +1,6 @@
 com.lanternsoftware.zwave.message.impl.ApplicationUpdateRequest
+com.lanternsoftware.zwave.message.impl.AssociationGetRequest
+com.lanternsoftware.zwave.message.impl.AssociationReportRequest
 com.lanternsoftware.zwave.message.impl.BinarySwitchSetRequest
 com.lanternsoftware.zwave.message.impl.BinarySwitchReportRequest
 com.lanternsoftware.zwave.message.impl.ByteMessage

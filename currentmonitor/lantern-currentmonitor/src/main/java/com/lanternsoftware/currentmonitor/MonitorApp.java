@@ -178,14 +178,14 @@ public class MonitorApp {
 					return new byte[]{NetworkMonitor.getNetworkStatus().toMask()};
 				if (HubConfigCharacteristic.NetworkDetails == ch) {
 					NetworkStatus status = NetworkMonitor.getNetworkStatus();
-					DaoEntity meta = DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
+					DaoEntity meta = (host == null)?null:DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
 					status.setPingSuccessful(CollectionUtils.isNotEmpty(meta));
 					return DaoSerializer.toZipBson(status);
 				}
 				if (HubConfigCharacteristic.Log == ch) {
 					String[] log = NullUtils.cleanSplit(ResourceLoader.loadFileAsString(WORKING_DIR + "log/log.txt"), "\n");
-					if (log.length > 10)
-						log = Arrays.copyOfRange(log, log.length-10, log.length);
+					if (log.length > 15)
+						log = Arrays.copyOfRange(log, log.length-15, log.length);
 					return ZipUtils.zip(NullUtils.toByteArray(CollectionUtils.delimit(Arrays.asList(log), "\n")));
 				}
 				return null;
@@ -341,7 +341,7 @@ public class MonitorApp {
 								if (files != null) {
 									for (File file : files) {
 										payload = ResourceLoader.loadFile(file.getAbsolutePath());
-										if (post(payload, file.getName().endsWith("dat") ? "power/batch" : "power/hub"))
+										if (post(payload, "power/hub"))
 											file.delete();
 										else
 											break;
@@ -401,7 +401,7 @@ public class MonitorApp {
 	private static final class UpdateChecker implements Runnable {
 		@Override
 		public void run() {
-			if (NullUtils.isNotEmpty(host)) {
+			if (NullUtils.isNotEmpty(host) && config.isAutoUpdate()) {
 				DaoEntity meta = DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
 				String newVersion = DaoSerializer.getString(meta, "version");
 				if (NullUtils.isNotEqual(newVersion, version)) {

@@ -1,16 +1,22 @@
 package com.lanternsoftware.zwave.servlet;
 
 import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.ResourceLoader;
+import com.lanternsoftware.util.cryptography.AESTool;
+import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.zwave.context.Globals;
+import com.lanternsoftware.zwave.context.ZWaveApp;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public abstract class SecureServlet extends ZWaveServlet {
+
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
-		AuthCode authCode = Globals.cmDao.decryptAuthCode(_req.getHeader("auth_code"));
-		if ((authCode == null) || (authCode.getAccountId() != 1)) {
+		AuthCode authCode = DaoSerializer.fromZipBson(ZWaveApp.aes.decryptFromBase64(_req.getHeader("auth_code")), AuthCode.class);
+		if ((authCode == null) || (authCode.getAccountId() != 100)) {
 			_rep.setStatus(401);
 			return;
 		}
@@ -22,8 +28,8 @@ public abstract class SecureServlet extends ZWaveServlet {
 
 	@Override
 	protected void doPost(HttpServletRequest _req, HttpServletResponse _rep) {
-		AuthCode authCode = Globals.cmDao.decryptAuthCode(_req.getHeader("auth_code"));
-		if ((authCode == null) || (authCode.getAccountId() != 1)) {
+		AuthCode authCode = DaoSerializer.fromZipBson(ZWaveApp.aes.decryptFromBase64(_req.getHeader("auth_code")), AuthCode.class);
+		if ((authCode == null) || (authCode.getAccountId() != 100)) {
 			_rep.setStatus(401);
 			return;
 		}

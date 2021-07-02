@@ -1,6 +1,7 @@
 package com.lanternsoftware.zwave.servlet;
 
 import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.datamodel.zwave.Switch;
 import com.lanternsoftware.datamodel.zwave.SwitchSchedule;
 import com.lanternsoftware.datamodel.zwave.ThermostatMode;
 import com.lanternsoftware.util.CollectionUtils;
@@ -48,6 +49,9 @@ public class SwitchServlet extends SecureServlet {
 				List<SwitchSchedule> transitions = DaoSerializer.parseList(json, SwitchSchedule.class);
 				Globals.app.setSwitchSchedule(nodeId, transitions);
 			}
+		}
+		else {
+			Globals.app.updateSwitch(getRequestPayload(_req, Switch.class));
 		}
 	}
 }

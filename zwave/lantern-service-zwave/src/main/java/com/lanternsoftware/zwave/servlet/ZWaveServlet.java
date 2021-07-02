@@ -80,6 +80,9 @@ public abstract class ZWaveServlet extends HttpServlet {
 			IOUtils.closeQuietly(is);
 		}
 	}
+	protected <T> T getRequestPayload(HttpServletRequest _req, Class<T> _retClass) {
+		return DaoSerializer.fromZipBson(getRequestPayload(_req), _retClass);
+	}
 
 	protected String[] path(HttpServletRequest _req) {
 		return NullUtils.cleanSplit(NullUtils.makeNotNull(_req.getPathInfo()), "/");

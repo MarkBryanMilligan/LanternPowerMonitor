@@ -80,6 +80,8 @@ public class HttpPool {
         CloseableHttpResponse resp = null;
         try {
             resp = execute(_request);
+            if (resp == null)
+                return null;
             if ((resp.getStatusLine().getStatusCode() < 200) || (resp.getStatusLine().getStatusCode() >= 300)) {
                 LOG.error("Failed to make http request to " + _request.getURI().toString() + ". Status code: " + resp.getStatusLine().getStatusCode());
                 return null;

@@ -20,8 +20,13 @@
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.currentmonitor</groupId>
-            <artifactId>lantern-dataaccess-currentmonitor</artifactId>
+            <artifactId>lantern-datamodel-currentmonitor</artifactId>
             <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.pi4j</groupId>
+            <artifactId>pi4j-gpio-extension</artifactId>
+            <version>1.3</version>
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.zwave</groupId>

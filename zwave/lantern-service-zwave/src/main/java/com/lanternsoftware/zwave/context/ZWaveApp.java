@@ -1,5 +1,6 @@
 package com.lanternsoftware.zwave.context;
 
+import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
 import com.lanternsoftware.datamodel.zwave.Switch;
 import com.lanternsoftware.datamodel.zwave.SwitchSchedule;
 import com.lanternsoftware.datamodel.zwave.SwitchTransition;
@@ -9,7 +10,9 @@ import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
+import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
+import com.lanternsoftware.util.cryptography.AESTool;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
 import com.lanternsoftware.util.http.HttpPool;
@@ -19,6 +22,7 @@ import com.lanternsoftware.zwave.message.IMessageSubscriber;
 import com.lanternsoftware.zwave.message.MessageEngine;
 import com.lanternsoftware.zwave.message.impl.BinarySwitchReportRequest;
 import com.lanternsoftware.zwave.message.impl.BinarySwitchSetRequest;
+import com.lanternsoftware.zwave.message.impl.CRC16EncapRequest;
 import com.lanternsoftware.zwave.message.impl.MultilevelSensorGetRequest;
 import com.lanternsoftware.zwave.message.impl.MultilevelSensorReportRequest;
 import com.lanternsoftware.zwave.message.impl.MultilevelSwitchReportRequest;
@@ -27,7 +31,10 @@ import com.lanternsoftware.zwave.message.impl.ThermostatModeSetRequest;
 import com.lanternsoftware.zwave.message.impl.ThermostatSetPointReportRequest;
 import com.lanternsoftware.zwave.message.impl.ThermostatSetPointSetRequest;
 import com.lanternsoftware.zwave.message.thermostat.ThermostatSetPointIndex;
+import com.lanternsoftware.zwave.relay.RelayController;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ByteArrayEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,31 +42,57 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class ZWaveApp {
+	public static final AESTool aes = new AESTool(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "authKey.dat"));
+	public static String authCode = aes.encryptToBase64(DaoSerializer.toZipBson(new AuthCode(100, null)));
+
 	private static final Logger logger = LoggerFactory.getLogger(ZWaveApp.class);
 
 	private MongoZWaveDao dao;
 	private ZWaveConfig config;
 	private Controller controller;
+	private RelayController relayController;
+	private final Map<Integer, Switch> originalSwitches = new HashMap<>();
 	private final Map<Integer, Switch> switches = new HashMap<>();
+	private final Map<Integer, Switch> mySwitches = new HashMap<>();
 	private final Map<Integer, List<Switch>> peers = new HashMap<>();
 	private Timer timer;
 	private HttpPool pool;
 	private SwitchScheduleTask nextScheduleTask;
-	private final Map<Integer, Double> temperatures = new HashMap<>();
+	private final Map<Integer, Double> sensors = new HashMap<>();
 	private final Object ZWAVE_MUTEX = new Object();
 
 	public void start() {
 		try {
-			dao = new  MongoZWaveDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
-			controller = new Controller();
-			controller.start("COM4");
+			pool = new HttpPool(100, 20, 5000, 5000, 5000);
+			config = DaoSerializer.parse(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "config.json"), ZWaveConfig.class);
+			if (config == null) {
+				dao = new MongoZWaveDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
+				config = dao.getConfig(1);
+			}
+			if (NullUtils.isNotEmpty(config.getCommPort())) {
+				controller = new Controller();
+				controller.start(config.getCommPort());
+			}
+			if (!config.isMaster()) {
+				HttpGet get = new HttpGet(config.getMasterUrl() + "/config");
+				get.setHeader("auth_code", authCode);
+				ZWaveConfig switchConfig = DaoSerializer.parse(pool.executeToString(get), ZWaveConfig.class);
+				if (switchConfig != null) {
+					config.setSwitches(switchConfig.getSwitches());
+				}
+				else {
+					logger.error("Failed to retrieve switch config from master controller");
+					stop();
+					return;
+				}
+			}
 			timer = new Timer("ZWaveApp Timer");
-			pool = new HttpPool(10, 10, 30000, 10000, 10000);
 
 ////			for (int node = 3; node < 7; node++) {
 //				session.doAction(new ConfigurationSetAction(node, (byte) 7, new byte[]{99}));
@@ -78,20 +111,26 @@ public class ZWaveApp {
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
-		config = dao.getConfig(1);
 		Map<String, List<Switch>> groups = new HashMap<>();
-		for (Switch sw : CollectionUtils.makeNotNull(config.getSwitches())) {
+		for (Switch sw : config.getSwitches()) {
 			switches.put(sw.getNodeId(), sw);
+			originalSwitches.put(sw.getNodeId(), sw.duplicate());
+			if (config.isMySwitch(sw))
+				mySwitches.put(sw.getNodeId(), sw);
 			CollectionUtils.addToMultiMap(sw.getRoom() + ":" + sw.getName(), sw, groups);
 		}
-		if (CollectionUtils.filterOne(config.getSwitches(), Switch::isUrlThermostat) != null) {
+		if (CollectionUtils.anyQualify(mySwitches.values(), Switch::isThermometerUrlValid)) {
 			timer.scheduleAtFixedRate(new ThermostatTask(), 0, 30000);
+		}
+		if (CollectionUtils.anyQualify(mySwitches.values(), Switch::isRelay)) {
+			relayController = new RelayController();
 		}
 		for (List<Switch> group : groups.values()) {
 			for (Switch sw : group) {
 				peers.put(sw.getNodeId(), CollectionUtils.filter(group, _sw -> _sw.getNodeId() != sw.getNodeId()));
 			}
 		}
+		System.out.println("My Switches:\n" + DaoSerializer.toJson(DaoSerializer.toDaoEntities(mySwitches.values())));
 		scheduleNextTransition();
 
 		MessageEngine.subscribe(new IMessageSubscriber<MultilevelSensorReportRequest>() {
@@ -102,9 +141,9 @@ public class ZWaveApp {
 
 			@Override
 			public void onMessage(MultilevelSensorReportRequest _message) {
-				synchronized (temperatures) {
-					temperatures.put((int) _message.getNodeId(), _message.getTemperatureCelsius());
-					temperatures.notify();
+				synchronized (sensors) {
+					sensors.put((int) _message.getNodeId(), _message.getTemperatureCelsius());
+					sensors.notify();
 				}
 			}
 		});
@@ -153,6 +192,18 @@ public class ZWaveApp {
 			}
 		});
 
+		MessageEngine.subscribe(new IMessageSubscriber<CRC16EncapRequest>() {
+			@Override
+			public Class<CRC16EncapRequest> getHandledMessageClass() {
+				return CRC16EncapRequest.class;
+			}
+
+			@Override
+			public void onMessage(CRC16EncapRequest _message) {
+				onSwitchLevelChange(_message.getNodeId(), _message.isOn()?0xFF:0);
+			}
+		});
+
 //		controller.send(new MultilevelSensorGetRequest((byte)11));
 //		controller.send(new ThermostatSetPointGetRequest((byte)11, ThermostatSetPointIndex.HEATING));
 //		controller.send(new ThermostatSetPointGetRequest((byte)11, ThermostatSetPointIndex.COOLING));
@@ -165,21 +216,22 @@ public class ZWaveApp {
 //		controller.send(new ThermostatModeGetRequest((byte)11));
 	}
 
-	private void onSwitchLevelChange(int _primaryNodeId, int _primaryLevel) {
+	private void onSwitchLevelChange(int _secondaryNodeId, int _primaryLevel) {
 		synchronized (switches) {
-			Switch sw = switches.get(_primaryNodeId);
-			if (sw != null) {
+			Switch sw = switches.get(_secondaryNodeId);
+			if ((sw != null) && !sw.isPrimary()) {
 				int newLevel = sw.isMultilevel()?_primaryLevel:((_primaryLevel == 0)?0:99);
 				sw.setLevel(newLevel);
-				for (Switch peer : CollectionUtils.makeNotNull(peers.get(_primaryNodeId))) {
-					logger.info("Mirror Event from node {} to node {}", _primaryNodeId, peer.getNodeId());
-					if (peer.isMultilevel()) {
-						peer.setLevel(newLevel);
-						controller.send(new MultilevelSwitchSetRequest((byte)peer.getNodeId(), newLevel));
-					}
-					else {
-						peer.setLevel(newLevel > 0?0xff:0);
-						controller.send(new BinarySwitchSetRequest((byte)peer.getNodeId(), newLevel > 0));
+				for (Switch peer : CollectionUtils.makeNotNull(peers.get(_secondaryNodeId))) {
+					if (peer.isPrimary()) {
+						logger.info("Mirror Event from node {} to node {}", _secondaryNodeId, peer.getNodeId());
+						if (peer.isMultilevel()) {
+							peer.setLevel(newLevel);
+							controller.send(new MultilevelSwitchSetRequest((byte) peer.getNodeId(), newLevel));
+						} else {
+							peer.setLevel(newLevel > 0 ? 0xff : 0);
+							controller.send(new BinarySwitchSetRequest((byte) peer.getNodeId(), newLevel > 0));
+						}
 					}
 				}
 				persistConfig();
@@ -191,7 +243,7 @@ public class ZWaveApp {
 		TimeZone tz = TimeZone.getTimeZone("America/Chicago");
 		if (nextScheduleTask != null)
 			nextScheduleTask.cancel();
-		List<SwitchTransition> nextTransitions = CollectionUtils.getAllSmallest(CollectionUtils.aggregate(switches.values(), _s->CollectionUtils.transform(_s.getSchedule(), _t->_t.getNextTransition(_s, tz))), Comparator.comparing(SwitchTransition::getTransitionTime));
+		List<SwitchTransition> nextTransitions = CollectionUtils.getAllSmallest(CollectionUtils.aggregate(mySwitches.values(), _s->CollectionUtils.transform(_s.getSchedule(), _t->_t.getNextTransition(_s, tz))), Comparator.comparing(SwitchTransition::getTransitionTime));
 		if (!CollectionUtils.isEmpty(nextTransitions)) {
 			for (SwitchTransition tr : nextTransitions) {
 				logger.info("Next transition scheduled for node {} to level {} at {}", tr.getSwitch().getNodeId(), tr.getLevel(), DateUtils.format("hh:mm:ssa", tz, tr.getTransitionTime()));
@@ -203,24 +255,31 @@ public class ZWaveApp {
 	}
 
 	public void setSwitchLevel(int _nodeId, int _level) {
+		setSwitchLevel(_nodeId, _level, true);
+	}
+
+	public void setSwitchLevel(int _nodeId, int _level, boolean _updatePeers) {
 		Switch sw = switches.get(_nodeId);
 		if ((sw == null) || !sw.isPrimary())
 			return;
 		sw.setLevel(_level);
-		if (!sw.isThermostat()) {
-			setGroupSwitchLevel(sw, _level);
-		} else if (sw.isZWaveThermostat()) {
-			controller.send(new ThermostatSetPointSetRequest((byte) sw.getNodeId(), sw.getThermostatMode() == ThermostatMode.COOL ? ThermostatSetPointIndex.COOLING : ThermostatSetPointIndex.HEATING, _level));
-		} else {
-			if (timer != null)
-				timer.schedule(new ThermostatTask(), 0);
-			persistConfig();
+		if (config.isMySwitch(sw)) {
+			if (sw.isSpaceHeaterThermostat()) {
+				checkThermostat(sw);
+			} else if (sw.isZWaveThermostat()) {
+				controller.send(new ThermostatSetPointSetRequest((byte) sw.getNodeId(), sw.getThermostatMode() == ThermostatMode.COOL ? ThermostatSetPointIndex.COOLING : ThermostatSetPointIndex.HEATING, _level));
+			} else if (sw.isRelay()) {
+				relayController.setRelay(sw.getGpioPin(), sw.getLevel() > 0);
+			} else {
+				setGroupSwitchLevel(sw, _level);
+			}
 		}
+		persistConfig(_updatePeers);
 	}
 
 	public void setThermostatMode(int _nodeId, ThermostatMode _mode) {
 		Switch sw = switches.get(_nodeId);
-		if ((sw == null) || !sw.isPrimary() || !sw.isZWaveThermostat())
+		if ((sw == null) || !sw.isPrimary() || !sw.isZWaveThermostat() || !config.isMySwitch(sw))
 			return;
 		controller.send(new ThermostatModeSetRequest((byte) sw.getNodeId(), com.lanternsoftware.zwave.message.thermostat.ThermostatMode.fromByte(_mode.data)));
 		sw.setThermostatMode(_mode);
@@ -236,6 +295,12 @@ public class ZWaveApp {
 		scheduleNextTransition();
 	}
 
+	public void updateSwitch(Switch _sw) {
+		switches.put(_sw.getNodeId(), _sw);
+		mySwitches.put(_sw.getNodeId(), _sw);
+		setSwitchLevel(_sw.getNodeId(), _sw.getLevel(), false);
+	}
+
 	public void setSwitchHold(int _nodeId, boolean _hold) {
 		Switch sw = switches.get(_nodeId);
 		if ((sw == null) || !sw.isPrimary())
@@ -245,8 +310,37 @@ public class ZWaveApp {
 	}
 
 	private void persistConfig() {
+		persistConfig(true);
+	}
+
+	private void persistConfig(boolean _updatePeers) {
+		List<Switch> modified;
 		synchronized (this) {
-			dao.putConfig(config);
+			modified = CollectionUtils.filter(switches.values(), _s->_s.isModified(originalSwitches.get(_s.getNodeId())));
+			if (!modified.isEmpty()) {
+				originalSwitches.clear();
+				for (Switch s : switches.values()) {
+					originalSwitches.put(s.getNodeId(), s.duplicate());
+				}
+				if (config.isMaster()) {
+					if (dao != null)
+						dao.putConfig(config);
+					else
+						ResourceLoader.writeFile(LanternFiles.OPS_PATH + "config.json", DaoSerializer.toJson(config));
+				}
+			}
+		}
+		if (_updatePeers) {
+			Set<String> peers = CollectionUtils.transformToSet(modified, Switch::getControllerUrl);
+			peers.remove(config.getUrl());
+			for (String peer : peers) {
+				for (Switch sw : modified) {
+					HttpPost post = new HttpPost(peer + "/switch/" + sw.getNodeId());
+					post.setHeader("auth_code", authCode);
+					post.setEntity(new ByteArrayEntity(DaoSerializer.toZipBson(sw)));
+					pool.execute(post);
+				}
+			}
 		}
 	}
 
@@ -261,6 +355,10 @@ public class ZWaveApp {
 
 	public void stop() {
 		controller.stop();
+		if (relayController != null) {
+			relayController.shutdown();
+			relayController = null;
+		}
 		if (timer != null) {
 			timer.cancel();
 			timer = null;
@@ -276,11 +374,12 @@ public class ZWaveApp {
 	}
 
 	private void setGroupSwitchLevel(Switch _primary, int _level) {
-		if (_primary == null)
+		if ((_primary == null) || !config.isMySwitch(_primary))
 			return;
 		List<Switch> nodes = CollectionUtils.asArrayList(_primary);
-		nodes.addAll(CollectionUtils.makeNotNull(peers.get(_primary.getNodeId())));
+		nodes.addAll(CollectionUtils.filter(peers.get(_primary.getNodeId()), _p->!_p.isPrimary()));
 		for (Switch node : nodes) {
+			logger.info("Setting {}, Node {} to {}", node.getName(), node.getNodeId(), _level);
 			controller.send(node.isMultilevel() ? new MultilevelSwitchSetRequest((byte) node.getNodeId(), _level) : new BinarySwitchSetRequest((byte) node.getNodeId(), _level > 0));
 		}
 	}
@@ -288,23 +387,27 @@ public class ZWaveApp {
 	private class ThermostatTask extends TimerTask {
 		@Override
 		public void run() {
-			for (Switch sw : switches.values()) {
-				try {
-					if (sw.isUrlThermostat() && !sw.isThermometer()) {
-						double tempF = getTemperatureCelsius(sw) * 1.8 + 32;
-						if (tempF > sw.getLevel() + 0.4) {
-							setGroupSwitchLevel(sw, 0);
-							logger.info("Turning {} {} off, temp is: {} set to: {}", sw.getRoom(), sw.getName(), tempF + " set to: ", sw.getLevel());
-						} else if (tempF < sw.getLevel() - 0.4) {
-							setGroupSwitchLevel(sw, (byte) 0xf);
-							logger.info("Turning {} {} on, temp is: {} set to: {}", sw.getRoom(), sw.getName(), tempF + " set to: ", sw.getLevel());
-						}
-					}
-				}
-				catch (Throwable t) {
-					logger.error("Failed to check temperature for thermostat {}", sw.getName());
+			for (Switch sw : mySwitches.values()) {
+				checkThermostat(sw);
+			}
+		}
+	}
+
+	private void checkThermostat(Switch _sw) {
+		try {
+			if (_sw.isSpaceHeaterThermostat()) {
+				double tempF = getTemperatureCelsius(_sw) * 1.8 + 32;
+				if (tempF > _sw.getLevel() + 0.4) {
+					setGroupSwitchLevel(_sw, 0);
+					logger.info("Turning {} {} off, temp is: {} set to: {}", _sw.getRoom(), _sw.getName(), tempF, _sw.getLevel());
+				} else if (tempF < _sw.getLevel() - 0.4) {
+					setGroupSwitchLevel(_sw, 255);
+					logger.info("Turning {} {} on, temp is: {} set to: {}", _sw.getRoom(), _sw.getName(), tempF, _sw.getLevel());
 				}
 			}
+		}
+		catch (Throwable t) {
+			logger.error("Failed to check temperature for thermostat {}", _sw.getName());
 		}
 	}
 
@@ -318,12 +421,13 @@ public class ZWaveApp {
 		@Override
 		public void run() {
 			for (SwitchTransition tr : transitions) {
-				if (!tr.getSwitch().isHold()) {
-					logger.info("Executing scheduled transition of node {} to level {}", tr.getSwitch().getNodeId(), tr.getLevel());
-					Globals.app.setSwitchLevel(tr.getSwitch().getNodeId(), tr.getLevel());
+				Switch sw = switches.get(tr.getSwitch().getNodeId());
+				if (!sw.isHold()) {
+					logger.info("Executing scheduled transition of node {} to level {}", sw.getNodeId(), tr.getLevel());
+					Globals.app.setSwitchLevel(sw.getNodeId(), tr.getLevel());
 				}
 				else
-					logger.info("Skipping scheduled transition of node {} to level {}, switch is on hold", tr.getSwitch().getNodeId(), tr.getLevel());
+					logger.info("Skipping scheduled transition of node {} to level {}, switch is on hold", sw.getNodeId(), tr.getLevel());
 				ConcurrencyUtils.sleep(100);
 			}
 			nextScheduleTask = null;
@@ -336,20 +440,20 @@ public class ZWaveApp {
 	}
 
 	private double getTemperatureCelsius(Switch _sw) {
-		if ((pool == null) || (_sw == null) || !(_sw.isThermometer() || _sw.isThermostat()))
+		if ((pool == null) || (_sw == null))
 			return 0.0;
-		if (_sw.isUrlThermostat())
-			return DaoSerializer.getDouble(DaoSerializer.parse(pool.executeToString(new HttpGet(_sw.getThermostatSource()))), "temp");
-		else if (_sw.isZWaveThermostat()) {
+		if (_sw.isThermometerUrlValid())
+			return DaoSerializer.getDouble(DaoSerializer.parse(pool.executeToString(new HttpGet(_sw.getThermometerUrl()))), "temp");
+		else if (_sw.isZWaveThermostat() && config.isMySwitch(_sw)) {
 			synchronized (ZWAVE_MUTEX) {
-				synchronized (temperatures) {
+				synchronized (sensors) {
 					controller.send(new MultilevelSensorGetRequest((byte) _sw.getNodeId()));
 					try {
-						temperatures.wait(5000);
+						sensors.wait(3000);
 					} catch (InterruptedException _e) {
 						_e.printStackTrace();
 					}
-					Double temp = temperatures.get(_sw.getNodeId());
+					Double temp = sensors.get(_sw.getNodeId());
 					return (temp == null) ? 0.0 : temp;
 				}
 			}

@@ -32,6 +32,9 @@ public interface CurrentMonitorDao {
 
 	void updateSummaries(BreakerGroup _rootGroup, Set<Date> _daysToSummarize, TimeZone _tz);
 
+	String addPasswordResetKey(String _email);
+	String getEmailForResetKey(String _key);
+	boolean resetPassword(String _key, String _password);
 	String authenticateAccount(String _username, String _password);
 	String getAuthCodeForEmail(String _email, TimeZone _tz);
 	Account authCodeToAccount(String _authCode);

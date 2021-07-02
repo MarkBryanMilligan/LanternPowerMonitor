@@ -297,6 +297,32 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	}
 
 	@Override
+	public String addPasswordResetKey(String _email) {
+		String key = aes.encryptToBase64(_email);
+		proxy.saveEntity("password_reset", new DaoEntity("_id", key));
+		return key;
+	}
+
+	@Override
+	public String getEmailForResetKey(String _key) {
+		DaoEntity entity = proxy.queryForEntity("password_reset", new DaoQuery("_id", _key));
+		if (entity == null)
+			return null;
+		return aes.decryptFromBase64ToString(_key);
+	}
+
+	@Override
+	public boolean resetPassword(String _key, String _password) {
+		DaoEntity entity = proxy.queryForEntity("password_reset", new DaoQuery("_id", _key));
+		if (entity == null)
+			return false;
+		Account acct = getAccountByUsername(aes.decryptFromBase64ToString(_key));
+		acct.setPassword(_password);
+		putAccount(acct);
+		return true;
+	}
+
+	@Override
 	public MongoProxy getProxy() {
 		return proxy;
 	}
