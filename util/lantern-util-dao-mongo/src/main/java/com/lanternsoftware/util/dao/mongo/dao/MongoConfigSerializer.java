@@ -1,13 +1,13 @@
 package com.lanternsoftware.util.dao.mongo.dao;
 
-import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.AbstractDaoSerializer;
 import com.lanternsoftware.util.dao.DaoEntity;
+import com.lanternsoftware.util.dao.DaoProxyType;
 import com.lanternsoftware.util.dao.DaoSerializer;
-
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
-
+import java.lang.String;
+import java.util.Collections;
+import java.util.List;
 
 public class MongoConfigSerializer extends AbstractDaoSerializer<MongoConfig>
 {
@@ -18,10 +18,15 @@ public class MongoConfigSerializer extends AbstractDaoSerializer<MongoConfig>
 	}
 
 	@Override
+	public List<DaoProxyType> getSupportedProxies() {
+		return Collections.singletonList(DaoProxyType.MONGO);
+	}
+
+	@Override
 	public DaoEntity toDaoEntity(MongoConfig _o)
 	{
 		DaoEntity d = new DaoEntity();
-		d.put("hosts", CollectionUtils.commaSeparated(_o.getHosts()));
+		d.put("hosts", _o.getHosts());
 		d.put("username", _o.getUsername());
 		d.put("password", _o.getPassword());
 		d.put("client_keystore_path", _o.getClientKeystorePath());
@@ -37,7 +42,7 @@ public class MongoConfigSerializer extends AbstractDaoSerializer<MongoConfig>
 	public MongoConfig fromDaoEntity(DaoEntity _d)
 	{
 		MongoConfig o = new MongoConfig();
-		o.setHosts(CollectionUtils.asArrayList(NullUtils.cleanSplit(DaoSerializer.getString(_d, "hosts"), ",")));
+		o.setHosts(DaoSerializer.getList(_d, "hosts", String.class));
 		o.setUsername(DaoSerializer.getString(_d, "username"));
 		o.setPassword(DaoSerializer.getString(_d, "password"));
 		o.setClientKeystorePath(DaoSerializer.getString(_d, "client_keystore_path"));

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
 
+import org.apache.commons.codec.binary.Base64;
 import org.bson.BsonBinaryReader;
 import org.bson.BsonBinaryWriter;
 import org.bson.Document;
@@ -725,12 +726,28 @@ public class DaoSerializer {
         return ZipUtils.zip(toBson(_entity, true));
     }
 
+    public static String toBase64ZipBson(Object _o) {
+        return toBase64ZipBson(toDaoEntity(_o));
+    }
+
+    public static String toBase64ZipBson(DaoEntity _entity) {
+        return Base64.encodeBase64String(toZipBson(_entity));
+    }
+
     public static <T> T fromZipBson(byte[] _btZipBson, Class<T> _class) {
         return DaoSerializer.fromDaoEntity(fromZipBson(_btZipBson), _class);
     }
 
     public static DaoEntity fromZipBson(byte[] _btZipBson) {
         return fromBson(ZipUtils.unzip(_btZipBson));
+    }
+
+    public static <T> T fromBase64ZipBson(String _zipBson, Class<T> _class) {
+        return DaoSerializer.fromDaoEntity(fromBase64ZipBson(_zipBson), _class);
+    }
+
+    public static DaoEntity fromBase64ZipBson(String _zipBson) {
+        return fromBson(ZipUtils.unzip(Base64.decodeBase64(_zipBson)));
     }
 
     public static <T> T fromBson(byte[] _btBson, Class<T> _class) {

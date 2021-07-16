@@ -36,11 +36,11 @@ public class SwitchSerializer extends AbstractDaoSerializer<Switch>
 		d.put("gpio_pin", _o.getGpioPin());
 		d.put("primary", _o.isPrimary());
 		d.put("hold", _o.isHold());
+		d.put("hidden", _o.isHidden());
 		d.put("thermometer_url", _o.getThermometerUrl());
 		d.put("controller_url", _o.getControllerUrl());
 		d.put("thermostat_mode", DaoSerializer.toEnumName(_o.getThermostatMode()));
 		d.put("low_level", _o.getLowLevel());
-		d.put("hidden", _o.isHidden());
 		d.put("schedule", DaoSerializer.toDaoEntities(_o.getSchedule(), DaoProxyType.MONGO));
 		return d;
 	}
@@ -57,11 +57,11 @@ public class SwitchSerializer extends AbstractDaoSerializer<Switch>
 		o.setGpioPin(DaoSerializer.getInteger(_d, "gpio_pin"));
 		o.setPrimary(DaoSerializer.getBoolean(_d, "primary"));
 		o.setHold(DaoSerializer.getBoolean(_d, "hold"));
+		o.setHidden(DaoSerializer.getBoolean(_d, "hidden"));
 		o.setThermometerUrl(DaoSerializer.getString(_d, "thermometer_url"));
 		o.setControllerUrl(DaoSerializer.getString(_d, "controller_url"));
 		o.setThermostatMode(DaoSerializer.getEnum(_d, "thermostat_mode", ThermostatMode.class));
 		o.setLowLevel(DaoSerializer.getInteger(_d, "low_level"));
-		o.setHidden(DaoSerializer.getBoolean(_d, "hidden"));
 		o.setSchedule(DaoSerializer.getList(_d, "schedule", SwitchSchedule.class));
 		return o;
 	}

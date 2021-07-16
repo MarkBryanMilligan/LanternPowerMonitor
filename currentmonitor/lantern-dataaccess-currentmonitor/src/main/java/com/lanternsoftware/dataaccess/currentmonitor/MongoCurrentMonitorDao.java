@@ -1,7 +1,7 @@
 package com.lanternsoftware.dataaccess.currentmonitor;
 
 import com.lanternsoftware.datamodel.currentmonitor.Account;
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
@@ -14,9 +14,7 @@ import com.lanternsoftware.datamodel.currentmonitor.Sequence;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.DebugTimer;
-import com.lanternsoftware.util.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
-import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.cryptography.AESTool;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoQuery;
@@ -42,7 +40,7 @@ import java.util.concurrent.Executors;
 
 public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	private static final Logger logger = LoggerFactory.getLogger(MongoCurrentMonitorDao.class);
-	private static final AESTool aes = new AESTool(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "authKey.dat"));
+	private static final AESTool aes = AESTool.authTool();
 	private static final int BCRYPT_ROUNDS = 11;
 	private final Timer delayTimer = new Timer();
 	private final ExecutorService executor = Executors.newCachedThreadPool();

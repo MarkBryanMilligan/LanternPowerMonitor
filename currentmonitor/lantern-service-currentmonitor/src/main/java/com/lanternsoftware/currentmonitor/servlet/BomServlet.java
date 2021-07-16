@@ -8,13 +8,14 @@ import com.lanternsoftware.util.csv.CSVWriter;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoQuery;
 import com.lanternsoftware.util.dao.DaoSerializer;
+import com.lanternsoftware.util.servlet.LanternServlet;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/bom/*")
-public class BomServlet extends CMServlet {
+public class BomServlet extends LanternServlet {
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
 		String[] path = path(_req);

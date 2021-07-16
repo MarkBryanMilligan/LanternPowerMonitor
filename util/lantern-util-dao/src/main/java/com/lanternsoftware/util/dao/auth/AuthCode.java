@@ -1,4 +1,4 @@
-package com.lanternsoftware.datamodel.currentmonitor;
+package com.lanternsoftware.util.dao.auth;
 
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;

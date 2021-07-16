@@ -17,6 +17,8 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.ResourceLoader;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +76,10 @@ public class AESTool {
 		}
 		builder.append(");");
 		System.out.println(builder.toString());
+	}
+
+	public static AESTool authTool() {
+		return new AESTool(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "authKey.dat"));
 	}
 
 	/**

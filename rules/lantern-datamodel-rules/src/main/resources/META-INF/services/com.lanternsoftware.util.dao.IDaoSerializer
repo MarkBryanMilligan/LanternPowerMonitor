@@ -1,0 +1,6 @@
+com.lanternsoftware.datamodel.rules.dao.ActionSerializer
+com.lanternsoftware.datamodel.rules.dao.AlertSerializer
+com.lanternsoftware.datamodel.rules.dao.CriteriaSerializer
+com.lanternsoftware.datamodel.rules.dao.EventSerializer
+com.lanternsoftware.datamodel.rules.dao.FcmDeviceSerializer
+com.lanternsoftware.datamodel.rules.dao.RuleSerializer

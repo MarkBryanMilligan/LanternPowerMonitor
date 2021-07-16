@@ -532,7 +532,6 @@ public class CollectionUtils {
         return list;
     }
 
-
     public static <T> void edit(Iterable<T> _coll, IEditor<T> _editor) {
         if ((_coll == null) || (_editor == null))
             return;

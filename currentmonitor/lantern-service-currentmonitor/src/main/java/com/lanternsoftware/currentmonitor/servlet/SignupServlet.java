@@ -7,13 +7,14 @@ import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.email.EmailValidator;
 import com.lanternsoftware.util.servlet.BasicAuth;
+import com.lanternsoftware.util.servlet.LanternServlet;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/signup")
-public class SignupServlet extends CMServlet {
+public class SignupServlet extends LanternServlet {
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
 		BasicAuth auth = new BasicAuth(_req);

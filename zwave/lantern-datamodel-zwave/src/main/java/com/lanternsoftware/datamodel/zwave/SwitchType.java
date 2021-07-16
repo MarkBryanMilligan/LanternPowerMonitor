@@ -7,5 +7,6 @@ public enum SwitchType {
     SPACE_HEATER_THERMOSTAT,
     THERMOMETER,
     RELAY,
-    SECURITY
+    SECURITY,
+    RELAY_BUTTON
 }

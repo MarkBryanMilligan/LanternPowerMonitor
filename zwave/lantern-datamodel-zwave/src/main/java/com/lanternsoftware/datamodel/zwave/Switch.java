@@ -154,6 +154,14 @@ public class Switch {
 		return type == SwitchType.RELAY;
 	}
 
+	public boolean isRelayButton() {
+		return type == SwitchType.RELAY_BUTTON;
+	}
+
+	public boolean isSecurity() {
+		return type == SwitchType.SECURITY;
+	}
+
 	public boolean isControlledBy(String _controllerUrl) {
 		return NullUtils.isEqual(_controllerUrl, controllerUrl);
 	}

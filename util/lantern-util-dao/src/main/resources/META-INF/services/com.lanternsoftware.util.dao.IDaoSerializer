@@ -1,1 +1,2 @@
+com.lanternsoftware.util.dao.auth.dao.AuthCodeSerializer
 com.lanternsoftware.util.dao.jdbc.dao.JdbcConfigSerializer

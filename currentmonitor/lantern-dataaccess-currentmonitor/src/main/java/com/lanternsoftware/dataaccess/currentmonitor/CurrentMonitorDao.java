@@ -1,7 +1,7 @@
 package com.lanternsoftware.dataaccess.currentmonitor;
 
 import com.lanternsoftware.datamodel.currentmonitor.Account;
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroupEnergy;

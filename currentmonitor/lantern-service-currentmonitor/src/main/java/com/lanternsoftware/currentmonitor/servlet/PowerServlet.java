@@ -1,7 +1,7 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.util.CollectionUtils;
@@ -31,7 +31,9 @@ public class PowerServlet extends SecureServlet {
 	protected void post(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		String[] path = path(_req);
 		if ((path.length > 0) && NullUtils.isEqual(CollectionUtils.get(path, 0), "hub")) {
-			Globals.dao.putHubPowerMinute(getRequestPayload(_req, HubPowerMinute.class));
+			HubPowerMinute m = getRequestPayload(_req, HubPowerMinute.class);
+			m.setAccountId(_authCode.getAccountId());
+			Globals.dao.putHubPowerMinute(m);
 			return;
 		}
 		if ((path.length > 0) && NullUtils.isEqual(CollectionUtils.get(path, 0), "batch")) {

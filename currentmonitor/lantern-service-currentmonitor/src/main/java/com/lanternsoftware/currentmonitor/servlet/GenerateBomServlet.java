@@ -1,7 +1,7 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.dao.DaoEntity;
 
 import javax.servlet.annotation.WebServlet;

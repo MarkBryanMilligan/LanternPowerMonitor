@@ -1,4 +1,4 @@
-package com.lanternsoftware.currentmonitor.servlet;
+package com.lanternsoftware.util.servlet;
 
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
@@ -13,7 +13,7 @@ import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public abstract class CMServlet extends HttpServlet {
+public abstract class LanternServlet extends HttpServlet {
 	public static void setResponseHtml(HttpServletResponse _response, String _sHtml) {
 		setResponseEntity(_response, MediaType.TEXT_HTML, _sHtml);
 	}

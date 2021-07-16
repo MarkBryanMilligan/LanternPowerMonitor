@@ -1,6 +1,6 @@
 package com.lanternsoftware.zwave.servlet;
 
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.DaoEntity;

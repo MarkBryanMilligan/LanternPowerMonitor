@@ -13,6 +13,7 @@ public class ZWaveConfig {
 	private String commPort;
 	private String url;
 	private String masterUrl;
+	private String rulesUrl;
 	private List<Switch> switches;
 
 	public int getAccountId() {
@@ -45,6 +46,14 @@ public class ZWaveConfig {
 
 	public void setMasterUrl(String _masterUrl) {
 		masterUrl = _masterUrl;
+	}
+
+	public String getRulesUrl() {
+		return rulesUrl;
+	}
+
+	public void setRulesUrl(String _rulesUrl) {
+		rulesUrl = _rulesUrl;
 	}
 
 	public List<Switch> getSwitches() {

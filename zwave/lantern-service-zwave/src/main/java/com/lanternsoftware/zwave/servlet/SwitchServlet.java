@@ -1,6 +1,6 @@
 package com.lanternsoftware.zwave.servlet;
 
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.zwave.Switch;
 import com.lanternsoftware.datamodel.zwave.SwitchSchedule;
 import com.lanternsoftware.datamodel.zwave.ThermostatMode;

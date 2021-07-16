@@ -31,6 +31,7 @@ public class ZWaveConfigSerializer extends AbstractDaoSerializer<ZWaveConfig>
 		d.put("comm_port", _o.getCommPort());
 		d.put("url", _o.getUrl());
 		d.put("master_url", _o.getMasterUrl());
+		d.put("rules_url", _o.getRulesUrl());
 		d.put("switches", DaoSerializer.toDaoEntities(_o.getSwitches(), DaoProxyType.MONGO));
 		return d;
 	}
@@ -43,6 +44,7 @@ public class ZWaveConfigSerializer extends AbstractDaoSerializer<ZWaveConfig>
 		o.setCommPort(DaoSerializer.getString(_d, "comm_port"));
 		o.setUrl(DaoSerializer.getString(_d, "url"));
 		o.setMasterUrl(DaoSerializer.getString(_d, "master_url"));
+		o.setRulesUrl(DaoSerializer.getString(_d, "rules_url"));
 		o.setSwitches(DaoSerializer.getList(_d, "switches", Switch.class));
 		return o;
 	}

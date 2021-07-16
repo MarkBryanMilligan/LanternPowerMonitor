@@ -71,6 +71,8 @@ public class MongoProxy extends AbstractDaoProxy {
 
     public MongoProxy(List<String> _hosts, String _userName, String _password, String _clientKeystorePath, String _clientKeystorePassword, String _caKeystorePath, String _caKeystorePassword, String _dbName, String _authDbName) {
         List<ServerAddress> listAddresses = new LinkedList<>();
+        if (CollectionUtils.isEmpty(_hosts))
+            _hosts = CollectionUtils.asArrayList("localhost");
         for (String addr : _hosts) {
             int portIdx = addr.indexOf(":");
             if (portIdx > 0)
@@ -108,7 +110,7 @@ public class MongoProxy extends AbstractDaoProxy {
                 options = MongoClientOptions.builder().sslEnabled(false).build();
             }
         }
-        client = new MongoClient(listAddresses, MongoCredential.createCredential(_userName, NullUtils.isNotEmpty(_authDbName) ? _authDbName : "admin", _password.toCharArray()), options);
+        client = NullUtils.isEmpty(_userName) ? new MongoClient(listAddresses, options) : new MongoClient(listAddresses, MongoCredential.createCredential(_userName, NullUtils.isNotEmpty(_authDbName) ? _authDbName : "admin", _password.toCharArray()), options);
         dbName = _dbName;
     }
 

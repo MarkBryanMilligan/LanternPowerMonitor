@@ -1,14 +1,12 @@
-package com.lanternsoftware.datamodel.currentmonitor.dao;
+package com.lanternsoftware.util.dao.auth.dao;
 
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.dao.AbstractDaoSerializer;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoProxyType;
 import com.lanternsoftware.util.dao.DaoSerializer;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 

@@ -1,6 +1,8 @@
 package com.lanternsoftware.zwave.context;
 
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.datamodel.rules.Event;
+import com.lanternsoftware.datamodel.rules.EventType;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.zwave.Switch;
 import com.lanternsoftware.datamodel.zwave.SwitchSchedule;
 import com.lanternsoftware.datamodel.zwave.SwitchTransition;
@@ -32,6 +34,7 @@ import com.lanternsoftware.zwave.message.impl.ThermostatSetPointReportRequest;
 import com.lanternsoftware.zwave.message.impl.ThermostatSetPointSetRequest;
 import com.lanternsoftware.zwave.message.thermostat.ThermostatSetPointIndex;
 import com.lanternsoftware.zwave.relay.RelayController;
+import com.lanternsoftware.zwave.security.SecurityController;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
@@ -39,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,8 +52,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class ZWaveApp {
-	public static final AESTool aes = new AESTool(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "authKey.dat"));
-	public static String authCode = aes.encryptToBase64(DaoSerializer.toZipBson(new AuthCode(100, null)));
+	public static final AESTool aes = AESTool.authTool();
+	public static String authCode;
 
 	private static final Logger logger = LoggerFactory.getLogger(ZWaveApp.class);
 
@@ -57,6 +61,7 @@ public class ZWaveApp {
 	private ZWaveConfig config;
 	private Controller controller;
 	private RelayController relayController;
+	private SecurityController securityController;
 	private final Map<Integer, Switch> originalSwitches = new HashMap<>();
 	private final Map<Integer, Switch> switches = new HashMap<>();
 	private final Map<Integer, Switch> mySwitches = new HashMap<>();
@@ -79,12 +84,14 @@ public class ZWaveApp {
 				controller = new Controller();
 				controller.start(config.getCommPort());
 			}
+			authCode = aes.encryptToBase64(DaoSerializer.toZipBson(new AuthCode(config.getAccountId(), null)));
 			if (!config.isMaster()) {
 				HttpGet get = new HttpGet(config.getMasterUrl() + "/config");
 				get.setHeader("auth_code", authCode);
 				ZWaveConfig switchConfig = DaoSerializer.parse(pool.executeToString(get), ZWaveConfig.class);
 				if (switchConfig != null) {
 					config.setSwitches(switchConfig.getSwitches());
+					config.setRulesUrl(switchConfig.getRulesUrl());
 				}
 				else {
 					logger.error("Failed to retrieve switch config from master controller");
@@ -125,6 +132,20 @@ public class ZWaveApp {
 		if (CollectionUtils.anyQualify(mySwitches.values(), Switch::isRelay)) {
 			relayController = new RelayController();
 		}
+		List<Switch> securitySwitches = CollectionUtils.filter(mySwitches.values(), Switch::isSecurity);
+		if (!securitySwitches.isEmpty()) {
+			securityController = new SecurityController();
+			for (Switch s : securitySwitches) {
+				s.setLevel(securityController.isOpen(s.getGpioPin())?1:0);
+				logger.info("Monitoring security sensor " + s.getFullDisplay() + " on gpio pin " + s.getGpioPin());
+				securityController.listen(s, (_nodeId, _open) -> {
+					s.setLevel(_open?1:0);
+					logger.info(s.getFullDisplay() + " is " + ((s.getLevel() == 0)?"closed":"open"));
+					fireSwitchLevelEvent(s);
+					persistConfig();
+				});
+			}
+		}
 		for (List<Switch> group : groups.values()) {
 			for (Switch sw : group) {
 				peers.put(sw.getNodeId(), CollectionUtils.filter(group, _sw -> _sw.getNodeId() != sw.getNodeId()));
@@ -161,6 +182,7 @@ public class ZWaveApp {
 					if (sw != null) {
 						if (NullUtils.isOneOf(_message.getIndex(), ThermostatSetPointIndex.HEATING, ThermostatSetPointIndex.COOLING)) {
 							sw.setLevel((int) Math.round(_message.getTemperatureCelsius() * 1.8) + 32);
+							fireSwitchLevelEvent(sw);
 							persistConfig();
 						}
 					}
@@ -222,6 +244,7 @@ public class ZWaveApp {
 			if ((sw != null) && !sw.isPrimary()) {
 				int newLevel = sw.isMultilevel()?_primaryLevel:((_primaryLevel == 0)?0:99);
 				sw.setLevel(newLevel);
+				fireSwitchLevelEvent(sw);
 				for (Switch peer : CollectionUtils.makeNotNull(peers.get(_secondaryNodeId))) {
 					if (peer.isPrimary()) {
 						logger.info("Mirror Event from node {} to node {}", _secondaryNodeId, peer.getNodeId());
@@ -254,8 +277,29 @@ public class ZWaveApp {
 			nextScheduleTask = null;
 	}
 
+	public int getAccountId() {
+		return config == null ? 0 : config.getAccountId();
+	}
+
 	public void setSwitchLevel(int _nodeId, int _level) {
 		setSwitchLevel(_nodeId, _level, true);
+	}
+
+	public void fireSwitchLevelEvent(Switch _sw) {
+		if (NullUtils.isEmpty(config.getRulesUrl()))
+			return;
+		Event event = new Event();
+		event.setEventDescription(_sw.getFullDisplay() + " set to " + _sw.getLevel());
+		event.setType(EventType.SWITCH_LEVEL);
+		event.setTime(new Date());
+		event.setValue(_sw.getLevel());
+		event.setSourceId(String.valueOf(_sw.getNodeId()));
+		event.setAccountId(config.getAccountId());
+		logger.info("Sending event to rules server - " + event.getEventDescription());
+		HttpPost post = new HttpPost(NullUtils.terminateWith(config.getRulesUrl(), "/") + "event");
+		post.setHeader("auth_code", authCode);
+		post.setEntity(new ByteArrayEntity(DaoSerializer.toZipBson(event)));
+		pool.execute(post);
 	}
 
 	public void setSwitchLevel(int _nodeId, int _level, boolean _updatePeers) {
@@ -264,12 +308,21 @@ public class ZWaveApp {
 			return;
 		sw.setLevel(_level);
 		if (config.isMySwitch(sw)) {
+			fireSwitchLevelEvent(sw);
 			if (sw.isSpaceHeaterThermostat()) {
 				checkThermostat(sw);
 			} else if (sw.isZWaveThermostat()) {
 				controller.send(new ThermostatSetPointSetRequest((byte) sw.getNodeId(), sw.getThermostatMode() == ThermostatMode.COOL ? ThermostatSetPointIndex.COOLING : ThermostatSetPointIndex.HEATING, _level));
 			} else if (sw.isRelay()) {
 				relayController.setRelay(sw.getGpioPin(), sw.getLevel() > 0);
+			} else if (sw.isRelayButton()) {
+				relayController.setRelay(sw.getGpioPin(), true);
+				timer.schedule(new TimerTask() {
+					@Override
+					public void run() {
+						relayController.setRelay(sw.getGpioPin(), false);
+					}
+				}, 250);
 			} else {
 				setGroupSwitchLevel(sw, _level);
 			}
@@ -331,7 +384,8 @@ public class ZWaveApp {
 			}
 		}
 		if (_updatePeers) {
-			Set<String> peers = CollectionUtils.transformToSet(modified, Switch::getControllerUrl);
+			Set<String> peers = CollectionUtils.transformToSet(switches.values(), Switch::getControllerUrl);
+			peers.add(config.getMasterUrl());
 			peers.remove(config.getUrl());
 			for (String peer : peers) {
 				for (Switch sw : modified) {
@@ -354,10 +408,17 @@ public class ZWaveApp {
 	}
 
 	public void stop() {
-		controller.stop();
+		if (controller != null) {
+			controller.stop();
+			controller = null;
+		}
 		if (relayController != null) {
 			relayController.shutdown();
 			relayController = null;
+		}
+		if (securityController != null) {
+			securityController.shutdown();
+			securityController = null;
 		}
 		if (timer != null) {
 			timer.cancel();

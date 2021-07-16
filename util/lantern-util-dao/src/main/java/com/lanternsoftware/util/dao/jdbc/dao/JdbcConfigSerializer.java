@@ -6,7 +6,6 @@ import com.lanternsoftware.util.dao.DaoProxyType;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.jdbc.DatabaseType;
 import com.lanternsoftware.util.dao.jdbc.JdbcConfig;
-
 import java.util.Collections;
 import java.util.List;
 

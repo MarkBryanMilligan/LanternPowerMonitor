@@ -4,7 +4,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import com.lanternsoftware.currentmonitor.context.Globals;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.LanternFiles;
@@ -13,6 +13,7 @@ import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.servlet.BasicAuth;
+import com.lanternsoftware.util.servlet.LanternServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +22,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/auth/*")
-public class AuthServlet extends CMServlet {
+public class AuthServlet extends LanternServlet {
 	private static final NetHttpTransport transport = new NetHttpTransport();
-	private static final JacksonFactory jsonFactory = new JacksonFactory();
 	private static final Logger logger = LoggerFactory.getLogger(AuthServlet.class);
 	private static final String googleClientId;
 	private static final String googleClientSecret;
@@ -41,7 +41,7 @@ public class AuthServlet extends CMServlet {
 			if (NullUtils.isEqual(auth.getUsername(), "googlesso")) {
 				logger.info("Attempting google SSO");
 				try {
-					GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(transport, jsonFactory, "https://oauth2.googleapis.com/token", googleClientId, googleClientSecret, auth.getPassword(), "").execute();
+					GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(transport, new GsonFactory(), "https://oauth2.googleapis.com/token", googleClientId, googleClientSecret, auth.getPassword(), "").execute();
 					if (tokenResponse != null) {
 						GoogleIdToken idToken = tokenResponse.parseIdToken();
 						if (idToken != null) {

@@ -1,12 +1,13 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
-import com.lanternsoftware.datamodel.currentmonitor.AuthCode;
+import com.lanternsoftware.util.dao.auth.AuthCode;
+import com.lanternsoftware.util.servlet.LanternServlet;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-public abstract class SecureServlet extends CMServlet {
+public abstract class SecureServlet extends LanternServlet {
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
 		AuthCode authCode = Globals.dao.decryptAuthCode(_req.getHeader("auth_code"));

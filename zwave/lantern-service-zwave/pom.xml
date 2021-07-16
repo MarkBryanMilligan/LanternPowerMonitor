@@ -14,7 +14,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.lanternsoftware.services</groupId>
+            <groupId>com.lanternsoftware.zwave</groupId>
             <artifactId>lantern-datamodel-zwave</artifactId>
             <version>1.0.0</version>
         </dependency>
@@ -31,6 +31,11 @@
         <dependency>
             <groupId>com.lanternsoftware.zwave</groupId>
             <artifactId>lantern-zwave</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lanternsoftware.rules</groupId>
+            <artifactId>lantern-datamodel-rules</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>
