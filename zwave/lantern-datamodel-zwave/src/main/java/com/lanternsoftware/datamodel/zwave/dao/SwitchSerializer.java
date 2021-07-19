@@ -32,6 +32,7 @@ public class SwitchSerializer extends AbstractDaoSerializer<Switch>
 		d.put("room", _o.getRoom());
 		d.put("name", _o.getName());
 		d.put("node_id", _o.getNodeId());
+		d.put("parent_node_id", _o.getParentNodeId());
 		d.put("level", _o.getLevel());
 		d.put("gpio_pin", _o.getGpioPin());
 		d.put("primary", _o.isPrimary());
@@ -53,6 +54,7 @@ public class SwitchSerializer extends AbstractDaoSerializer<Switch>
 		o.setRoom(DaoSerializer.getString(_d, "room"));
 		o.setName(DaoSerializer.getString(_d, "name"));
 		o.setNodeId(DaoSerializer.getInteger(_d, "node_id"));
+		o.setParentNodeId(DaoSerializer.getInteger(_d, "parent_node_id"));
 		o.setLevel(DaoSerializer.getInteger(_d, "level"));
 		o.setGpioPin(DaoSerializer.getInteger(_d, "gpio_pin"));
 		o.setPrimary(DaoSerializer.getBoolean(_d, "primary"));

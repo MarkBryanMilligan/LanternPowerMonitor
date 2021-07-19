@@ -129,7 +129,7 @@ public class ZWaveApp {
 		if (CollectionUtils.anyQualify(mySwitches.values(), Switch::isThermometerUrlValid)) {
 			timer.scheduleAtFixedRate(new ThermostatTask(), 0, 30000);
 		}
-		if (CollectionUtils.anyQualify(mySwitches.values(), Switch::isRelay)) {
+		if (CollectionUtils.anyQualify(mySwitches.values(), _s->_s.isRelay() || _s.isRelayButton())) {
 			relayController = new RelayController();
 		}
 		List<Switch> securitySwitches = CollectionUtils.filter(mySwitches.values(), Switch::isSecurity);
@@ -314,13 +314,15 @@ public class ZWaveApp {
 			} else if (sw.isZWaveThermostat()) {
 				controller.send(new ThermostatSetPointSetRequest((byte) sw.getNodeId(), sw.getThermostatMode() == ThermostatMode.COOL ? ThermostatSetPointIndex.COOLING : ThermostatSetPointIndex.HEATING, _level));
 			} else if (sw.isRelay()) {
-				relayController.setRelay(sw.getGpioPin(), sw.getLevel() > 0);
+				relayController.setRelay(sw.getGpioPin(), sw.getLowLevel() > 0 ? sw.getLevel() == 0 : sw.getLevel() > 0);
 			} else if (sw.isRelayButton()) {
-				relayController.setRelay(sw.getGpioPin(), true);
+				logger.info("Toggling relay " + sw.getFullDisplay() + " on");
+				relayController.setRelay(sw.getGpioPin(), sw.getLowLevel() == 0);
 				timer.schedule(new TimerTask() {
 					@Override
 					public void run() {
-						relayController.setRelay(sw.getGpioPin(), false);
+						logger.info("Toggling relay " + sw.getFullDisplay() + " off");
+						relayController.setRelay(sw.getGpioPin(), sw.getLowLevel() > 0);
 					}
 				}, 250);
 			} else {
@@ -349,8 +351,12 @@ public class ZWaveApp {
 	}
 
 	public void updateSwitch(Switch _sw) {
-		switches.put(_sw.getNodeId(), _sw);
-		mySwitches.put(_sw.getNodeId(), _sw);
+		logger.info("Received update for switch {} level {}", _sw.getFullDisplay(), _sw.getLevel());
+		Switch sw = CollectionUtils.filterOne(config.getSwitches(), _s->_s.getNodeId() == _sw.getNodeId());
+		if (sw != null) {
+			sw.setLevel( _sw.getLevel());
+			sw.setHold( _sw.isHold());
+		}
 		setSwitchLevel(_sw.getNodeId(), _sw.getLevel(), false);
 	}
 
@@ -435,7 +441,7 @@ public class ZWaveApp {
 	}
 
 	private void setGroupSwitchLevel(Switch _primary, int _level) {
-		if ((_primary == null) || !config.isMySwitch(_primary))
+		if ((_primary == null) || !config.isMySwitch(_primary) || (controller == null))
 			return;
 		List<Switch> nodes = CollectionUtils.asArrayList(_primary);
 		nodes.addAll(CollectionUtils.filter(peers.get(_primary.getNodeId()), _p->!_p.isPrimary()));

@@ -14,6 +14,7 @@ public class Switch {
 	private String room;
 	private String name;
 	private int nodeId;
+	private int parentNodeId;
 	private int level;
 	private int gpioPin;
 	private boolean primary;
@@ -80,6 +81,14 @@ public class Switch {
 
 	public void setNodeId(int _nodeId) {
 		nodeId = _nodeId;
+	}
+
+	public int getParentNodeId() {
+		return parentNodeId;
+	}
+
+	public void setParentNodeId(int _parentNodeId) {
+		parentNodeId = _parentNodeId;
 	}
 
 	public int getLevel() {
