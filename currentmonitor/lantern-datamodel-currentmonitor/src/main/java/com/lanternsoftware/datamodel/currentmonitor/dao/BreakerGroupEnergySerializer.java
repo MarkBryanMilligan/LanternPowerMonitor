@@ -48,6 +48,7 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 			Date start = _o.getStart();
 			Date now = new Date();
 			ByteBuffer bb = ByteBuffer.allocate(_o.getViewMode().blockCount(start, tz) * 4);
+			ByteBuffer cb = ByteBuffer.allocate(_o.getViewMode().blockCount(start, tz) * 8);
 			for (EnergyBlock b : _o.getEnergyBlocks()) {
 				if (b.getStart().before(start))
 					continue;
@@ -55,15 +56,21 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 					break;
 				while (start.before(b.getStart())) {
 					bb.putFloat(0);
+					cb.putDouble(0);
 					start = _o.getViewMode().toBlockEnd(start, tz);
 				}
 				bb.putFloat((float) b.getJoules());
+				cb.putDouble(b.getCharge());
 				start = _o.getViewMode().toBlockEnd(start, tz);
 			}
-			if (bb.position() < bb.limit())
+			if (bb.position() < bb.limit()) {
 				d.put("blocks", Arrays.copyOfRange(bb.array(), 0, bb.position()));
-			else
+				d.put("charges", Arrays.copyOfRange(cb.array(), 0, cb.position()));
+			}
+			else {
 				d.put("blocks", bb.array());
+				d.put("charges", cb.array());
+			}
 		}
 		d.put("to_grid", _o.getToGrid());
 		d.put("from_grid", _o.getFromGrid());
@@ -93,6 +100,14 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 			}
 		}
 		o.setEnergyBlocks(blocks);
+		byte[] chargeData = DaoSerializer.getByteArray(_d, "charges");
+		int idx = 0;
+		if (CollectionUtils.length(chargeData) > 0) {
+			ByteBuffer bb = ByteBuffer.wrap(chargeData);
+			while (bb.hasRemaining()) {
+				blocks.get(idx++).setCharge(bb.getDouble());
+			}
+		}
 		o.setToGrid(DaoSerializer.getDouble(_d, "to_grid"));
 		o.setFromGrid(DaoSerializer.getDouble(_d, "from_grid"));
 		return o;

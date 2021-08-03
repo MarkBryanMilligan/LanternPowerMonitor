@@ -20,6 +20,7 @@ public class Switch {
 	private boolean primary;
 	private boolean hold;
 	private boolean hidden;
+	private boolean suppressEvents;
 	private String thermometerUrl;
 	private String controllerUrl;
 	private ThermostatMode thermostatMode;
@@ -197,6 +198,14 @@ public class Switch {
 
 	public void setHidden(boolean _hidden) {
 		hidden = _hidden;
+	}
+
+	public boolean isSuppressEvents() {
+		return suppressEvents;
+	}
+
+	public void setSuppressEvents(boolean _suppressEvents) {
+		suppressEvents = _suppressEvents;
 	}
 
 	public List<SwitchSchedule> getSchedule() {

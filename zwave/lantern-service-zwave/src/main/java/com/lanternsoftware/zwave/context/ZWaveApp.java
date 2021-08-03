@@ -286,7 +286,7 @@ public class ZWaveApp {
 	}
 
 	public void fireSwitchLevelEvent(Switch _sw) {
-		if (NullUtils.isEmpty(config.getRulesUrl()))
+		if (NullUtils.isEmpty(config.getRulesUrl()) || _sw.isSuppressEvents())
 			return;
 		Event event = new Event();
 		event.setEventDescription(_sw.getFullDisplay() + " set to " + _sw.getLevel());
@@ -325,7 +325,7 @@ public class ZWaveApp {
 						relayController.setRelay(sw.getGpioPin(), sw.getLowLevel() > 0);
 					}
 				}, 250);
-			} else {
+			} else if (!sw.isSecurity()){
 				setGroupSwitchLevel(sw, _level);
 			}
 		}
@@ -351,7 +351,7 @@ public class ZWaveApp {
 	}
 
 	public void updateSwitch(Switch _sw) {
-		logger.info("Received update for switch {} level {}", _sw.getFullDisplay(), _sw.getLevel());
+		logger.info("Received update for switch {} {} level {}", _sw.getNodeId(), _sw.getFullDisplay(), _sw.getLevel());
 		Switch sw = CollectionUtils.filterOne(config.getSwitches(), _s->_s.getNodeId() == _sw.getNodeId());
 		if (sw != null) {
 			sw.setLevel( _sw.getLevel());
@@ -395,6 +395,7 @@ public class ZWaveApp {
 			peers.remove(config.getUrl());
 			for (String peer : peers) {
 				for (Switch sw : modified) {
+					logger.info("Sending update for switch {} {} level {} to {}", sw.getNodeId(), sw.getFullDisplay(), sw.getLevel(), peer);
 					HttpPost post = new HttpPost(peer + "/switch/" + sw.getNodeId());
 					post.setHeader("auth_code", authCode);
 					post.setEntity(new ByteArrayEntity(DaoSerializer.toZipBson(sw)));

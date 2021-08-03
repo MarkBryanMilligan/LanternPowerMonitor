@@ -1,7 +1,6 @@
 package com.lanternsoftware.dataaccess.currentmonitor;
 
 import com.lanternsoftware.datamodel.currentmonitor.Account;
-import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
@@ -20,6 +19,7 @@ import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoQuery;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.DaoSort;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
 import com.lanternsoftware.util.dao.mongo.MongoProxy;
 import org.mindrot.jbcrypt.BCrypt;
@@ -96,12 +96,14 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		BreakerConfig config = getConfig(_minute.getAccountId());
 		BreakerGroup group = CollectionUtils.getFirst(config.getBreakerGroups());
 		Date day = DateUtils.getMidnightBefore(_minute.getMinuteAsDate(), tz);
-		BreakerGroupEnergy summary = getBreakerGroupEnergy(_minute.getAccountId(), group.getId(), EnergyBlockViewMode.DAY, day);
-		if (summary == null)
-			summary = new BreakerGroupEnergy(group, minutes, EnergyBlockViewMode.DAY, day, tz);
+		BreakerGroupEnergy energy = getBreakerGroupEnergy(_minute.getAccountId(), group.getId(), EnergyBlockViewMode.DAY, day);
+		Date monthStart = DateUtils.getStartOfMonth(day, tz);
+		BreakerGroupSummary month = proxy.queryOne(BreakerGroupSummary.class, new DaoQuery("_id", BreakerGroupEnergy.toId(_minute.getAccountId(), group.getId(), EnergyBlockViewMode.MONTH, monthStart)));
+		if (energy == null)
+			energy = new BreakerGroupEnergy(group, minutes, EnergyBlockViewMode.DAY, day, month, config.getBillingRates(), tz);
 		else
-			summary.addEnergy(group, minutes);
-		putBreakerGroupEnergy(summary);
+			energy.addEnergy(group, minutes, month, config.getBillingRates());
+		putBreakerGroupEnergy(energy);
 		updateSummaries(group, CollectionUtils.asHashSet(day), tz);
 		timer.stop();
 	}
@@ -144,7 +146,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 			List<String> groupEnergyIds = new ArrayList<>();
 			while (calMonthStart.before(end)) {
 				groupEnergyIds.add(BreakerGroupEnergy.toId(_rootGroup.getAccountId(), _rootGroup.getId(), EnergyBlockViewMode.MONTH, calMonthStart.getTime()));
-				calMonthStart.add(Calendar.DAY_OF_YEAR, 1);
+				calMonthStart.add(Calendar.MONTH, 1);
 			}
 			List<BreakerGroupSummary> groupEnergies = CollectionUtils.aggregate(proxy.query(BreakerGroupSummary.class, DaoQuery.in("_id", groupEnergyIds)), BreakerGroupSummary::getAllGroups);
 			Map<String, List<BreakerGroupSummary>> energies = CollectionUtils.transformToMultiMap(groupEnergies, BreakerGroupSummary::getGroupId);
@@ -155,6 +157,42 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		Map<String, List<BreakerGroupSummary>> energies = CollectionUtils.transformToMultiMap(groupEnergies, BreakerGroupSummary::getGroupId);
 		BreakerGroupEnergy summary = BreakerGroupEnergy.summary(_rootGroup, energies, EnergyBlockViewMode.ALL, new Date(0), _tz);
 		putBreakerGroupEnergy(summary);
+	}
+
+	@Override
+	public void rebuildSummaries(int _accountId) {
+		HubPowerMinute firstMinute = proxy.queryOne(HubPowerMinute.class, new DaoQuery("account_id", _accountId), DaoSort.sort("minute"));
+		if (firstMinute == null)
+			return;
+		rebuildSummaries(_accountId, firstMinute.getMinuteAsDate(), new Date());
+	}
+
+	@Override
+	public void rebuildSummaries(int _accountId, Date _start, Date _end) {
+		BreakerConfig config = getConfig(_accountId);
+		TimeZone tz = getTimeZoneForAccount(_accountId);
+		Date start = DateUtils.getMidnightBefore(_start, tz);
+		Date monthStart = DateUtils.getStartOfMonth(_start, tz);
+		BreakerGroup root = CollectionUtils.getFirst(config.getBreakerGroups());
+		proxy.delete(BreakerGroupSummary.class, new DaoQuery("_id", BreakerGroupEnergy.toId(_accountId, root.getId(), EnergyBlockViewMode.MONTH, monthStart)));
+		while (start.before(_end)) {
+			Date dayEnd = DateUtils.getMidnightAfter(start, tz);
+			DebugTimer timer = new DebugTimer("Time to rebuild one day");
+			DebugTimer t1 = new DebugTimer("Loading hub power for day, account: " + _accountId + " day: " + DateUtils.format("MM/dd/yyyy", tz, start));
+			List<HubPowerMinute> minutes = proxy.query(HubPowerMinute.class, new DaoQuery("account_id", _accountId).andBetweenInclusiveExclusive("minute", (int) (start.getTime() / 60000), (int) (dayEnd.getTime() / 60000)));
+			t1.stop();
+			monthStart = DateUtils.getStartOfMonth(start, tz);
+			BreakerGroupSummary month = null;
+			if (monthStart.equals(start))
+				proxy.delete(BreakerGroupSummary.class, new DaoQuery("_id", BreakerGroupEnergy.toId(_accountId, root.getId(), EnergyBlockViewMode.MONTH, monthStart)));
+			else
+				month = proxy.queryOne(BreakerGroupSummary.class, new DaoQuery("_id", BreakerGroupEnergy.toId(_accountId, root.getId(), EnergyBlockViewMode.MONTH, monthStart)));
+			BreakerGroupEnergy energy = new BreakerGroupEnergy(root, minutes, EnergyBlockViewMode.DAY, start, month, config.getBillingRates(), tz);
+			timer.stop();
+			putBreakerGroupEnergy(energy);
+			updateSummaries(root, CollectionUtils.asHashSet(start), tz);
+			start = DateUtils.addDays(start, 1, tz);
+		}
 	}
 
 	@Override
@@ -179,6 +217,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		config.setBreakerGroups(CollectionUtils.aggregate(configs, BreakerConfig::getBreakerGroups));
 		config.setPanels(CollectionUtils.aggregate(configs, BreakerConfig::getPanels));
 		config.setMeters(CollectionUtils.aggregate(configs, BreakerConfig::getMeters));
+		config.setBillingRates(CollectionUtils.aggregate(configs, BreakerConfig::getBillingRates));
 		return config;
 	}
 

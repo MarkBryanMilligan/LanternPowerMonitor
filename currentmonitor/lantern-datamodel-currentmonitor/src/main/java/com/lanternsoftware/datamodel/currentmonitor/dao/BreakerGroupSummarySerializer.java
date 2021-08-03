@@ -33,6 +33,7 @@ public class BreakerGroupSummarySerializer extends AbstractDaoSerializer<Breaker
 		d.put("start", DaoSerializer.toLong(_o.getStart()));
 		d.put("sub_groups", DaoSerializer.toDaoEntities(_o.getSubGroups(), DaoProxyType.MONGO));
 		d.put("joules", _o.getJoules());
+		d.put("charge", _o.getCharge());
 		d.put("to_grid", _o.getToGrid());
 		d.put("from_grid", _o.getFromGrid());
 		return d;
@@ -48,6 +49,7 @@ public class BreakerGroupSummarySerializer extends AbstractDaoSerializer<Breaker
 		o.setStart(DaoSerializer.getDate(_d, "start"));
 		o.setSubGroups(DaoSerializer.getList(_d, "sub_groups", BreakerGroupSummary.class));
 		o.setJoules(DaoSerializer.getDouble(_d, "joules"));
+		o.setCharge(DaoSerializer.getDouble(_d, "charge"));
 		o.setToGrid(DaoSerializer.getDouble(_d, "to_grid"));
 		o.setFromGrid(DaoSerializer.getDouble(_d, "from_grid"));
 		return o;

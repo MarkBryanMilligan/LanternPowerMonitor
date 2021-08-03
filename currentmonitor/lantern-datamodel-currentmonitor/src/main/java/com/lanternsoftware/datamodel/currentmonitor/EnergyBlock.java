@@ -10,6 +10,7 @@ public class EnergyBlock {
 	private Date start;
 	private Date end;
 	private double joules;
+	private double charge;
 
 	public EnergyBlock() {
 	}
@@ -46,6 +47,17 @@ public class EnergyBlock {
 
 	public void setJoules(double _joules) {
 		joules = _joules;
+	}
+
+	public double getCharge() {
+		return charge;
+	}
+
+	public void setCharge(double _charge) {
+		charge = _charge;
+	}
+	public void addCharge(double _charge) {
+		charge += _charge;
 	}
 
 	public double wattHours() {

@@ -45,4 +45,12 @@ public enum HubConfigCharacteristic {
 	public boolean isChar(String _char) {
 		return NullUtils.isEqual(name(), _char);
 	}
+
+	public static HubConfigCharacteristic fromUUID(UUID _uuid) {
+		for (HubConfigCharacteristic c : values()) {
+			if (c.uuid.equals(_uuid))
+				return c;
+		}
+		return null;
+	}
 }

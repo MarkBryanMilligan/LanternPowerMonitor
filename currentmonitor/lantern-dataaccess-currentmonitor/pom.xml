@@ -18,6 +18,11 @@
 			<version>1.0.0</version>
 		</dependency>
 		<dependency>
+			<groupId>com.lanternsoftware.rules</groupId>
+			<artifactId>lantern-datamodel-rules</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+		<dependency>
 			<groupId>com.lanternsoftware.util</groupId>
 			<artifactId>lantern-util-dao-mongo</artifactId>
 			<version>1.0.0</version>

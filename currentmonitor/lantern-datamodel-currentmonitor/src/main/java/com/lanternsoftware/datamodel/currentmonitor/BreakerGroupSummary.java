@@ -21,6 +21,7 @@ public class BreakerGroupSummary {
 	private Date start;
 	private List<BreakerGroupSummary> subGroups;
 	private double joules;
+	private double charge;
 	private double toGrid;
 	private double fromGrid;
 
@@ -35,6 +36,7 @@ public class BreakerGroupSummary {
 		start = _energy.getStart();
 		subGroups = CollectionUtils.transform(_energy.getSubGroups(), BreakerGroupSummary::new);
 		joules = _energy.joules(null, false);
+		charge = _energy.charge(null, false);
 		toGrid = _energy.getToGrid();
 		fromGrid = _energy.getFromGrid();
 	}
@@ -105,6 +107,14 @@ public class BreakerGroupSummary {
 
 	public void setJoules(double _joules) {
 		joules = _joules;
+	}
+
+	public double getCharge() {
+		return charge;
+	}
+
+	public void setCharge(double _charge) {
+		charge = _charge;
 	}
 
 	public double getToGrid() {

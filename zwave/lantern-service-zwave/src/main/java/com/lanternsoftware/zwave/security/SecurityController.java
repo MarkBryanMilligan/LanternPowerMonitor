@@ -1,6 +1,7 @@
 package com.lanternsoftware.zwave.security;
 
 import com.lanternsoftware.datamodel.zwave.Switch;
+import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.GpioPinDigitalInput;
 import com.pi4j.io.gpio.PinPullResistance;
@@ -11,11 +12,16 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SecurityController {
 	protected static final Logger LOG = LoggerFactory.getLogger(SecurityController.class);
 
 	private final Map<Integer, GpioPinDigitalInput> pins = new HashMap<>();
+	private final Map<Integer, Boolean> pinEvents = new HashMap<>();
+	private final ExecutorService executor = Executors.newFixedThreadPool(2);
+	private int eventIdx = 0;
 
 	public boolean isOpen(int _pin) {
 		GpioPinDigitalInput pin = getPin(_pin);
@@ -25,7 +31,24 @@ public class SecurityController {
 	public void listen(Switch _sw, SecurityListener _listener) {
 		GpioPinDigitalInput pin = getPin(_sw.getGpioPin());
 		if (pin != null)
-			pin.addListener((GpioPinListenerDigital) _event -> _listener.onStateChanged(_sw.getNodeId(), _event.getState().isHigh()));
+			pin.addListener((GpioPinListenerDigital) _event -> {
+				synchronized (pinEvents) {
+					eventIdx++;
+					LOG.info("state change from gpio, event {} pin {} to {}", eventIdx, _sw.getGpioPin(), _event.getState().isHigh());
+					pinEvents.put(_sw.getGpioPin(), _event.getState().isHigh());
+				}
+				executor.submit(()->{
+					ConcurrencyUtils.sleep(500);
+					Boolean high;
+					synchronized (pinEvents) {
+						high = pinEvents.remove(_sw.getGpioPin());
+					}
+					LOG.info("handling event {} pin {} most recent event is {}", eventIdx, _sw.getGpioPin(), high);
+					if (high == null)
+						return;
+					_listener.onStateChanged(_sw.getNodeId(), high);
+				});
+			});
 	}
 
 	private GpioPinDigitalInput getPin(int _pin) {
@@ -47,6 +70,7 @@ public class SecurityController {
 			pin.removeAllListeners();
 		}
 		pins.clear();
+		executor.shutdownNow();
 		GpioFactory.getInstance().shutdown();
 	}
 }

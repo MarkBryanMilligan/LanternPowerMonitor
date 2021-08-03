@@ -31,6 +31,8 @@ public interface CurrentMonitorDao {
 	void putConfig(BreakerConfig _config);
 
 	void updateSummaries(BreakerGroup _rootGroup, Set<Date> _daysToSummarize, TimeZone _tz);
+	void rebuildSummaries(int _accountId);
+	void rebuildSummaries(int _accountId, Date _start, Date _end);
 
 	String addPasswordResetKey(String _email);
 	String getEmailForResetKey(String _key);

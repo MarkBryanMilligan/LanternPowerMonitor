@@ -38,6 +38,7 @@ public class SwitchSerializer extends AbstractDaoSerializer<Switch>
 		d.put("primary", _o.isPrimary());
 		d.put("hold", _o.isHold());
 		d.put("hidden", _o.isHidden());
+		d.put("suppress_events", _o.isSuppressEvents());
 		d.put("thermometer_url", _o.getThermometerUrl());
 		d.put("controller_url", _o.getControllerUrl());
 		d.put("thermostat_mode", DaoSerializer.toEnumName(_o.getThermostatMode()));
@@ -60,6 +61,7 @@ public class SwitchSerializer extends AbstractDaoSerializer<Switch>
 		o.setPrimary(DaoSerializer.getBoolean(_d, "primary"));
 		o.setHold(DaoSerializer.getBoolean(_d, "hold"));
 		o.setHidden(DaoSerializer.getBoolean(_d, "hidden"));
+		o.setSuppressEvents(DaoSerializer.getBoolean(_d, "suppress_events"));
 		o.setThermometerUrl(DaoSerializer.getString(_d, "thermometer_url"));
 		o.setControllerUrl(DaoSerializer.getString(_d, "controller_url"));
 		o.setThermostatMode(DaoSerializer.getEnum(_d, "thermostat_mode", ThermostatMode.class));

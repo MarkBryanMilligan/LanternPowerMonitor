@@ -28,6 +28,7 @@ public class EnergyBlockSerializer extends AbstractDaoSerializer<EnergyBlock>
 		d.put("start", DaoSerializer.toLong(_o.getStart()));
 		d.put("end", DaoSerializer.toLong(_o.getEnd()));
 		d.put("joules", _o.getJoules());
+		d.put("charge", _o.getCharge());
 		return d;
 	}
 
@@ -38,6 +39,7 @@ public class EnergyBlockSerializer extends AbstractDaoSerializer<EnergyBlock>
 		o.setStart(DaoSerializer.getDate(_d, "start"));
 		o.setEnd(DaoSerializer.getDate(_d, "end"));
 		o.setJoules(DaoSerializer.getDouble(_d, "joules"));
+		o.setCharge(DaoSerializer.getDouble(_d, "charge"));
 		return o;
 	}
 }

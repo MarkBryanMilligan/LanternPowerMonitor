@@ -109,10 +109,19 @@ public enum EnergyBlockViewMode {
 		return blockCnt;
 	}
 
-	public int blockIndex(Date _readTime, TimeZone _tz) {
+	public int initBlockCount() {
+		if (this == ALL)
+			return 1;
+		if (this == YEAR)
+			return 12;
+		if (this == MONTH)
+			return 31;
+		return 1500;
+	}
+
+	public int blockIndex(Date _dayStart, Date _readTime, TimeZone _tz) {
 		if (this == DAY) {
-			Date start = DateUtils.getMidnightBefore(_readTime, _tz);
-			return (int)((_readTime.getTime() - start.getTime())/60000);
+			return (int)((_readTime.getTime() - _dayStart.getTime())/60000);
 		}
 		else if (this == MONTH) {
 			Calendar read = DateUtils.toCalendar(_readTime, _tz);

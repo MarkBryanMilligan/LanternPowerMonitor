@@ -1,5 +1,6 @@
 package com.lanternsoftware.datamodel.currentmonitor.dao;
 
+import com.lanternsoftware.datamodel.currentmonitor.BillingRate;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
@@ -35,6 +36,7 @@ public class BreakerConfigSerializer extends AbstractDaoSerializer<BreakerConfig
 		d.put("panels", DaoSerializer.toDaoEntities(_o.getPanels(), DaoProxyType.MONGO));
 		d.put("breaker_hubs", DaoSerializer.toDaoEntities(_o.getBreakerHubs(), DaoProxyType.MONGO));
 		d.put("breaker_groups", DaoSerializer.toDaoEntities(_o.getBreakerGroups(), DaoProxyType.MONGO));
+		d.put("billing_rates", DaoSerializer.toDaoEntities(_o.getBillingRates(), DaoProxyType.MONGO));
 		d.put("version", _o.getVersion());
 		return d;
 	}
@@ -48,6 +50,7 @@ public class BreakerConfigSerializer extends AbstractDaoSerializer<BreakerConfig
 		o.setPanels(DaoSerializer.getList(_d, "panels", BreakerPanel.class));
 		o.setBreakerHubs(DaoSerializer.getList(_d, "breaker_hubs", BreakerHub.class));
 		o.setBreakerGroups(DaoSerializer.getList(_d, "breaker_groups", BreakerGroup.class));
+		o.setBillingRates(DaoSerializer.getList(_d, "billing_rates", BillingRate.class));
 		o.setVersion(DaoSerializer.getInteger(_d, "version"));
 		return o;
 	}

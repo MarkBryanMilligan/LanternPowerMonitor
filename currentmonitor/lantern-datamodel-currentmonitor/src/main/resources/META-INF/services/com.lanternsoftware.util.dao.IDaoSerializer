@@ -1,4 +1,5 @@
 com.lanternsoftware.datamodel.currentmonitor.dao.AccountSerializer
+com.lanternsoftware.datamodel.currentmonitor.dao.BillingRateSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.BreakerConfigSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.BreakerGroupEnergySerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.BreakerGroupSerializer
