@@ -174,6 +174,8 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		Date start = DateUtils.getMidnightBefore(_start, tz);
 		Date monthStart = DateUtils.getStartOfMonth(_start, tz);
 		BreakerGroup root = CollectionUtils.getFirst(config.getBreakerGroups());
+		if (root == null)
+			return;
 		proxy.delete(BreakerGroupSummary.class, new DaoQuery("_id", BreakerGroupEnergy.toId(_accountId, root.getId(), EnergyBlockViewMode.MONTH, monthStart)));
 		while (start.before(_end)) {
 			Date dayEnd = DateUtils.getMidnightAfter(start, tz);
@@ -335,7 +337,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 
 	@Override
 	public String addPasswordResetKey(String _email) {
-		String key = aes.encryptToBase64(_email);
+		String key = aes.encryptToUrlSafeBase64(_email);
 		proxy.saveEntity("password_reset", new DaoEntity("_id", key));
 		return key;
 	}
@@ -356,6 +358,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		Account acct = getAccountByUsername(aes.decryptFromBase64ToString(_key));
 		acct.setPassword(_password);
 		putAccount(acct);
+		proxy.delete("password_reset", new DaoQuery("_id", _key));
 		return true;
 	}
 

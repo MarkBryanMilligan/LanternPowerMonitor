@@ -62,7 +62,7 @@ public class ResetPasswordServlet extends FreemarkerServlet {
         } else {
             DaoEntity payload = getRequestZipBson(_req);
             String email = DaoSerializer.getString(payload, "email");
-            if (NullUtils.isNotEmpty(email)) {
+            if (EmailValidator.getInstance().isValid(email)) {
                 String key = Globals.dao.addPasswordResetKey(email);
                 Email from = new Email("info@lanternsoftware.com");
                 String subject = "Password Reset - Lantern Power Monitor";
@@ -79,9 +79,11 @@ public class ResetPasswordServlet extends FreemarkerServlet {
                     zipBsonResponse(_resp, new DaoEntity("success", response.getStatusCode() == 200));
                 } catch (IOException ex) {
                     LOG.error("Failed to send password reset email", ex);
-                    zipBsonResponse(_resp, new DaoEntity("success", false));
+                    _resp.setStatus(500);
                 }
             }
+            else
+                _resp.setStatus(400);
         }
     }
 }

@@ -412,6 +412,7 @@ public class BreakerGroupEnergy {
 						_energyBlocks.put(block.getStart().getTime(), b);
 					} else
 						b.addJoules(block.getJoules());
+					b.addCharge(block.getCharge());
 				}
 			}
 		}
