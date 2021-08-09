@@ -119,9 +119,9 @@ public class BillingRate {
 	}
 
 	public boolean isApplicable(BillingMode _mode, int _meter, double _monthKWh, Date _time, TimeZone _tz) {
-		if (mode != _mode)
+		if ((mode != BillingMode.ANY_DIRECTION) && (mode != _mode))
 			return false;
-		if (_meter != meter)
+		if ((meter != -1) && (_meter != meter))
 			return false;
 		if ((monthKWhStart > 0) && (_monthKWh < monthKWhStart))
 			return false;
