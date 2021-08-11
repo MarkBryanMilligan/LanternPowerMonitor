@@ -177,6 +177,30 @@ public class CollectionUtils {
         return _arr[_arr.length - 1];
     }
 
+    public static <T> boolean isEqual(Collection<T> _l1, Collection<T> _l2) {
+        if (size(_l1) != size(_l2))
+            return false;
+        Iterator<T> i1 = _l1.iterator();
+        Iterator<T> i2 = _l2.iterator();
+        while (i1.hasNext()) {
+            if (NullUtils.isNotEqual(i1.next(), i2.next()))
+                return false;
+        }
+        return true;
+    }
+
+    public static <T extends IIdentical<T>> boolean isIdentical(Collection<T> _l1, Collection<T> _l2) {
+        if (size(_l1) != size(_l2))
+            return false;
+        Iterator<T> i1 = _l1.iterator();
+        Iterator<T> i2 = _l2.iterator();
+        while (i1.hasNext()) {
+            if (NullUtils.isNotIdentical(i1.next(), i2.next()))
+                return false;
+        }
+        return true;
+    }
+
     public static <T> boolean contains(Collection<T> _coll, T _t) {
         if (_coll == null)
             return false;

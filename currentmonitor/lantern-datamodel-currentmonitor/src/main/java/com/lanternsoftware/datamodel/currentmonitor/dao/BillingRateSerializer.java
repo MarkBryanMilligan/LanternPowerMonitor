@@ -1,7 +1,7 @@
 package com.lanternsoftware.datamodel.currentmonitor.dao;
 
 import com.lanternsoftware.datamodel.currentmonitor.BillingCurrency;
-import com.lanternsoftware.datamodel.currentmonitor.BillingMode;
+import com.lanternsoftware.datamodel.currentmonitor.GridFlow;
 import com.lanternsoftware.datamodel.currentmonitor.BillingRate;
 import com.lanternsoftware.util.dao.AbstractDaoSerializer;
 import com.lanternsoftware.util.dao.DaoEntity;
@@ -29,7 +29,7 @@ public class BillingRateSerializer extends AbstractDaoSerializer<BillingRate>
 		DaoEntity d = new DaoEntity();
 		d.put("meter", _o.getMeter());
 		d.put("day_billing_cycle_start", _o.getDayBillingCycleStart());
-		d.put("mode", DaoSerializer.toEnumName(_o.getMode()));
+		d.put("flow", DaoSerializer.toEnumName(_o.getFlow()));
 		d.put("rate", _o.getRate());
 		d.put("unit", DaoSerializer.toEnumName(_o.getCurrency()));
 		d.put("time_of_day_start", _o.getTimeOfDayStart());
@@ -48,7 +48,7 @@ public class BillingRateSerializer extends AbstractDaoSerializer<BillingRate>
 		BillingRate o = new BillingRate();
 		o.setMeter(DaoSerializer.getInteger(_d, "meter"));
 		o.setDayBillingCycleStart(DaoSerializer.getInteger(_d, "day_billing_cycle_start"));
-		o.setMode(DaoSerializer.getEnum(_d, "mode", BillingMode.class));
+		o.setFlow(DaoSerializer.getEnum(_d, "flow", GridFlow.class, GridFlow.BOTH));
 		o.setRate(DaoSerializer.getDouble(_d, "rate"));
 		o.setCurrency(DaoSerializer.getEnum(_d, "unit", BillingCurrency.class));
 		o.setTimeOfDayStart(DaoSerializer.getInteger(_d, "time_of_day_start"));

@@ -1,6 +1,7 @@
 package com.lanternsoftware.dataaccess.currentmonitor;
 
 import com.lanternsoftware.datamodel.currentmonitor.Account;
+import com.lanternsoftware.datamodel.currentmonitor.BillingRate;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -159,6 +161,32 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		putBreakerGroupEnergy(summary);
 	}
 
+	private void rebuildSummaries(int _accountId, Collection<BillingRate> _rates) {
+		logger.info("Rebuilding summaries due to a change in {} rates", CollectionUtils.size(_rates));
+		HubPowerMinute firstMinute = proxy.queryOne(HubPowerMinute.class, new DaoQuery("account_id", _accountId), DaoSort.sort("minute"));
+		if (firstMinute == null)
+			return;
+		TimeZone tz = getTimeZoneForAccount(_accountId);
+		Map<String, BillingRate> rates = CollectionUtils.transformToMap(_rates, _r->String.format("%d%d", DaoSerializer.toLong(_r.getBeginEffective()), DaoSerializer.toLong(_r.getEndEffective())));
+		for (BillingRate rate : rates.values()) {
+			Date start = rate.getBeginEffective();
+			Date end = rate.getEndEffective();
+			Date now = new Date();
+			if ((start == null) || start.before(firstMinute.getMinuteAsDate()))
+				start = firstMinute.getMinuteAsDate();
+			if ((end == null) || end.after(now))
+				end = now;
+			rebuildSummaries(_accountId, start, end);
+			if (rate.isRecursAnnually()) {
+				while (end.before(now)) {
+					start = DateUtils.addYears(start, 1, tz);
+					end = DateUtils.addYears(end, 1, tz);
+					rebuildSummaries(_accountId, start, end);
+				}
+			}
+		}
+	}
+
 	@Override
 	public void rebuildSummaries(int _accountId) {
 		HubPowerMinute firstMinute = proxy.queryOne(HubPowerMinute.class, new DaoQuery("account_id", _accountId), DaoSort.sort("minute"));
@@ -228,8 +256,20 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		DaoQuery configQuery = new DaoQuery("_id", String.valueOf(_config.getAccountId()));
 		BreakerConfig oldConfig = proxy.queryOne(BreakerConfig.class, configQuery);
 		if (oldConfig != null) {
-			proxy.saveEntity("config_archive", DaoSerializer.toDaoEntity(oldConfig));
 			_config.setVersion(oldConfig.getVersion() + 1);
+			if (NullUtils.isNotIdentical(_config, oldConfig)) {
+				DaoEntity oldEntity = DaoSerializer.toDaoEntity(oldConfig);
+				oldEntity.put("_id", String.format("%d-%d", oldConfig.getAccountId(), oldConfig.getVersion()));
+				oldEntity.put("account_id", oldConfig.getAccountId());
+				oldEntity.put("archive_date", DaoSerializer.toLong(new Date()));
+				proxy.saveEntity("config_archive", oldEntity);
+				executor.submit(() -> {
+					List<BillingRate> changedRates = new ArrayList<>(_config.getBillingRates());
+					changedRates.removeAll(CollectionUtils.makeNotNull(oldConfig.getBillingRates()));
+					if (!changedRates.isEmpty())
+						rebuildSummaries(_config.getAccountId(), changedRates);
+				});
+			}
 		}
 		proxy.save(_config);
 	}

@@ -23,6 +23,16 @@ public class NullUtils {
         return (b == null);
     }
 
+    public static <T extends IIdentical<T>> boolean isNotIdentical(T a, T b) {
+        return !isIdentical(a, b);
+    }
+
+    public static <T extends IIdentical<T>> boolean isIdentical(T a, T b) {
+        if (a != null)
+            return (b != null) && a.isIdentical(b);
+        return (b == null);
+    }
+
     public static <T> boolean isNotEqual(T a, T b, IEquals<T> _equals) {
         return !isEqual(a, b, _equals);
     }

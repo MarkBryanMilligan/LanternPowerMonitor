@@ -1,10 +1,13 @@
 package com.lanternsoftware.datamodel.currentmonitor;
 
 
+import com.lanternsoftware.util.IIdentical;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
+import java.util.Objects;
+
 @DBSerializable
-public class BreakerHub {
+public class BreakerHub implements IIdentical<BreakerHub> {
 	private int hub;
 	private double voltageCalibrationFactor;
 	private double portCalibrationFactor;
@@ -49,5 +52,24 @@ public class BreakerHub {
 
 	public void setBluetoothMac(String _bluetoothMac) {
 		bluetoothMac = _bluetoothMac;
+	}
+
+	@Override
+	public boolean equals(Object _o) {
+		if (this == _o) return true;
+		if (_o == null || getClass() != _o.getClass()) return false;
+		BreakerHub that = (BreakerHub) _o;
+		return hub == that.hub;
+	}
+
+	@Override
+	public boolean isIdentical(BreakerHub _o) {
+		if (this == _o) return true;
+		return hub == _o.hub && Double.compare(_o.voltageCalibrationFactor, voltageCalibrationFactor) == 0 && Double.compare(_o.portCalibrationFactor, portCalibrationFactor) == 0 && frequency == _o.frequency && Objects.equals(bluetoothMac, _o.bluetoothMac);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(hub);
 	}
 }

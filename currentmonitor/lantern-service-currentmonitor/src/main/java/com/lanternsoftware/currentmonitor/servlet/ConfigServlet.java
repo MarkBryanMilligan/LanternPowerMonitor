@@ -1,8 +1,10 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
-import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
+import com.lanternsoftware.util.dao.auth.AuthCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -10,6 +12,8 @@ import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/config/*")
 public class ConfigServlet extends SecureServlet {
+	private static final Logger logger = LoggerFactory.getLogger(ConfigServlet.class);
+
 	@Override
 	protected void get(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		if (isPath(_req, 0, "bin"))
@@ -29,6 +33,7 @@ public class ConfigServlet extends SecureServlet {
 			_rep.setStatus(401);
 			return;
 		}
+		logger.info("Received config for account {}", config.getAccountId());
 		Globals.dao.putConfig(config);
 	}
 }

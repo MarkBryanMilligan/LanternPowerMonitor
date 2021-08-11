@@ -1,10 +1,13 @@
 package com.lanternsoftware.datamodel.currentmonitor;
 
 
+import com.lanternsoftware.util.IIdentical;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
+import java.util.Objects;
+
 @DBSerializable()
-public class Breaker {
+public class Breaker implements IIdentical<Breaker> {
 	private static final int TANDEM_BREAKER_MASK = 3072;
 	private static final int SPACE_MASK = 1023;
 	private static final int TANDEM_BREAKER_A_MASK = 1024;
@@ -137,7 +140,7 @@ public class Breaker {
 	}
 
 	public double getLowPassFilter() {
-		return Math.abs(lowPassFilter) < 0.05 ? 1.6: lowPassFilter;
+		return Math.abs(lowPassFilter) < 0.05 ? 1.6 : lowPassFilter;
 	}
 
 	public void setLowPassFilter(double _lowPassFilter) {
@@ -161,7 +164,7 @@ public class Breaker {
 	}
 
 	public double getCalibrationFactor() {
-		return calibrationFactor == 0.0?1.0:calibrationFactor;
+		return calibrationFactor == 0.0 ? 1.0 : calibrationFactor;
 	}
 
 	public void setCalibrationFactor(double _calibrationFactor) {
@@ -196,15 +199,15 @@ public class Breaker {
 	}
 
 	public static int portToChip(int _port) {
-		return (_port < 9)?1:0;
+		return (_port < 9) ? 1 : 0;
 	}
 
 	public static int portToPin(int _port) {
-		return (_port < 9)?_port-1:_port-8;
+		return (_port < 9) ? _port - 1 : _port - 8;
 	}
 
 	public static int toPort(int _chip, int _pin) {
-		return (_chip == 0)?_pin+8:_pin+1;
+		return (_chip == 0) ? _pin + 8 : _pin + 1;
 	}
 
 	public static boolean isTandemBreakerA(int _space) {
@@ -224,7 +227,7 @@ public class Breaker {
 	}
 
 	public static int toSpace(int _id) {
-		return _id & (TANDEM_BREAKER_MASK |SPACE_MASK);
+		return _id & (TANDEM_BREAKER_MASK | SPACE_MASK);
 	}
 
 	public static String toSpaceDisplay(int _space) {
@@ -237,5 +240,24 @@ public class Breaker {
 
 	public int getSpaceIndex() {
 		return space & SPACE_MASK;
+	}
+
+	@Override
+	public boolean equals(Object _o) {
+		if (this == _o) return true;
+		if (_o == null || getClass() != _o.getClass()) return false;
+		Breaker breaker = (Breaker) _o;
+		return panel == breaker.panel && space == breaker.space;
+	}
+
+	@Override
+	public boolean isIdentical(Breaker _o) {
+		if (this == _o) return true;
+		return panel == _o.panel && space == _o.space && meter == _o.meter && hub == _o.hub && port == _o.port && sizeAmps == _o.sizeAmps && Double.compare(_o.calibrationFactor, calibrationFactor) == 0 && Double.compare(_o.lowPassFilter, lowPassFilter) == 0 && doublePower == _o.doublePower && Objects.equals(name, _o.name) && Objects.equals(description, _o.description) && polarity == _o.polarity && type == _o.type && Objects.equals(key, _o.key);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(panel, space);
 	}
 }

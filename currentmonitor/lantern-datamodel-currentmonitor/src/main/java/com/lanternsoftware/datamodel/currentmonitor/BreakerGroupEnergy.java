@@ -96,8 +96,8 @@ public class BreakerGroupEnergy {
 		double secondFromGrid;
 		for (Map.Entry<MeterMinute, MeterMinuteValues> meter : meters.entrySet()) {
 			double monthkWh = monthFromGrid/3600000;
-			List<BillingRate> consumptionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(BillingMode.CONSUMPTION, meter.getKey().meter, monthkWh, meter.getKey().minute, timezone));
-			List<BillingRate> productionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(BillingMode.PRODUCTION, meter.getKey().meter, monthkWh, meter.getKey().minute, timezone));
+			List<BillingRate> consumptionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(GridFlow.FROM, meter.getKey().meter, monthkWh, meter.getKey().minute, timezone));
+			List<BillingRate> productionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(GridFlow.TO, meter.getKey().meter, monthkWh, meter.getKey().minute, timezone));
 			for (int i = 0; i < 60; i++) {
 				secondFromGrid = meter.getValue().usage[i] - meter.getValue().solar[i];
 				monthFromGrid += secondFromGrid;
@@ -351,7 +351,7 @@ public class BreakerGroupEnergy {
 		return charge(_selectedBreakers, true);
 	}
 
-	public double charge(Set<String> _selectedBreakers, BillingMode _mode) {
+	public double charge(Set<String> _selectedBreakers, GridFlow _mode) {
 		return charge(_selectedBreakers, true, _mode);
 	}
 
@@ -359,7 +359,7 @@ public class BreakerGroupEnergy {
 		return charge(_selectedBreakers, _includeSubgroups, null);
 	}
 
-	public double charge(Set<String> _selectedBreakers, boolean _includeSubgroups, BillingMode _mode) {
+	public double charge(Set<String> _selectedBreakers, boolean _includeSubgroups, GridFlow _mode) {
 		double charge = 0.0;
 		if (_includeSubgroups) {
 			for (BreakerGroupEnergy group : CollectionUtils.makeNotNull(subGroups)) {
@@ -368,7 +368,7 @@ public class BreakerGroupEnergy {
 		}
 		if ((energyBlocks != null) && ((_selectedBreakers == null) || _selectedBreakers.contains(getGroupId()))) {
 			for (EnergyBlock energy : energyBlocks) {
-				if ((_mode == null) || ((_mode == BillingMode.PRODUCTION) && energy.getCharge() < 0.0) || (_mode == BillingMode.CONSUMPTION && energy.getCharge() > 0.0))
+				if ((_mode == null) || ((_mode == GridFlow.TO) && energy.getCharge() < 0.0) || (_mode == GridFlow.FROM && energy.getCharge() > 0.0))
 					charge += energy.getCharge();
 			}
 		}

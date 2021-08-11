@@ -5,13 +5,14 @@ import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Objects;
 import java.util.TimeZone;
 
 @DBSerializable
 public class BillingRate {
 	private int meter;
 	private int dayBillingCycleStart;
-	private BillingMode mode;
+	private GridFlow flow;
 	private double rate;
 	private BillingCurrency currency;
 	private int timeOfDayStart;
@@ -38,12 +39,12 @@ public class BillingRate {
 		dayBillingCycleStart = _dayBillingCycleStart;
 	}
 
-	public BillingMode getMode() {
-		return mode;
+	public GridFlow getFlow() {
+		return flow;
 	}
 
-	public void setMode(BillingMode _mode) {
-		mode = _mode;
+	public void setFlow(GridFlow _flow) {
+		flow = _flow;
 	}
 
 	public double getRate() {
@@ -118,8 +119,8 @@ public class BillingRate {
 		recursAnnually = _recursAnnually;
 	}
 
-	public boolean isApplicable(BillingMode _mode, int _meter, double _monthKWh, Date _time, TimeZone _tz) {
-		if ((mode != BillingMode.ANY_DIRECTION) && (mode != _mode))
+	public boolean isApplicable(GridFlow _mode, int _meter, double _monthKWh, Date _time, TimeZone _tz) {
+		if ((flow != GridFlow.BOTH) && (flow != _mode))
 			return false;
 		if ((meter != -1) && (_meter != meter))
 			return false;
@@ -160,11 +161,24 @@ public class BillingRate {
 		return rate * _kWh;
 	}
 
+	@Override
+	public boolean equals(Object _o) {
+		if (this == _o) return true;
+		if (_o == null || getClass() != _o.getClass()) return false;
+		BillingRate that = (BillingRate) _o;
+		return meter == that.meter && dayBillingCycleStart == that.dayBillingCycleStart && Double.compare(that.rate, rate) == 0 && timeOfDayStart == that.timeOfDayStart && timeOfDayEnd == that.timeOfDayEnd && Double.compare(that.monthKWhStart, monthKWhStart) == 0 && Double.compare(that.monthKWhEnd, monthKWhEnd) == 0 && recursAnnually == that.recursAnnually && flow == that.flow && currency == that.currency && Objects.equals(beginEffective, that.beginEffective) && Objects.equals(endEffective, that.endEffective);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(meter, dayBillingCycleStart, flow, rate, currency, timeOfDayStart, timeOfDayEnd, monthKWhStart, monthKWhEnd, beginEffective, endEffective, recursAnnually);
+	}
+
 	public BillingRate duplicate() {
 		BillingRate r = new BillingRate();
 		r.setMeter(meter);
 		r.setDayBillingCycleStart(dayBillingCycleStart);
-		r.setMode(mode);
+		r.setFlow(flow);
 		r.setRate(rate);
 		r.setCurrency(currency);
 		r.setTimeOfDayStart(timeOfDayStart);

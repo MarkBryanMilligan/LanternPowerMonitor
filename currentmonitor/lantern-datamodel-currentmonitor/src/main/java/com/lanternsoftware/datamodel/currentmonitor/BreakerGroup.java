@@ -2,18 +2,18 @@ package com.lanternsoftware.datamodel.currentmonitor;
 
 
 import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.IIdentical;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 import com.lanternsoftware.util.dao.annotations.PrimaryKey;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 @DBSerializable()
-public class BreakerGroup {
+public class BreakerGroup implements IIdentical<BreakerGroup> {
 	@PrimaryKey private String id;
 	private int accountId;
 	private String name;
@@ -184,6 +184,15 @@ public class BreakerGroup {
 		if (_o == null || getClass() != _o.getClass()) return false;
 		BreakerGroup that = (BreakerGroup) _o;
 		return Objects.equals(id, that.id);
+	}
+
+	@Override
+	public boolean isIdentical(BreakerGroup _o) {
+		if (this == _o)
+			return true;
+		if (_o == null)
+			return false;
+		return NullUtils.isEqual(id, _o.id) && accountId == _o.accountId && NullUtils.isEqual(name, _o.name) && CollectionUtils.isIdentical(subGroups, _o.subGroups) && CollectionUtils.isIdentical(breakers, _o.breakers);
 	}
 
 	@Override

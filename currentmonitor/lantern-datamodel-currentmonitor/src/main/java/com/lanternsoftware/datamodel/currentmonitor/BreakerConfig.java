@@ -1,6 +1,7 @@
 package com.lanternsoftware.datamodel.currentmonitor;
 
 import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.IIdentical;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
@@ -8,9 +9,10 @@ import com.lanternsoftware.util.dao.annotations.PrimaryKey;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @DBSerializable(autogen = false)
-public class BreakerConfig {
+public class BreakerConfig implements IIdentical<BreakerConfig> {
 	@PrimaryKey
 	private int accountId;
 	private List<Meter> meters;
@@ -181,5 +183,24 @@ public class BreakerConfig {
 
 	public BillingCurrency getCurrency() {
 		return CollectionUtils.getFirst(CollectionUtils.transformToSet(billingRates, BillingRate::getCurrency));
+	}
+
+	@Override
+	public boolean equals(Object _o) {
+		if (this == _o) return true;
+		if (_o == null || getClass() != _o.getClass()) return false;
+		BreakerConfig that = (BreakerConfig) _o;
+		return accountId == that.accountId && CollectionUtils.isEqual(meters, that.meters) && CollectionUtils.isEqual(panels, that.panels) && CollectionUtils.isEqual(breakerHubs, that.breakerHubs) && CollectionUtils.isEqual(breakerGroups, that.breakerGroups) && CollectionUtils.isEqual(billingRates, that.billingRates);
+	}
+
+	@Override
+	public boolean isIdentical(BreakerConfig _o) {
+		if (this == _o) return true;
+		return accountId == _o.accountId && CollectionUtils.isIdentical(meters, _o.meters) && CollectionUtils.isIdentical(panels, _o.panels) && CollectionUtils.isIdentical(breakerHubs, _o.breakerHubs) && CollectionUtils.isIdentical(breakerGroups, _o.breakerGroups) && CollectionUtils.isEqual(billingRates, _o.billingRates);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(accountId, meters, panels, breakerHubs, breakerGroups, billingRates, version);
 	}
 }

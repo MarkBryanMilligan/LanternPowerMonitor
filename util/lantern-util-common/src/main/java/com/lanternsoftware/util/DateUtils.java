@@ -1,11 +1,11 @@
 package com.lanternsoftware.util;
 
-import java.sql.Time;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.TimeZone;
 
 public abstract class DateUtils {
@@ -403,6 +403,14 @@ public abstract class DateUtils {
         if (_dt == null)
             return null;
         return dateFormat(_format, _tz).format(_dt);
+    }
+
+    public static String formatDate(int _format, TimeZone _tz, Date _dt) {
+        if (_dt == null)
+            return null;
+        DateFormat format = DateFormat.getDateInstance(_format, Locale.getDefault());
+        format.setTimeZone(_tz);
+        return format.format(_dt);
     }
 
     public static Date parse(String _format, String _date) {
