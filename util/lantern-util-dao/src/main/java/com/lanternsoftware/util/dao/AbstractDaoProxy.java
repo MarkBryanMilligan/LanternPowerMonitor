@@ -196,6 +196,26 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
     }
 
     @Override
+    public <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query) {
+        return queryForEntity(DaoSerializer.getTableName(_class, getType()), _query);
+    }
+
+    @Override
+    public <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query, DaoSort _sort) {
+        return queryForEntity(DaoSerializer.getTableName(_class, getType()), _query, _sort);
+    }
+
+    @Override
+    public <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query, Collection<String> _fields) {
+        return queryForEntity(DaoSerializer.getTableName(_class, getType()), _query, _fields);
+    }
+
+    @Override
+    public <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query, Collection<String> _fields, DaoSort _sort) {
+        return queryForEntity(DaoSerializer.getTableName(_class, getType()), _query, _fields, _sort);
+    }
+
+    @Override
     public DaoEntity queryForEntity(String _tableName, DaoQuery _query) {
         return CollectionUtils.getFirst(queryForEntities(_tableName, _query, null, null, 0, 1));
     }

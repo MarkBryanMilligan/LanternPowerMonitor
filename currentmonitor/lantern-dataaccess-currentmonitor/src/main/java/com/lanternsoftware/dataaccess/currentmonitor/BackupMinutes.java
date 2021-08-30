@@ -20,18 +20,20 @@ public class BackupMinutes {
 		CurrentMonitorDao backupDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_PATH + "mongo.cfg"));
 		Date now = new Date();
 		for (Account a : dao.getProxy().queryAll(Account.class)) {
-			if (a.getId() == 100)
+			if (a.getId() == 0)
 				continue;
 			DebugTimer t = new DebugTimer("Account " + a.getId());
 			if (NullUtils.isEmpty(a.getTimezone())) {
 				a.setTimezone("America/Chicago");
 			}
 			TimeZone tz = TimeZone.getTimeZone(a.getTimezone());
-//			Date start = DateUtils.addDays(DateUtils.getMidnightBeforeNow(tz), -2, tz);
 			HubPowerMinute minute = dao.getProxy().queryOne(HubPowerMinute.class, new DaoQuery("account_id", a.getId()), DaoSort.sort("minute"));
 			if (minute == null)
 				continue;
+			Date minStart = DateUtils.addDays(DateUtils.getMidnightBeforeNow(tz), -60, tz);
 			Date start = DateUtils.getMidnightBefore(minute.getMinuteAsDate(), tz);
+			if (minStart.after(start))
+				start = minStart;
 			Date end = DateUtils.addDays(start, 1, tz);
 			while (end.before(now)) {
 				DebugTimer t2 = new DebugTimer("Account Id: " + a.getId() + " Query Day " + DateUtils.format("MM/dd/yyyy", tz, start));
@@ -48,5 +50,6 @@ public class BackupMinutes {
 			t.stop();
 		}
 		dao.shutdown();
+		backupDao.shutdown();
 	}
 }

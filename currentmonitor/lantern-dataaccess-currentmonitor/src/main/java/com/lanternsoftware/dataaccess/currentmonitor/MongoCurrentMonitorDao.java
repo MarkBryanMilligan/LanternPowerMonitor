@@ -126,6 +126,11 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	}
 
 	@Override
+	public byte[] getBreakerGroupEnergyBinary(int _accountId, String _groupId, EnergyBlockViewMode _viewMode, Date _start) {
+		return DaoSerializer.toZipBson(proxy.queryForEntity(BreakerGroupEnergy.class, new DaoQuery("_id", BreakerGroupEnergy.toId(_accountId, _groupId, _viewMode, _start))));
+	}
+
+	@Override
 	public void updateSummaries(BreakerGroup _rootGroup, Set<Date> _daysToSummarize, TimeZone _tz) {
 		Set<Date> monthsToSummarize = CollectionUtils.transformToSet(_daysToSummarize, _c -> DateUtils.getStartOfMonth(_c, _tz));
 		Set<Date> yearsToSummarize = CollectionUtils.transformToSet(monthsToSummarize, _c -> DateUtils.getStartOfYear(_c, _tz));

@@ -350,11 +350,8 @@ public class MonitorApp {
 							}
 						}
 					}
-					if (mqttPoster != null) {
-						for (BreakerPower p : mqttReadings) {
-							monitor.submit(() -> mqttPoster.postPower(p));
-						}
-					}
+					if (mqttPoster != null)
+						monitor.submit(() -> mqttPoster.postPower(mqttReadings));
 					if (DateUtils.diffInSeconds(new Date(), lastUpdateCheck) >= config.getUpdateInterval()) {
 						lastUpdateCheck = new Date();
 						monitor.submit(new UpdateChecker());

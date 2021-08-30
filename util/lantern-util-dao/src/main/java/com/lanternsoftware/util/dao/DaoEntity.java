@@ -14,14 +14,12 @@ public class DaoEntity implements Map<String, Object> {
     }
 
     public DaoEntity(Document _doc) {
-        map = _doc == null?new Document():_doc;
+        map = (_doc == null) ? new Document() : _doc;
     }
 
     public DaoEntity(Map<String, ?> _map) {
         map = new Document();
-        for (Entry<String, ?> e : _map.entrySet()) {
-            map.put(e.getKey(), e.getValue());
-        }
+        map.putAll(_map);
     }
 
     public DaoEntity(String _name, Object _o) {

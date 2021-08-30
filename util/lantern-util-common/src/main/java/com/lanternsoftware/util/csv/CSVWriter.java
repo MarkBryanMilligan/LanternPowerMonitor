@@ -10,7 +10,7 @@ public abstract class CSVWriter {
 	}
 
 	public static String toString(CSV _csv) {
-		StringBuilder out = new StringBuilder();
+		StringBuilder out = new StringBuilder("\uFEFF");
 		if (CollectionUtils.isNotEmpty(_csv.getHeaders())) {
 			out.append(CollectionUtils.transformToCommaSeparated(_csv.getHeaders(), _h -> "\"" + _h + "\""));
 			out.append("\r\n");

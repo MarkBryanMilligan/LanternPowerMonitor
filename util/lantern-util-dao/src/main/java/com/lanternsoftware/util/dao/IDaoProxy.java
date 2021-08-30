@@ -35,6 +35,10 @@ public interface IDaoProxy {
     <T> Future<List<T>> queryImportantAsync(Class<T> _class, DaoQuery _query, DaoSort _sort);
     <T> List<T> queryImportant(Class<T> _class, DaoQuery _query, DaoSort _sort, int _offset, int _count);
     <T> DaoPage<T> queryImportantPage(Class<T> _class, DaoQuery _query, DaoSort _sort, int _offset, int _count);
+    <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query);
+    <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query, DaoSort _sort);
+    <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query, Collection<String> _fields);
+    <T> DaoEntity queryForEntity(Class<T> _class, DaoQuery _query, Collection<String> _fields, DaoSort _sort);
     DaoEntity queryForEntity(String _tableName, DaoQuery _query);
     DaoEntity queryForEntity(String _tableName, DaoQuery _query, DaoSort _sort);
     DaoEntity queryForEntity(String _tableName, DaoQuery _query, Collection<String> _fields);

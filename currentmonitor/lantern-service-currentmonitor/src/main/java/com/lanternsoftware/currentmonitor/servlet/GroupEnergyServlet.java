@@ -1,15 +1,16 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
-import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroupEnergy;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyBlockViewMode;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.MediaType;
 import java.util.Date;
 import java.util.List;
 
@@ -24,6 +25,13 @@ public class GroupEnergyServlet extends SecureServlet {
 		}
 		EnergyBlockViewMode viewMode = NullUtils.toEnum(EnergyBlockViewMode.class, path[1], EnergyBlockViewMode.DAY);
 		Date start = new Date(NullUtils.toLong(path[2]));
+		if ((CollectionUtils.size(_authCode.getAllAccountIds()) == 1) && NullUtils.isEqual(CollectionUtils.get(path, 3), "bin")) {
+			byte[] energy = Globals.dao.getBreakerGroupEnergyBinary(CollectionUtils.getFirst(_authCode.getAllAccountIds()), path[0], viewMode, start);
+			if (energy == null)
+				_rep.setStatus(404);
+			else
+				setResponseEntity(_rep, 200, MediaType.APPLICATION_OCTET_STREAM, energy);
+		}
 		List<BreakerGroupEnergy> energies = CollectionUtils.transform(_authCode.getAllAccountIds(), _id->Globals.dao.getBreakerGroupEnergy(_id, path[0], viewMode, start), true);
 		if (CollectionUtils.isNotEmpty(energies)) {
 			BreakerGroupEnergy energy;

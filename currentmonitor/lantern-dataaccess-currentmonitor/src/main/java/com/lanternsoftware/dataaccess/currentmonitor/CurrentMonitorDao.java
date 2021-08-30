@@ -22,6 +22,7 @@ public interface CurrentMonitorDao {
 	List<BreakerPower> getBreakerPowerForAccount(int _accountId);
 	BreakerPower getLatestBreakerPower(int _accountId, int _hub, int _port);
 	BreakerGroupEnergy getBreakerGroupEnergy(int _accountId, String _groupId, EnergyBlockViewMode _viewMode, Date _start);
+	byte[] getBreakerGroupEnergyBinary(int _accountId, String _groupId, EnergyBlockViewMode _viewMode, Date _start);
 	void putBreakerGroupEnergy(BreakerGroupEnergy _energy);
 
 	void putHubPowerMinute(HubPowerMinute _power);

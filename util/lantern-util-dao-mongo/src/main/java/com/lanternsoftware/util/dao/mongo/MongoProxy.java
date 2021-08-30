@@ -214,12 +214,7 @@ public class MongoProxy extends AbstractDaoProxy {
             iter.skip(_offset);
         if (_count > 0)
             iter.limit(_count);
-        return CollectionUtils.transform(iter, new ITransformer<Document, DaoEntity>() {
-            @Override
-            public DaoEntity transform(Document _document) {
-                return new DaoEntity(_document);
-            }
-        });
+        return CollectionUtils.transform(iter, DaoEntity::new);
     }
 
     @Override

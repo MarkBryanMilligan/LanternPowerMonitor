@@ -34,6 +34,6 @@ public class BomServlet extends LanternServlet {
 			_rep.setStatus(401);
 			return;
 		}
-		setResponseEntity(_rep, "text/csv",CSVWriter.toByteArray(BOM.fromConfig(config).toCsv(false)));
+		setResponseEntity(_rep, "text/csv;charset=utf-8",CSVWriter.toByteArray(BOM.fromConfig(config).toCsv(false)));
 	}
 }
