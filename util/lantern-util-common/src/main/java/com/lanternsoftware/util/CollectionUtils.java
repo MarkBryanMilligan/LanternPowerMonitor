@@ -266,7 +266,7 @@ public class CollectionUtils {
     public static <T, V> List<V> aggregate(Collection<T> _coll, IAggregator<T, V> _aggregator) {
         List<V> list = new ArrayList<>();
         for (T t : makeNotNull(_coll)) {
-            List<V> vs = _aggregator.aggregate(t);
+            Collection<V> vs = _aggregator.aggregate(t);
             if (vs != null)
                 list.addAll(vs);
         }

@@ -1,7 +1,7 @@
 package com.lanternsoftware.util;
 
-import java.util.List;
+import java.util.Collection;
 
 public interface IAggregator<T, V> {
-    List<V> aggregate(T _t);
+    Collection<V> aggregate(T _t);
 }

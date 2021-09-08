@@ -74,6 +74,10 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 		}
 		d.put("to_grid", _o.getToGrid());
 		d.put("from_grid", _o.getFromGrid());
+		d.put("peak_to_grid", _o.getPeakToGrid());
+		d.put("peak_from_grid", _o.getPeakFromGrid());
+		d.put("peak_production", _o.getPeakProduction());
+		d.put("peak_consumption", _o.getPeakConsumption());
 		return d;
 	}
 
@@ -110,6 +114,10 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 		}
 		o.setToGrid(DaoSerializer.getDouble(_d, "to_grid"));
 		o.setFromGrid(DaoSerializer.getDouble(_d, "from_grid"));
+		o.setPeakToGrid(DaoSerializer.getDouble(_d, "peak_to_grid"));
+		o.setPeakFromGrid(DaoSerializer.getDouble(_d, "peak_from_grid"));
+		o.setPeakProduction(DaoSerializer.getDouble(_d, "peak_production"));
+		o.setPeakConsumption(DaoSerializer.getDouble(_d, "peak_consumption"));
 		return o;
 	}
 }

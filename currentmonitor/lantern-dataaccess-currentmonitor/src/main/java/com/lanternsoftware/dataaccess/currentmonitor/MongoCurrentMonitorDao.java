@@ -193,6 +193,11 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	}
 
 	@Override
+	public void rebuildSummariesAsync(int _accountId) {
+		executor.submit(()->rebuildSummaries(_accountId));
+	}
+
+	@Override
 	public void rebuildSummaries(int _accountId) {
 		HubPowerMinute firstMinute = proxy.queryOne(HubPowerMinute.class, new DaoQuery("account_id", _accountId), DaoSort.sort("minute"));
 		if (firstMinute == null)

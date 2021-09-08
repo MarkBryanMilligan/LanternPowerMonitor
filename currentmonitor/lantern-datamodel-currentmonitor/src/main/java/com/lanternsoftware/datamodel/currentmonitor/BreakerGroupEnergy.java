@@ -14,7 +14,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -30,6 +29,10 @@ public class BreakerGroupEnergy {
 	private List<EnergyBlock> energyBlocks;
 	private double toGrid;
 	private double fromGrid;
+	private double peakToGrid;
+	private double peakFromGrid;
+	private double peakConsumption;
+	private double peakProduction;
 	private TimeZone timezone;
 
 	public BreakerGroupEnergy() {
@@ -65,7 +68,7 @@ public class BreakerGroupEnergy {
 			resetEnergy(minute);
 		}
 		int idx;
-		Map<MeterMinute, MeterMinuteValues> meters = new HashMap<>();
+		Map<Integer, Map<Integer, MeterMinute>> minutes = new TreeMap<>();
 		for (HubPowerMinute hubPower : _hubPower) {
 			Date minute = hubPower.getMinuteAsDate();
 			for (BreakerPowerMinute breaker : CollectionUtils.makeNotNull(hubPower.getBreakers())) {
@@ -75,7 +78,7 @@ public class BreakerGroupEnergy {
 				BreakerGroup group = _breakerKeyToGroup.get(breaker.breakerKey());
 				if (group == null)
 					continue;
-				MeterMinuteValues meter = meters.computeIfAbsent(new MeterMinute(b.getMeter(), minute), _p->new MeterMinuteValues());
+				MeterMinute meter = minutes.computeIfAbsent(hubPower.getMinute(), _p->new TreeMap<>()).computeIfAbsent(b.getMeter(), _m->new MeterMinute(b.getMeter(), hubPower.getMinuteAsDate()));
 				idx = 0;
 				EnergyBlock block = getBlock(group.getId(), minute);
 				if (block != null) {
@@ -94,25 +97,62 @@ public class BreakerGroupEnergy {
 		}
 		double monthFromGrid = _month == null ? 0.0 : _month.getFromGrid();
 		double secondFromGrid;
-		for (Map.Entry<MeterMinute, MeterMinuteValues> meter : meters.entrySet()) {
+		for (MeterMinute minute : CollectionUtils.aggregate(minutes.values(), Map::values)) {
 			double monthkWh = monthFromGrid/3600000;
-			List<BillingRate> consumptionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(GridFlow.FROM, meter.getKey().meter, monthkWh, meter.getKey().minute, timezone));
-			List<BillingRate> productionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(GridFlow.TO, meter.getKey().meter, monthkWh, meter.getKey().minute, timezone));
+			List<BillingRate> consumptionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(GridFlow.FROM, minute.getMeter(), monthkWh, minute.getMinute(), timezone));
+			List<BillingRate> productionRates = CollectionUtils.filter(_rates, _r->_r.isApplicable(GridFlow.TO, minute.getMeter(), monthkWh, minute.getMinute(), timezone));
 			for (int i = 0; i < 60; i++) {
-				secondFromGrid = meter.getValue().usage[i] - meter.getValue().solar[i];
+				if (minute.usage[i] > peakConsumption)
+					peakConsumption = minute.usage[i];
+				if (minute.solar[i] > peakProduction)
+					peakProduction = minute.solar[i];
+				secondFromGrid = minute.usage[i] - minute.solar[i];
 				monthFromGrid += secondFromGrid;
 				if (secondFromGrid > 0) {
 					fromGrid += secondFromGrid;
+					if (secondFromGrid > peakFromGrid)
+						peakFromGrid = secondFromGrid;
 					for (BillingRate rate : consumptionRates) {
-						meter.getValue().charges[i] += rate.apply(secondFromGrid/3600000);
+						minute.charges[i] += rate.apply(secondFromGrid/3600000);
 					}
 				}
 				else {
-					toGrid -= secondFromGrid;
+					secondFromGrid = -secondFromGrid;
+					toGrid += secondFromGrid;
+					if (secondFromGrid > peakToGrid)
+						peakToGrid = secondFromGrid;
 					for (BillingRate rate : productionRates) {
-						meter.getValue().charges[i] += rate.apply(secondFromGrid/3600000);
+						minute.charges[i] -= rate.apply(secondFromGrid/3600000);
 					}
 				}
+			}
+		}
+		double curConsumption;
+		double curProduction;
+		double curToGrid;
+		double curFromGrid;
+		for (Map<Integer, MeterMinute> meters : minutes.values()) {
+			for (int i=0; i < 60; i++) {
+				curConsumption = 0;
+				curProduction = 0;
+				curToGrid = 0;
+				curFromGrid = 0;
+				for (MeterMinute meterValues : meters.values()) {
+					curConsumption += meterValues.usage[i];
+					curProduction += meterValues.solar[i];
+					if (meterValues.solar[i] > meterValues.usage[i])
+						curToGrid += meterValues.solar[i] - meterValues.usage[i];
+					else
+						curFromGrid += meterValues.usage[i] - meterValues.solar[i];
+				}
+				if (curConsumption > peakConsumption)
+					peakConsumption = curConsumption;
+				if (curProduction > peakProduction)
+					peakProduction = curProduction;
+				if (curToGrid > peakToGrid)
+					peakToGrid = curToGrid;
+				if (curFromGrid > peakFromGrid)
+					peakFromGrid = curFromGrid;
 			}
 		}
 		for (HubPowerMinute hubPower : _hubPower) {
@@ -124,7 +164,7 @@ public class BreakerGroupEnergy {
 				BreakerGroup group = _breakerKeyToGroup.get(breaker.breakerKey());
 				if (group == null)
 					continue;
-				MeterMinuteValues meter = meters.get(new MeterMinute(b.getMeter(), minute));
+				MeterMinute meter = minutes.get(hubPower.getMinute()).get(b.getMeter());
 				idx = 0;
 				double charge = 0.0;
 				for (Float power : CollectionUtils.makeNotNull(breaker.getReadings())) {
@@ -190,6 +230,14 @@ public class BreakerGroupEnergy {
 			block.addCharge(curEnergy.getCharge());
 			energy.setToGrid(energy.getToGrid()+curEnergy.getToGrid());
 			energy.setFromGrid(energy.getFromGrid()+curEnergy.getFromGrid());
+			if (curEnergy.getPeakFromGrid() > energy.getPeakFromGrid())
+				energy.setPeakFromGrid(curEnergy.getPeakFromGrid());
+			if (curEnergy.getPeakToGrid() > energy.getPeakToGrid())
+				energy.setPeakToGrid(curEnergy.getPeakToGrid());
+			if (curEnergy.getPeakConsumption() > energy.getPeakConsumption())
+				energy.setPeakConsumption(curEnergy.getPeakConsumption());
+			if (curEnergy.getPeakProduction() > energy.getPeakProduction())
+				energy.setPeakProduction(curEnergy.getPeakProduction());
 		}
 		return energy;
 	}
@@ -302,6 +350,38 @@ public class BreakerGroupEnergy {
 
 	public void setFromGrid(double _fromGrid) {
 		fromGrid = _fromGrid;
+	}
+
+	public double getPeakToGrid() {
+		return peakToGrid;
+	}
+
+	public void setPeakToGrid(double _peakToGrid) {
+		peakToGrid = _peakToGrid;
+	}
+
+	public double getPeakFromGrid() {
+		return peakFromGrid;
+	}
+
+	public void setPeakFromGrid(double _peakFromGrid) {
+		peakFromGrid = _peakFromGrid;
+	}
+
+	public double getPeakConsumption() {
+		return peakConsumption;
+	}
+
+	public void setPeakConsumption(double _peakConsumption) {
+		peakConsumption = _peakConsumption;
+	}
+
+	public double getPeakProduction() {
+		return peakProduction;
+	}
+
+	public void setPeakProduction(double _peakProduction) {
+		peakProduction = _peakProduction;
 	}
 
 	public TimeZone getTimeZone() {
@@ -430,21 +510,14 @@ public class BreakerGroupEnergy {
 			minute = _minute;
 		}
 
-		@Override
-		public boolean equals(Object _o) {
-			if (this == _o) return true;
-			if (_o == null || getClass() != _o.getClass()) return false;
-			MeterMinute that = (MeterMinute) _o;
-			return meter == that.meter && minute.equals(that.minute);
+		public int getMeter() {
+			return meter;
 		}
 
-		@Override
-		public int hashCode() {
-			return Objects.hash(meter, minute);
+		public Date getMinute() {
+			return minute;
 		}
-	}
 
-	private static class MeterMinuteValues {
 		public double[] usage = new double[60];
 		public double[] solar = new double[60];
 		public double[] charges = new double[60];

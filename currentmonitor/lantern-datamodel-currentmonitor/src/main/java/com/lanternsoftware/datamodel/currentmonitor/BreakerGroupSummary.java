@@ -24,6 +24,10 @@ public class BreakerGroupSummary {
 	private double charge;
 	private double toGrid;
 	private double fromGrid;
+	private double peakToGrid;
+	private double peakFromGrid;
+	private double peakConsumption;
+	private double peakProduction;
 
 	public BreakerGroupSummary() {
 	}
@@ -39,6 +43,10 @@ public class BreakerGroupSummary {
 		charge = _energy.charge(null, false);
 		toGrid = _energy.getToGrid();
 		fromGrid = _energy.getFromGrid();
+		peakToGrid = _energy.getPeakToGrid();
+		peakFromGrid = _energy.getPeakFromGrid();
+		peakConsumption = _energy.getPeakConsumption();
+		peakProduction = _energy.getPeakProduction();
 	}
 
 	public String getId() {
@@ -131,6 +139,38 @@ public class BreakerGroupSummary {
 
 	public void setFromGrid(double _fromGrid) {
 		fromGrid = _fromGrid;
+	}
+
+	public double getPeakConsumption() {
+		return peakConsumption;
+	}
+
+	public void setPeakConsumption(double _peakConsumption) {
+		peakConsumption = _peakConsumption;
+	}
+
+	public double getPeakProduction() {
+		return peakProduction;
+	}
+
+	public void setPeakProduction(double _peakProduction) {
+		peakProduction = _peakProduction;
+	}
+
+	public double getPeakToGrid() {
+		return peakToGrid;
+	}
+
+	public void setPeakToGrid(double _peakToGrid) {
+		peakToGrid = _peakToGrid;
+	}
+
+	public double getPeakFromGrid() {
+		return peakFromGrid;
+	}
+
+	public void setPeakFromGrid(double _peakFromGrid) {
+		peakFromGrid = _peakFromGrid;
 	}
 
 	public List<BreakerGroupSummary> getAllGroups() {
