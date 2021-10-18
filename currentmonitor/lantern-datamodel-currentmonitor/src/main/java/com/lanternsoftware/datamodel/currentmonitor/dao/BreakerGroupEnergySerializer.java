@@ -2,7 +2,7 @@ package com.lanternsoftware.datamodel.currentmonitor.dao;
 
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroupEnergy;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyBlock;
-import com.lanternsoftware.datamodel.currentmonitor.EnergyBlockViewMode;
+import com.lanternsoftware.datamodel.currentmonitor.EnergyViewMode;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.dao.AbstractDaoSerializer;
@@ -11,12 +11,7 @@ import com.lanternsoftware.util.dao.DaoProxyType;
 import com.lanternsoftware.util.dao.DaoSerializer;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 
 public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerGroupEnergy>
 {
@@ -88,7 +83,7 @@ public class BreakerGroupEnergySerializer extends AbstractDaoSerializer<BreakerG
 		o.setGroupId(DaoSerializer.getString(_d, "group_id"));
 		o.setAccountId(DaoSerializer.getInteger(_d, "account_id"));
 		o.setGroupName(DaoSerializer.getString(_d, "group_name"));
-		o.setViewMode(DaoSerializer.getEnum(_d, "view_mode", EnergyBlockViewMode.class));
+		o.setViewMode(DaoSerializer.getEnum(_d, "view_mode", EnergyViewMode.class));
 		o.setStart(DaoSerializer.getDate(_d, "start"));
 		o.setSubGroups(DaoSerializer.getList(_d, "sub_groups", BreakerGroupEnergy.class));
 		o.setTimeZone(DateUtils.fromTimeZoneId(DaoSerializer.getString(_d, "timezone")));

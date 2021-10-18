@@ -56,17 +56,12 @@ public class EnergyBlock {
 	public void setCharge(double _charge) {
 		charge = _charge;
 	}
+
 	public void addCharge(double _charge) {
 		charge += _charge;
 	}
 
 	public double wattHours() {
 		return joules / 3600;
-	}
-
-	public double getAveragePower() {
-		if ((end == null) || (start == null))
-			return 0;
-		return 1000*joules/(end.getTime()-start.getTime());
 	}
 }

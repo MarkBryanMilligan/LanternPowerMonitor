@@ -3,7 +3,6 @@ package com.lanternsoftware.datamodel.currentmonitor;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Objects;
 import java.util.TimeZone;
@@ -11,7 +10,6 @@ import java.util.TimeZone;
 @DBSerializable
 public class BillingRate {
 	private int meter;
-	private int dayBillingCycleStart;
 	private GridFlow flow;
 	private double rate;
 	private BillingCurrency currency;
@@ -29,14 +27,6 @@ public class BillingRate {
 
 	public void setMeter(int _meter) {
 		meter = _meter;
-	}
-
-	public int getDayBillingCycleStart() {
-		return dayBillingCycleStart;
-	}
-
-	public void setDayBillingCycleStart(int _dayBillingCycleStart) {
-		dayBillingCycleStart = _dayBillingCycleStart;
 	}
 
 	public GridFlow getFlow() {
@@ -119,7 +109,7 @@ public class BillingRate {
 		recursAnnually = _recursAnnually;
 	}
 
-	public boolean isApplicable(GridFlow _mode, int _meter, double _monthKWh, Date _time, TimeZone _tz) {
+	public boolean isApplicable(GridFlow _mode, int _meter, double _monthKWh, int _secondsIntoDay) {
 		if ((flow != GridFlow.BOTH) && (flow != _mode))
 			return false;
 		if ((meter != -1) && (_meter != meter))
@@ -128,6 +118,14 @@ public class BillingRate {
 			return false;
 		if ((monthKWhEnd > 0) && (_monthKWh >= monthKWhEnd))
 			return false;
+		if ((timeOfDayStart == 0) && (timeOfDayEnd == 0))
+			return true;
+		if ((timeOfDayStart > 0) && (_secondsIntoDay < timeOfDayStart))
+			return false;
+		return (timeOfDayEnd == 0) || (_secondsIntoDay < timeOfDayEnd);
+	}
+
+	public boolean isApplicableForDay(Date _time, TimeZone _tz) {
 		if ((beginEffective != null) && (endEffective != null) && recursAnnually) {
 			Date begin = beginEffective;
 			Date end = endEffective;
@@ -148,13 +146,7 @@ public class BillingRate {
 			if ((endEffective != null) && endEffective.before(_time))
 				return false;
 		}
-		if ((timeOfDayStart == 0) && (timeOfDayEnd == 0))
-			return true;
-		Calendar midnight = DateUtils.getMidnightBeforeCal(_time, _tz);
-		int timeOfDay = (int)((_time.getTime() - midnight.getTimeInMillis()) / 1000);
-		if ((timeOfDayStart > 0) && (timeOfDay < timeOfDayStart))
-			return false;
-		return (timeOfDayEnd == 0) || (timeOfDay < timeOfDayEnd);
+		return true;
 	}
 
 	public double apply(double _kWh) {
@@ -166,18 +158,17 @@ public class BillingRate {
 		if (this == _o) return true;
 		if (_o == null || getClass() != _o.getClass()) return false;
 		BillingRate that = (BillingRate) _o;
-		return meter == that.meter && dayBillingCycleStart == that.dayBillingCycleStart && Double.compare(that.rate, rate) == 0 && timeOfDayStart == that.timeOfDayStart && timeOfDayEnd == that.timeOfDayEnd && Double.compare(that.monthKWhStart, monthKWhStart) == 0 && Double.compare(that.monthKWhEnd, monthKWhEnd) == 0 && recursAnnually == that.recursAnnually && flow == that.flow && currency == that.currency && Objects.equals(beginEffective, that.beginEffective) && Objects.equals(endEffective, that.endEffective);
+		return meter == that.meter && Double.compare(that.rate, rate) == 0 && timeOfDayStart == that.timeOfDayStart && timeOfDayEnd == that.timeOfDayEnd && Double.compare(that.monthKWhStart, monthKWhStart) == 0 && Double.compare(that.monthKWhEnd, monthKWhEnd) == 0 && recursAnnually == that.recursAnnually && flow == that.flow && currency == that.currency && Objects.equals(beginEffective, that.beginEffective) && Objects.equals(endEffective, that.endEffective);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(meter, dayBillingCycleStart, flow, rate, currency, timeOfDayStart, timeOfDayEnd, monthKWhStart, monthKWhEnd, beginEffective, endEffective, recursAnnually);
+		return Objects.hash(meter, flow, rate, currency, timeOfDayStart, timeOfDayEnd, monthKWhStart, monthKWhEnd, beginEffective, endEffective, recursAnnually);
 	}
 
 	public BillingRate duplicate() {
 		BillingRate r = new BillingRate();
 		r.setMeter(meter);
-		r.setDayBillingCycleStart(dayBillingCycleStart);
 		r.setFlow(flow);
 		r.setRate(rate);
 		r.setCurrency(currency);

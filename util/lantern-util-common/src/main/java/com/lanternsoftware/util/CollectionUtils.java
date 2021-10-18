@@ -955,4 +955,48 @@ public class CollectionUtils {
             return 0;
         return _arr.length;
     }
+
+    public static byte[] toByteArray(float[] _floats) {
+        if ((_floats == null) || (_floats.length == 0))
+            return null;
+        ByteBuffer bb = ByteBuffer.allocate(_floats.length * 4);
+        for (float f : _floats) {
+            bb.putFloat(f);
+        }
+        return bb.array();
+    }
+
+    public static float[] toFloatArray(byte[] _bytes) {
+        if ((_bytes == null) || (_bytes.length == 0))
+            return null;
+        int offset = 0;
+        float[] floats = new float[_bytes.length/4];
+        ByteBuffer bb = ByteBuffer.wrap(_bytes);
+        while (bb.hasRemaining()) {
+            floats[offset++] = bb.getFloat();
+        }
+        return floats;
+    }
+
+    public static byte[] toByteArray(double[] _doubles) {
+        if ((_doubles == null) || (_doubles.length == 0))
+            return null;
+        ByteBuffer bb = ByteBuffer.allocate(_doubles.length * 8);
+        for (double d : _doubles) {
+            bb.putDouble(d);
+        }
+        return bb.array();
+    }
+
+    public static double[] toDoubleArray(byte[] _bytes) {
+        if ((_bytes == null) || (_bytes.length == 0))
+            return null;
+        int offset = 0;
+        double[] doubles = new double[_bytes.length/8];
+        ByteBuffer bb = ByteBuffer.wrap(_bytes);
+        while (bb.hasRemaining()) {
+            doubles[offset++] = bb.getDouble();
+        }
+        return doubles;
+    }
 }

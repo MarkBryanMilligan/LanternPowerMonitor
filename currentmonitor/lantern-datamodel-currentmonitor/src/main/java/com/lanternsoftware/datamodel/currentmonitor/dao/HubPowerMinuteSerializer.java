@@ -26,6 +26,7 @@ public class HubPowerMinuteSerializer extends AbstractDaoSerializer<HubPowerMinu
 	public DaoEntity toDaoEntity(HubPowerMinute _o)
 	{
 		DaoEntity d = new DaoEntity();
+		d.put("_id", _o.getId());
 		d.put("account_id", _o.getAccountId());
 		d.put("hub", _o.getHub());
 		d.put("minute", _o.getMinute());

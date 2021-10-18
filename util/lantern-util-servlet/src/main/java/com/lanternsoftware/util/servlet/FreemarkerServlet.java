@@ -3,12 +3,14 @@ package com.lanternsoftware.util.servlet;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.DaoEntity;
+import com.lanternsoftware.util.dao.DaoSerializer;
 import freemarker.template.Configuration;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class FreemarkerServlet extends LanternServlet {
@@ -48,6 +50,16 @@ public abstract class FreemarkerServlet extends LanternServlet {
 
 	protected static DaoEntity model(HttpServletRequest _req) {
 		DaoEntity model = new DaoEntity("context", _req.getContextPath());
+		String linkPrefix = "";
+		String[] path = getPath(_req);
+		if (path.length > 1) {
+			StringBuilder prefix = new StringBuilder();
+			for(int i=0; i<path.length-1; i++) {
+				prefix.append("../");
+			}
+			linkPrefix = prefix.toString();
+		}
+		model.put("link_prefix", linkPrefix);
 		model.put("css_version", "1.0.0");
 		return model;
 	}
@@ -77,5 +89,47 @@ public abstract class FreemarkerServlet extends LanternServlet {
 			}
 		}
 		return null;
+	}
+
+	protected void ajaxRender(HttpServletResponse _rep, String _template, Map<String, Object> _templateModel) {
+		ajaxRender(_rep, _template, _templateModel, null);
+	}
+
+	protected void ajaxRender(HttpServletResponse _rep, String _templateName, Map<String, Object> _templateModel, Map<String, Object> _jsonRep) {
+		ajaxHtml(_rep, FreemarkerUtil.render(getFreemarkerConfig(), _templateName, _templateModel), _jsonRep);
+
+	}
+
+	protected static void ajaxHtml(HttpServletResponse _rep, String _html) {
+		ajaxHtml(_rep, _html, null);
+	}
+
+	protected static void ajaxHtml(HttpServletResponse _rep, String _html, Map<String, Object> _model) {
+		if (_model == null) {
+			_model = new HashMap<>();
+		}
+		_model.put("html", _html);
+		ajaxJson(_rep, _model);
+	}
+
+	protected static void ajaxJson(HttpServletResponse _rep, Map<String, Object> _model) {
+		DaoEntity json = new DaoEntity(_model);
+		setResponseEntity(_rep, "application/json", DaoSerializer.toJson(json));
+	}
+
+	protected void ajaxRedirect(HttpServletResponse _rep, String _url) {
+		setResponseEntity(_rep, "application/json", DaoSerializer.toJson(new DaoEntity("redirect", _url)));
+	}
+
+	protected void ajaxError(HttpServletResponse _rep, String _error) {
+		ajaxError(_rep, _error, null);
+	}
+
+	protected void ajaxError(HttpServletResponse _rep, String _error, DaoEntity _model) {
+		if (_model == null) {
+			_model = new DaoEntity();
+		}
+		_model.put("error", _error);
+		setResponseEntity(_rep, "application/json", DaoSerializer.toJson(_model, false, false));
 	}
 }

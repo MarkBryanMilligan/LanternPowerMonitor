@@ -2,6 +2,8 @@ package com.lanternsoftware.util;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -222,6 +224,11 @@ public abstract class DateUtils {
         if (iYears < 2)
             return String.format("%d months", iMonths);
         return String.format("%d years", iYears);
+    }
+
+    public static int getDaysBetween(Date _start, Date _end, TimeZone _tz) {
+        ZoneId tz = _tz.toZoneId();
+        return (int)ChronoUnit.DAYS.between(_start.toInstant().atZone(tz).toLocalDate(), _end.toInstant().atZone(tz).toLocalDate());
     }
 
     public static int getMonthsBetween(Date _dtStart, Date _dtEnd) {

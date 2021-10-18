@@ -5,7 +5,7 @@ import com.lanternsoftware.util.dao.annotations.DBSerializable;
 import java.util.Date;
 import java.util.List;
 
-@DBSerializable
+@DBSerializable(autogen = false)
 public class HubPowerMinute {
 	private int accountId;
 	private int hub;

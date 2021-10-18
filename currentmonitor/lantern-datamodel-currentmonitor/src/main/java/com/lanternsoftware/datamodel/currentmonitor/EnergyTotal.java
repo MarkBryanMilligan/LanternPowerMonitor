@@ -2,47 +2,38 @@ package com.lanternsoftware.datamodel.currentmonitor;
 
 
 import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 @DBSerializable(autogen = false)
-public class BreakerGroupSummary {
+public class EnergyTotal {
 	private int accountId;
 	private String groupId;
-	private String groupName;
-	private EnergyBlockViewMode viewMode;
+	private EnergyViewMode viewMode;
 	private Date start;
-	private List<BreakerGroupSummary> subGroups;
+	private List<EnergyTotal> subGroups;
 	private double joules;
-	private double charge;
-	private double toGrid;
-	private double fromGrid;
+	private double flow;
 	private double peakToGrid;
 	private double peakFromGrid;
 	private double peakConsumption;
 	private double peakProduction;
 
-	public BreakerGroupSummary() {
+	public EnergyTotal() {
 	}
 
-	public BreakerGroupSummary(BreakerGroupEnergy _energy) {
+	public EnergyTotal(EnergySummary _energy) {
 		accountId = _energy.getAccountId();
 		groupId = _energy.getGroupId();
-		groupName = _energy.getGroupName();
 		viewMode = _energy.getViewMode();
 		start = _energy.getStart();
-		subGroups = CollectionUtils.transform(_energy.getSubGroups(), BreakerGroupSummary::new);
-		joules = _energy.joules(null, false);
-		charge = _energy.charge(null, false);
-		toGrid = _energy.getToGrid();
-		fromGrid = _energy.getFromGrid();
+		subGroups = CollectionUtils.transform(_energy.getSubGroups(), EnergyTotal::new);
+		joules = _energy.joules(null, false, GridFlow.BOTH);
+		flow = _energy.flow(null, false, GridFlow.BOTH);
 		peakToGrid = _energy.getPeakToGrid();
 		peakFromGrid = _energy.getPeakFromGrid();
 		peakConsumption = _energy.getPeakConsumption();
@@ -53,7 +44,7 @@ public class BreakerGroupSummary {
 		return toId(accountId, groupId, viewMode, start);
 	}
 
-	public static String toId(int _accountId, String _groupId, EnergyBlockViewMode _viewMode, Date _start) {
+	public static String toId(int _accountId, String _groupId, EnergyViewMode _viewMode, Date _start) {
 		return _accountId + "-" + _groupId + "-" + DaoSerializer.toEnumName(_viewMode) + "-" + _start.getTime();
 	}
 
@@ -73,27 +64,19 @@ public class BreakerGroupSummary {
 		groupId = _groupId;
 	}
 
-	public String getGroupName() {
-		return groupName;
-	}
-
-	public void setGroupName(String _groupName) {
-		groupName = _groupName;
-	}
-
-	public BreakerGroupSummary getSubGroup(String _groupId) {
+	public EnergyTotal getSubGroup(String _groupId) {
 		return CollectionUtils.filterOne(subGroups, _g->_groupId.equals(_g.getGroupId()));
 	}
 
-	public List<BreakerGroupSummary> getSubGroups() {
+	public List<EnergyTotal> getSubGroups() {
 		return subGroups;
 	}
 
-	public EnergyBlockViewMode getViewMode() {
+	public EnergyViewMode getViewMode() {
 		return viewMode;
 	}
 
-	public void setViewMode(EnergyBlockViewMode _viewMode) {
+	public void setViewMode(EnergyViewMode _viewMode) {
 		viewMode = _viewMode;
 	}
 
@@ -105,7 +88,7 @@ public class BreakerGroupSummary {
 		start = _start;
 	}
 
-	public void setSubGroups(List<BreakerGroupSummary> _subGroups) {
+	public void setSubGroups(List<EnergyTotal> _subGroups) {
 		subGroups = _subGroups;
 	}
 
@@ -117,28 +100,12 @@ public class BreakerGroupSummary {
 		joules = _joules;
 	}
 
-	public double getCharge() {
-		return charge;
+	public double getFlow() {
+		return flow;
 	}
 
-	public void setCharge(double _charge) {
-		charge = _charge;
-	}
-
-	public double getToGrid() {
-		return toGrid;
-	}
-
-	public void setToGrid(double _toGrid) {
-		toGrid = _toGrid;
-	}
-
-	public double getFromGrid() {
-		return fromGrid;
-	}
-
-	public void setFromGrid(double _fromGrid) {
-		fromGrid = _fromGrid;
+	public void setFlow(double _flow) {
+		flow = _flow;
 	}
 
 	public double getPeakConsumption() {
@@ -173,17 +140,24 @@ public class BreakerGroupSummary {
 		peakFromGrid = _peakFromGrid;
 	}
 
-	public List<BreakerGroupSummary> getAllGroups() {
-		Map<String, BreakerGroupSummary> groups = new TreeMap<>();
-		getAllGroups(groups);
-		return new ArrayList<>(groups.values());
+	public double totalJoules() {
+		double total = joules;
+		for (EnergyTotal t : CollectionUtils.makeNotNull(subGroups)) {
+			total += t.totalJoules();
+		}
+		return total;
 	}
 
-	public void getAllGroups(Map<String, BreakerGroupSummary> _groups) {
-		if (NullUtils.isNotEmpty(getGroupId()))
-			_groups.put(getGroupId(), this);
-		for (BreakerGroupSummary group : CollectionUtils.makeNotNull(subGroups)) {
-			group.getAllGroups(_groups);
+	public List<EnergyTotal> flatten() {
+		List<EnergyTotal> totals = new ArrayList<>();
+		flatten(totals);
+		return totals;
+	}
+
+	private void flatten(List<EnergyTotal> _totals) {
+		_totals.add(this);
+		for (EnergyTotal total : CollectionUtils.makeNotNull(subGroups)) {
+			total.flatten(_totals);
 		}
 	}
 }

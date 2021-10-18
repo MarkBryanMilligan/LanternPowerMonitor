@@ -2,8 +2,8 @@ package com.lanternsoftware.dataaccess.currentmonitor;
 
 import com.lanternsoftware.datamodel.currentmonitor.Account;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
-import com.lanternsoftware.datamodel.currentmonitor.BreakerGroupEnergy;
-import com.lanternsoftware.datamodel.currentmonitor.BreakerGroupSummary;
+import com.lanternsoftware.datamodel.currentmonitor.EnergySummary;
+import com.lanternsoftware.datamodel.currentmonitor.EnergyTotal;
 import com.lanternsoftware.datamodel.currentmonitor.Sequence;
 import com.lanternsoftware.datamodel.rules.Event;
 import com.lanternsoftware.datamodel.rules.FcmDevice;
@@ -34,14 +34,14 @@ public class Backup {
 		t4.stop();
 
 		DebugTimer t5 = new DebugTimer("Query Energy");
-		List<BreakerGroupEnergy> energy = dao.getProxy().queryAll(BreakerGroupEnergy.class);
+		List<EnergySummary> energy = dao.getProxy().queryAll(EnergySummary.class);
 		t5.stop();
 		DebugTimer t6 = new DebugTimer("Save Energy");
 		backupDao.getProxy().save(energy);
 		t6.stop();
 
 		DebugTimer t7 = new DebugTimer("Query Summaries");
-		List<BreakerGroupSummary> summary = dao.getProxy().queryAll(BreakerGroupSummary.class);
+		List<EnergyTotal> summary = dao.getProxy().queryAll(EnergyTotal.class);
 		t7.stop();
 		DebugTimer t8 = new DebugTimer("Save Summaries");
 		backupDao.getProxy().save(summary);

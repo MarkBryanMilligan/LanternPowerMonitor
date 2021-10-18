@@ -7,7 +7,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
-public enum EnergyBlockViewMode {
+public enum EnergyViewMode {
 	DAY,
 	MONTH,
 	YEAR,
@@ -54,59 +54,58 @@ public enum EnergyBlockViewMode {
 	}
 
 	public Date incrementBlock(Date _dt, TimeZone _tz) {
-		Calendar cal = DateUtils.toCalendar(_dt, _tz);
 		if (this == DAY)
-			cal.add(Calendar.MINUTE, 1);
-		else if (this == MONTH)
-			cal.add(Calendar.DAY_OF_YEAR, 1);
+			return DateUtils.addMinutes(_dt, 1);
+		if (this == MONTH)
+			return DateUtils.addDays(_dt, 1, _tz);
 		if (this == YEAR)
-			cal.add(Calendar.MONTH, 1);
-		return cal.getTime();
+			return DateUtils.addMonths(_dt, 1, _tz);
+		return _dt;
 	}
 
 	public Date decrementBlock(Date _dt, TimeZone _tz) {
-		Calendar cal = DateUtils.toCalendar(_dt, _tz);
 		if (this == DAY)
-			cal.add(Calendar.MINUTE, -1);
-		else if (this == MONTH)
-			cal.add(Calendar.DAY_OF_YEAR, -1);
+			return DateUtils.addMinutes(_dt, -1);
+		if (this == MONTH)
+			return DateUtils.addDays(_dt, -1, _tz);
 		if (this == YEAR)
-			cal.add(Calendar.MONTH, -1);
-		return cal.getTime();
+			return DateUtils.addMonths(_dt, -1, _tz);
+		return _dt;
 	}
 
 	public Date incrementView(Date _dt, TimeZone _tz) {
-		Calendar cal = DateUtils.toCalendar(_dt, _tz);
 		if (this == DAY)
-			cal.add(Calendar.DAY_OF_YEAR, 1);
-		else if (this == MONTH)
-			cal.add(Calendar.MONTH, 1);
+			return DateUtils.addDays(_dt, 1, _tz);
+		if (this == MONTH)
+			return DateUtils.addMonths(_dt, 1, _tz);
 		if (this == YEAR)
-			cal.add(Calendar.YEAR, 1);
-		return cal.getTime();
+			return DateUtils.addYears(_dt, 1, _tz);
+		return _dt;
 	}
 
 	public Date decrementView(Date _dt, TimeZone _tz) {
-		Calendar cal = DateUtils.toCalendar(_dt, _tz);
 		if (this == DAY)
-			cal.add(Calendar.DAY_OF_YEAR, -1);
-		else if (this == MONTH)
-			cal.add(Calendar.MONTH, -1);
+			return DateUtils.addDays(_dt, -1, _tz);
+		if (this == MONTH)
+			return DateUtils.addMonths(_dt, -1, _tz);
 		if (this == YEAR)
-			cal.add(Calendar.YEAR, -1);
-		return cal.getTime();
+			return DateUtils.addYears(_dt, -1, _tz);
+		return _dt;
 	}
 
 	public int blockCount(Date _start, TimeZone _tz) {
-		if (this == ALL)
-			return 1;
-		Date end = toEnd(_start, _tz);
-		int blockCnt = 0;
-		while (_start.before(end)) {
-			blockCnt++;
-			_start = toBlockEnd(_start, _tz);
+		if (this == YEAR)
+			return 12;
+		if (this == MONTH) {
+			Calendar end = DateUtils.getEndOfMonthCal(_start, _tz);
+			end.add(Calendar.MINUTE, -2);
+			return end.get(Calendar.DAY_OF_MONTH);
 		}
-		return blockCnt;
+		if (this == DAY) {
+			Date end = DateUtils.getMidnightAfter(_start, _tz);
+			return (int)((end.getTime() - _start.getTime()) / 60000);
+		}
+		return 1;
 	}
 
 	public int initBlockCount() {
