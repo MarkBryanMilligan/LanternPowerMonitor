@@ -7,10 +7,10 @@ public class TestStartup {
 		ZWaveApp app = new ZWaveApp();
 		app.start();
 		try {
-			Thread.sleep(20000);
+			Thread.sleep(20000000);
 		} catch (InterruptedException _e) {
 			_e.printStackTrace();
 		}
-		app.stop();
+		Runtime.getRuntime().addShutdownHook(new Thread(app::stop, "Shutdown"));
 	}
 }

@@ -1,4 +1,4 @@
-package com.lanternsoftware.thermometer.context;
+package com.lanternsoftware.thermometer;
 
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
@@ -11,14 +11,15 @@ import org.slf4j.LoggerFactory;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class ThermometerApp {
-	private static final Logger LOG = LoggerFactory.getLogger(ThermometerApp.class);
+public class HidThermometer implements IThermometer{
+	private static final Logger LOG = LoggerFactory.getLogger(HidThermometer.class);
 
 	private HidDevice device;
 	private final Timer timer = new Timer();
 	private double lastTemp;
+	private final byte[] READ = hexToByte("0180330100000000");
 
-	public void start() {
+	public HidThermometer() {
 		HidServices hs = HidManager.getHidServices();
 		for (HidDevice d : hs.getAttachedHidDevices()) {
 			if (NullUtils.isEqual(d.getVendorId(), (short) 0x413d) && NullUtils.isEqual(d.getProductId(), (short) 0x2107)) {
@@ -27,11 +28,13 @@ public class ThermometerApp {
 			}
 		}
 		if ((device != null) && device.open()) {
-			synchronized (device) {
-				read(hexToByte("0182770100000000"));
-				read(hexToByte("0186ff0100000000"));
-				read(hexToByte("0182770100000000"));
-				read(hexToByte("0182770100000000"));
+			final byte[] INIT1 = hexToByte("0182770100000000");
+			final byte[] INIT2 = hexToByte("0186ff0100000000");
+			synchronized (this) {
+				read(INIT1);
+				read(INIT2);
+				read(INIT1);
+				read(INIT1);
 			}
 		} else {
 			LOG.error("Failed to open HID Device");
@@ -45,7 +48,11 @@ public class ThermometerApp {
 		}, 0L, 10000L);
 	}
 
-	public void stop() {
+	public boolean isConnected() {
+		return device != null;
+	}
+
+	public void shutdown() {
 		timer.cancel();
 		ConcurrencyUtils.sleep(10000);
 		if (device != null) {
@@ -100,14 +107,14 @@ public class ThermometerApp {
 		}
 		return response;
 	}
-	public double getTemperature() {
+	public double getTemperatureCelsius() {
 		return lastTemp;
 	}
 
-	public double readTemperature() {
+	private double readTemperature() {
 		if (device != null) {
-			synchronized (device) {
-				byte[] response = read(hexToByte("0180330100000000"));
+			synchronized (this) {
+				byte[] response = read(READ);
 				if (response == null)
 					return 5.0;
 				int rawReading = ((response[3] & 0xFF) + (response[2] << 8));

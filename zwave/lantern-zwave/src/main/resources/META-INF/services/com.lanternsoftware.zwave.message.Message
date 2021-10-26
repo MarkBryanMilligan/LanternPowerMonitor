@@ -1,3 +1,4 @@
+com.lanternsoftware.zwave.message.impl.AddNodeToNetworkRequest
 com.lanternsoftware.zwave.message.impl.ApplicationUpdateRequest
 com.lanternsoftware.zwave.message.impl.AssociationGetRequest
 com.lanternsoftware.zwave.message.impl.AssociationReportRequest

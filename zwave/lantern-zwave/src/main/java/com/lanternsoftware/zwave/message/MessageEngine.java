@@ -33,9 +33,17 @@ public abstract class MessageEngine {
 		}
 		MessageType messageType = _data[2] == 0x00 ? MessageType.REQUEST : MessageType.RESPONSE;
 		ControllerMessageType controllerMessageType = ControllerMessageType.fromByte((byte)(_data[3] & 0xFF));
-		int offset = ((messageType == MessageType.REQUEST) && NullUtils.isOneOf(controllerMessageType, ControllerMessageType.SendData, ControllerMessageType.ApplicationCommandHandler))?7:5;
-		CommandClass commandClass = _data.length > offset + 1 ? CommandClass.fromByte((byte)(_data[offset] & 0xFF)):CommandClass.NO_OPERATION;
-		byte command = ((commandClass == CommandClass.NO_OPERATION) || (_data.length <= offset+2))?0:(byte)(_data[offset+1] & 0xFF);
+		CommandClass commandClass = CommandClass.NO_OPERATION;
+		byte command = 0;
+		int offset = 5;
+		if (NullUtils.isOneOf(controllerMessageType, ControllerMessageType.SendData, ControllerMessageType.ApplicationCommandHandler)) {
+			if (messageType == MessageType.REQUEST)
+				offset = 7;
+			if (_data.length > offset + 1)
+				commandClass = CommandClass.fromByte((byte)(_data[offset] & 0xFF));
+			if (_data.length > offset + 2)
+				command = (byte)(_data[offset+1] & 0xFF);
+		}
 		Message message = messages.get(Message.toKey(controllerMessageType.data, messageType.data, commandClass.data, command));
 		if (message == null) {
 			logger.debug("Could not find message class for message: {} {} {} {}", controllerMessageType.label, messageType.name(), commandClass.label, command);

@@ -9,9 +9,9 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/opt/currentmonitor/log/log.txt</file>
+        <file>/opt/tomcat/log/thermo.txt</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>/opt/currentmonitor/log/log.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
+            <fileNamePattern>/opt/currentmonitor/log/thermo.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
             <maxFileSize>20MB</maxFileSize>
             <maxHistory>20</maxHistory>
         </rollingPolicy>
@@ -20,9 +20,10 @@
         </encoder>
     </appender>
 
-    <logger name="com.lanternsoftware" level="INFO"/>
+    <logger name="com.lanternsoftware" level="DEBUG"/>
 
     <root level="OFF">
         <appender-ref ref="FILE"/>
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

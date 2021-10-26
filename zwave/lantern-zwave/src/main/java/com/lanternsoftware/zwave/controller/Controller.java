@@ -39,13 +39,13 @@ public class Controller {
 	private SerialPort serialPort;
 	private OutputStream os;
 	private boolean running = false;
-	private AtomicInteger callbackId = new AtomicInteger(0);
+	private final AtomicInteger callbackId = new AtomicInteger(0);
 	private final Object ackMutex = new Object();
 	private final Object responseMutex = new Object();
 	private final Object callbackMutex = new Object();
 	private boolean responseReceived;
 	private final Map<Byte, Byte> callbacks = new HashMap<>();
-	private ExecutorService executor = Executors.newFixedThreadPool(2);
+	private final ExecutorService executor = Executors.newFixedThreadPool(2);
 	private NodeManager nodeManager;
 
 	public boolean start(String _port) {
@@ -172,9 +172,10 @@ public class Controller {
 					logger.debug("Finished outbound of: {}", message.describe());
 				}
 				if (message instanceof RequestMessage) {
-					logger.debug("Waiting for response from: {}", message.describe());
 					synchronized (responseMutex) {
-						responseMutex.wait(1000);
+						logger.debug("Waiting for response from: {}", message.describe());
+						if (!responseReceived)
+							responseMutex.wait(1000);
 						logger.debug("Response received: {}", responseReceived);
 						responseReceived = false;
 					}

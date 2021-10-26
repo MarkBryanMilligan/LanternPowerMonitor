@@ -22,6 +22,7 @@ import com.lanternsoftware.zwave.controller.Controller;
 import com.lanternsoftware.zwave.dao.MongoZWaveDao;
 import com.lanternsoftware.zwave.message.IMessageSubscriber;
 import com.lanternsoftware.zwave.message.MessageEngine;
+import com.lanternsoftware.zwave.message.impl.AddNodeToNetworkRequest;
 import com.lanternsoftware.zwave.message.impl.BinarySwitchReportRequest;
 import com.lanternsoftware.zwave.message.impl.BinarySwitchSetRequest;
 import com.lanternsoftware.zwave.message.impl.CRC16EncapRequest;
@@ -225,6 +226,8 @@ public class ZWaveApp {
 				onSwitchLevelChange(_message.getNodeId(), _message.isOn()?0xFF:0);
 			}
 		});
+
+		controller.send(new MultilevelSwitchSetRequest((byte)2, 0xFF));
 
 //		controller.send(new MultilevelSensorGetRequest((byte)11));
 //		controller.send(new ThermostatSetPointGetRequest((byte)11, ThermostatSetPointIndex.HEATING));
