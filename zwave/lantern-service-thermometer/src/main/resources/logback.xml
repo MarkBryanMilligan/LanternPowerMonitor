@@ -11,7 +11,7 @@
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>/opt/tomcat/log/thermo.txt</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>/opt/currentmonitor/log/thermo.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
+            <fileNamePattern>/opt/tomcat/log/thermo.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
             <maxFileSize>20MB</maxFileSize>
             <maxHistory>20</maxHistory>
         </rollingPolicy>

@@ -28,11 +28,11 @@ public class MHZ19BCO2Sensor implements ICO2Sensor {
 	private InputStream is;
 	private OutputStream os;
 
-	private MHZ19BCO2Sensor(String _port) {
+	public MHZ19BCO2Sensor(String _port) {
 		this(_port, DEFAULT_TIMEOUT);
 	}
 
-	private MHZ19BCO2Sensor(String _port, int _timeout) {
+	public MHZ19BCO2Sensor(String _port, int _timeout) {
 		try {
 			CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(_port);
 			serialPort = portIdentifier.open("co2port", 2000);

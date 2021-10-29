@@ -1,4 +1,5 @@
-com.lanternsoftware.zwave.message.impl.AddNodeToNetworkRequest
+com.lanternsoftware.zwave.message.impl.AddNodeToNetworkStartRequest
+com.lanternsoftware.zwave.message.impl.AddNodeToNetworkStopRequest
 com.lanternsoftware.zwave.message.impl.ApplicationUpdateRequest
 com.lanternsoftware.zwave.message.impl.AssociationGetRequest
 com.lanternsoftware.zwave.message.impl.AssociationReportRequest
@@ -20,6 +21,8 @@ com.lanternsoftware.zwave.message.impl.MultilevelSwitchReportRequest
 com.lanternsoftware.zwave.message.impl.MultilevelSwitchSetRequest
 com.lanternsoftware.zwave.message.impl.NodeInfoRequest
 com.lanternsoftware.zwave.message.impl.NodeInfoResponse
+com.lanternsoftware.zwave.message.impl.RemoveNodeFromNetworkStartRequest
+com.lanternsoftware.zwave.message.impl.RemoveNodeFromNetworkStopRequest
 com.lanternsoftware.zwave.message.impl.SendDataRequest
 com.lanternsoftware.zwave.message.impl.SendDataResponse
 com.lanternsoftware.zwave.message.impl.ThermostatModeGetRequest

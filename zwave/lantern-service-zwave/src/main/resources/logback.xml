@@ -9,7 +9,7 @@
     </appender>
 
 
-    <logger name="com.lanternsoftware" level="DEBUG"/>
+    <logger name="com.lanternsoftware" level="INFO"/>
 
     <root level="OFF">
         <appender-ref ref="STDOUT"/>

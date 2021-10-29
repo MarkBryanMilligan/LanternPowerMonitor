@@ -8,5 +8,6 @@ public enum SwitchType {
     THERMOMETER,
     RELAY,
     SECURITY,
-    RELAY_BUTTON
+    RELAY_BUTTON,
+    CO2_SENSOR
 }

@@ -5,7 +5,9 @@ import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 import com.lanternsoftware.util.dao.annotations.PrimaryKey;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 
 @DBSerializable(autogen = false)
 public class ZWaveConfig {
@@ -74,5 +76,11 @@ public class ZWaveConfig {
 
 	public boolean isMySwitch(Switch _sw) {
 		return (isMaster() && NullUtils.isEmpty(_sw.getControllerUrl())) || _sw.isControlledBy(getUrl());
+	}
+
+	public List<String> getControllers() {
+		TreeSet<String> controllers = new TreeSet<>(CollectionUtils.filter(CollectionUtils.transform(switches, Switch::getControllerUrl), NullUtils::isNotEmpty));
+		controllers.add(masterUrl);
+		return new ArrayList<>(controllers);
 	}
 }

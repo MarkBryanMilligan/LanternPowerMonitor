@@ -12,13 +12,14 @@ import com.lanternsoftware.util.servlet.LanternServlet;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Locale;
 
 @WebServlet("/signup")
 public class SignupServlet extends LanternServlet {
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
 		BasicAuth auth = new BasicAuth(_req);
-		Account acct = Globals.dao.getAccountByUsername(auth.getUsername());
+		Account acct = Globals.dao.getAccountByUsername(auth.getUsername().toLowerCase().trim());
 		if (acct != null) {
 			jsonResponse(_rep, SignupResponse.error("An account for " + auth.getUsername() + " already exists"));
 			return;

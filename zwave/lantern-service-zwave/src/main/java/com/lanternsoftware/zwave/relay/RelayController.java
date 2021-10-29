@@ -26,6 +26,7 @@ public class RelayController {
 				return;
 			}
 		}
+		LOG.info("Setting pin {} to {}", _pin, _on);
 		if (_on)
 			pin.high();
 		else

@@ -21,7 +21,7 @@ public class Switch {
 	private boolean hold;
 	private boolean hidden;
 	private boolean suppressEvents;
-	private String thermometerUrl;
+	private String sourceUrl;
 	private String controllerUrl;
 	private ThermostatMode thermostatMode;
 	private int lowLevel;
@@ -30,18 +30,18 @@ public class Switch {
 	public Switch() {
 	}
 
-	public Switch(String _room, String _name, int _nodeId, boolean _primary, boolean _multilevel, String _thermometerUrl, int _lowLevel) {
-		this(_room, _name, _nodeId, 0, _primary, false, _thermometerUrl, _lowLevel, null);
+	public Switch(String _room, String _name, int _nodeId, boolean _primary, boolean _multilevel, String _sourceUrl, int _lowLevel) {
+		this(_room, _name, _nodeId, 0, _primary, false, _sourceUrl, _lowLevel, null);
 	}
 
-	public Switch(String _room, String _name, int _nodeId, int _level, boolean _primary, boolean _hold, String _thermometerUrl, int _lowLevel, List<SwitchSchedule> _schedule) {
+	public Switch(String _room, String _name, int _nodeId, int _level, boolean _primary, boolean _hold, String _sourceUrl, int _lowLevel, List<SwitchSchedule> _schedule) {
 		room = _room;
 		name = _name;
 		nodeId = _nodeId;
 		level = _level;
 		primary = _primary;
 		hold = _hold;
-		thermometerUrl = _thermometerUrl;
+		sourceUrl = _sourceUrl;
 		lowLevel = _lowLevel;
 		schedule = _schedule;
 	}
@@ -128,12 +128,12 @@ public class Switch {
 		hold = _hold;
 	}
 
-	public String getThermometerUrl() {
-		return thermometerUrl;
+	public String getSourceUrl() {
+		return sourceUrl;
 	}
 
-	public void setThermometerUrl(String _thermometerUrl) {
-		thermometerUrl = _thermometerUrl;
+	public void setSourceUrl(String _sourceUrl) {
+		sourceUrl = _sourceUrl;
 	}
 
 	public String getControllerUrl() {
@@ -152,8 +152,8 @@ public class Switch {
 		return type == SwitchType.SPACE_HEATER_THERMOSTAT;
 	}
 
-	public boolean isThermometerUrlValid() {
-		return NullUtils.makeNotNull(thermometerUrl).startsWith("http");
+	public boolean isSourceUrlValid() {
+		return NullUtils.makeNotNull(sourceUrl).startsWith("http");
 	}
 
 	public boolean isZWaveThermostat() {
@@ -244,7 +244,7 @@ public class Switch {
 		s.setPrimary(isPrimary());
 		s.setHold(isHold());
 		s.setHidden(isHidden());
-		s.setThermometerUrl(getThermometerUrl());
+		s.setSourceUrl(getSourceUrl());
 		s.setControllerUrl(getControllerUrl());
 		s.setThermostatMode(getThermostatMode());
 		s.setLowLevel(getLowLevel());
