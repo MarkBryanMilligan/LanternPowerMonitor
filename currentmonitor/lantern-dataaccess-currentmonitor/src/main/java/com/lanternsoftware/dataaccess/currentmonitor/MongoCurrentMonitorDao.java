@@ -302,6 +302,8 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	@Override
 	public void rebuildSummaries(int _accountId, Date _start, Date _end) {
 		BreakerConfig config = getConfig(_accountId);
+		if (config == null)
+			return;
 		TimeZone tz = getTimeZoneForAccount(_accountId);
 		Date start = DateUtils.getMidnightBefore(_start, tz);
 		BreakerGroup root = CollectionUtils.getFirst(config.getBreakerGroups());
@@ -397,8 +399,14 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	public BreakerConfig getMergedConfig(AuthCode _authCode) {
 		if (_authCode == null)
 			return null;
-		if (CollectionUtils.size(_authCode.getAllAccountIds()) == 1)
-			return getConfig(_authCode.getAccountId());
+		if (CollectionUtils.size(_authCode.getAllAccountIds()) == 1) {
+			BreakerConfig config = getConfig(_authCode.getAccountId());
+			if (config == null) {
+				config = new BreakerConfig();
+				config.setAccountId(_authCode.getAccountId());
+				return config;
+			}
+		}
 		List<BreakerConfig> configs = CollectionUtils.transform(_authCode.getAllAccountIds(), this::getConfig, true);
 		BreakerConfig config = new BreakerConfig();
 		config.setAccountId(_authCode.getAccountId());
@@ -438,7 +446,9 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 
 	@Override
 	public String authenticateAccount(String _username, String _password) {
-		Account acct = proxy.queryOne(Account.class, new DaoQuery("username", _username));
+		if (NullUtils.isEmpty(_username) || NullUtils.isEmpty(_password))
+			return null;
+		Account acct = proxy.queryOne(Account.class, new DaoQuery("username", _username.toLowerCase().trim()));
 		if ((acct == null) || !BCrypt.checkpw(_password, acct.getPassword()))
 			return null;
 		return toAuthCode(acct.getId(), acct.getAuxiliaryAccountIds());
