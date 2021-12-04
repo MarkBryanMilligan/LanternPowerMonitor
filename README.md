@@ -107,18 +107,6 @@ Move your currentmonitor.service file to /etc/systemd/system/ and enable the ser
 sudo mv currentmonitor.service /etc/systemd/system/
 sudo systemctl enable currentmonitor
 ```
-After you do all of this and have the service running, the app still won't be able to connect to the service via bluetooth due to a bug in bluez in the raspbian OS.<br>
-To fix this, you must manually recompile bluez after changing some of the source. (Ready to just download that SD image yet?)<br>
-In the file gatt-helpers.c, in the method bt_gatt_exchange_mtu, change the line<br>
-```
-id = bt_att_send(att, BT_ATT_OP_MTU_REQ, pdu, sizeof(pdu), mtu_cb, op, destroy_mtu_op);<br>
-```
-to<br>
-```
-id = bt_att_send(att, BT_ATT_OP_MTU_RSP, pdu, sizeof(pdu), mtu_cb, op, destroy_mtu_op);<br>
-```
-I need to submit this fix to the bluez project, but I haven't taken the time yet.
-
 ## web service
 So you don't trust me with your data, eh?  No worries, I get it.  Here's how you run your own server.<br><br>
 After your reactor build, the compiled war will be at LanternPowerMonitor/currentmonitor/lantern-service-currentmonitor/target/lantern-service-currentmonitor-1.x.x.war
