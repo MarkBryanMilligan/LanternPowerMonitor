@@ -13,6 +13,11 @@ The android application is available here:
 <br>
 [Lantern Power Monitor - Google Play](https://play.google.com/store/apps/details?id=com.lanternsoftware.lantern)
 <br><br>
+The LanternPowerMonitor subreddit is a great place to ask questions and stay tuned for updates and news.
+<br>
+[/r/LanternPowerMonitor](https://www.reddit.com/r/LanternPowerMonitor/)
+<br><br>
+
 You can use the bom in the source below to buy the parts to build a hub.
 
 # Index
