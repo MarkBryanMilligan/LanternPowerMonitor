@@ -44,11 +44,8 @@ public class AuthServlet extends LanternServlet {
 					GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(transport, new GsonFactory(), "https://oauth2.googleapis.com/token", googleClientId, googleClientSecret, auth.getPassword(), "").execute();
 					if (tokenResponse != null) {
 						GoogleIdToken idToken = tokenResponse.parseIdToken();
-						if (idToken != null) {
-							logger.info("Successfully received google id token");
+						if (idToken != null)
 							authCode = Globals.dao.getAuthCodeForEmail(idToken.getPayload().getEmail(), DateUtils.fromTimeZoneId(_req.getHeader("timezone")));
-							logger.info("Auth code for google user is valid: " + (authCode != null));
-						}
 					}
 				} catch (Exception _e) {
 					logger.error("Failed to validate google auth code", _e);

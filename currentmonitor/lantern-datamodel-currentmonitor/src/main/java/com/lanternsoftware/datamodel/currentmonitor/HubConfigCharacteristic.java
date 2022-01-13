@@ -18,7 +18,10 @@ public enum HubConfigCharacteristic {
 	Host(10, CharacteristicFlag.WRITE),
 	Log(11, CharacteristicFlag.READ),
 	NetworkDetails(12, CharacteristicFlag.READ),
-	Shutdown(13, CharacteristicFlag.WRITE);
+	Shutdown(13, CharacteristicFlag.WRITE),
+	Version(14, CharacteristicFlag.READ),
+	Update(15, CharacteristicFlag.WRITE),
+	ReloadConfig(15, CharacteristicFlag.WRITE);
 
 	public final int idx;
 	public final UUID uuid;

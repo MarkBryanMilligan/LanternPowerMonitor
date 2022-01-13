@@ -26,8 +26,8 @@ public class BreakerHubSerializer extends AbstractDaoSerializer<BreakerHub>
 	{
 		DaoEntity d = new DaoEntity();
 		d.put("hub", _o.getHub());
-		d.put("voltage_calibration_factor", _o.getVoltageCalibrationFactor());
-		d.put("port_calibration_factor", _o.getPortCalibrationFactor());
+		d.put("voltage_calibration_factor", _o.getRawVoltageCalibrationFactor());
+		d.put("port_calibration_factor", _o.getRawPortCalibrationFactor());
 		d.put("frequency", _o.getFrequency());
 		d.put("bluetooth_mac", _o.getBluetoothMac());
 		return d;

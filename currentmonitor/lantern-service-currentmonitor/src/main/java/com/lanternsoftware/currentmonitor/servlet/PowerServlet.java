@@ -1,12 +1,17 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
+import com.lanternsoftware.dataaccess.currentmonitor.MongoCurrentMonitorDao;
+import com.lanternsoftware.datamodel.currentmonitor.HubCommands;
+import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.DaoSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -15,6 +20,8 @@ import java.util.List;
 
 @WebServlet("/power/*")
 public class PowerServlet extends SecureServlet {
+	private static final Logger logger = LoggerFactory.getLogger(MongoCurrentMonitorDao.class);
+
 	@Override
 	protected void get(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		String[] path = path(_req);
@@ -32,19 +39,29 @@ public class PowerServlet extends SecureServlet {
 		String[] path = path(_req);
 		if ((path.length > 0) && NullUtils.isEqual(CollectionUtils.get(path, 0), "hub")) {
 			HubPowerMinute m = getRequestPayload(_req, HubPowerMinute.class);
+			if (m == null)
+				return;
+			logger.info("Hub Power from ip {}, account {}, hub {}", _req.getRemoteAddr(), m.getAccountId(), m.getHub());
 			m.setAccountId(_authCode.getAccountId());
 			Globals.dao.putHubPowerMinute(m);
 			return;
 		}
 		if ((path.length > 0) && NullUtils.isEqual(CollectionUtils.get(path, 0), "batch")) {
-			List<BreakerPower> powers = DaoSerializer.getList(getRequestZipBson(_req), "readings", BreakerPower.class);
+			DaoEntity payload = getRequestZipBson(_req);
+			List<BreakerPower> powers = DaoSerializer.getList(payload, "readings", BreakerPower.class);
 			if (!powers.isEmpty()) {
 				CollectionUtils.edit(powers, _p->_p.setAccountId(_authCode.getAccountId()));
 				Globals.dao.getProxy().save(powers);
+				int hub = DaoSerializer.getInteger(payload, "hub");
+				HubCommands commands = Globals.getCommandsForHub(_authCode.getAccountId(), hub);
+				if (commands != null)
+					zipBsonResponse(_rep, commands);
 			}
 			return;
 		}
 		BreakerPower power = getRequestPayload(_req, BreakerPower.class);
+		if (power == null)
+			return;
 		power.setAccountId(_authCode.getAccountId());
 		Globals.dao.putBreakerPower(power);
 	}

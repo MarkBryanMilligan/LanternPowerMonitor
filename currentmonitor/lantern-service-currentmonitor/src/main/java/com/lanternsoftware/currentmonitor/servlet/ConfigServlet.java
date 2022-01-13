@@ -2,6 +2,8 @@ package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
+import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
+import com.lanternsoftware.datamodel.currentmonitor.HubConfigCharacteristic;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,10 @@ public class ConfigServlet extends SecureServlet {
 			return;
 		}
 		logger.info("Received config for account {}", config.getAccountId());
+		BreakerConfig oldConfig = Globals.dao.getConfig(config.getAccountId());
+		if ((oldConfig == null) || !oldConfig.isIdentical(config))
+			Globals.dao.putHubCommand(new HubCommand(config.getAccountId(), HubConfigCharacteristic.ReloadConfig, null));
 		Globals.dao.putConfig(config);
+		zipBsonResponse(_rep, Globals.dao.getMergedConfig(_authCode));
 	}
 }

@@ -10,6 +10,8 @@ import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPowerMinute;
+import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
+import com.lanternsoftware.datamodel.currentmonitor.HubCommands;
 import com.lanternsoftware.datamodel.currentmonitor.HubConfigCharacteristic;
 import com.lanternsoftware.datamodel.currentmonitor.HubConfigService;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
@@ -25,6 +27,7 @@ import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.http.HttpPool;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -39,10 +42,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +69,7 @@ public class MonitorApp {
 	private static final AtomicBoolean running = new AtomicBoolean(true);
 	private static final CurrentMonitor monitor = new CurrentMonitor();
 	private static final List<BreakerPower> readings = new ArrayList<>();
-	private static final String version = getVersionNumber();
+	private static String version;
 	private static final PowerListener logger = _p -> {
 		if (!config.isDebug()) {
 			_p.setHubVersion(version);
@@ -76,9 +81,138 @@ public class MonitorApp {
 		} else
 			LOG.info("Panel{} - Space{} Power: {}W", _p.getPanel(), Breaker.toSpaceDisplay(_p.getSpace()), String.format("%.3f", _p.getPower()));
 	};
+	private static final BleCharacteristicListener bluetoothListener = new BleCharacteristicListener() {
+		@Override
+		public void write(String _name, byte[] _value) {
+			HubConfigCharacteristic ch = NullUtils.toEnum(HubConfigCharacteristic.class, _name);
+			LOG.info("Char Received, Name: {} Value: {}", _name, _value);
+			monitor.submit(()->{
+				synchronized (monitor) {
+					switch (ch) {
+						case Host:
+							if ((_value.length > 0)) {
+								config.setHost(NullUtils.terminateWith(NullUtils.toString(_value), "/") + "currentmonitor/");
+								ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
+							}
+							break;
+						case HubIndex:
+							if ((_value.length > 0)) {
+								config.setHub(_value[0]);
+								ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
+							}
+							break;
+						case AuthCode:
+							String value = NullUtils.toString(_value);
+							if (NullUtils.isNotEmpty(value)) {
+								authCode = value;
+								config.setAuthCode(value);
+								ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
+							}
+							break;
+						case WifiCredentials:
+							String ssid = HubConfigService.decryptWifiSSID(_value);
+							String pwd = HubConfigService.decryptWifiPassword(_value);
+							if (NullUtils.isNotEmpty(ssid) && NullUtils.isNotEmpty(pwd))
+								WifiConfig.setCredentials(ssid, pwd);
+							break;
+						case Flash:
+							if ((CollectionUtils.length(_value) == 0) || (_value[0] == 0)) {
+								if (flasher != null) {
+									flasher.stop();
+									flasher = null;
+								} else
+									LEDFlasher.setLEDOn(false);
+							} else {
+								if (flasher == null) {
+									flasher = new LEDFlasher();
+									monitor.submit(flasher);
+								}
+							}
+							break;
+						case Restart:
+							LOG.info("Restarting Current Monitor...");
+							try {
+								Runtime.getRuntime().exec(new String[]{"systemctl","restart","currentmonitor"});
+							} catch (IOException _e) {
+								LOG.error("Exception occurred while trying to restart", _e);
+							}
+							break;
+						case Reboot:
+							LOG.info("Rebooting Pi...");
+							try {
+								Runtime.getRuntime().exec(new String[]{"reboot","now"});
+							} catch (IOException _e) {
+								LOG.error("Exception occurred while trying to reboot", _e);
+							}
+							break;
+						case Shutdown:
+							LOG.info("Shutting down Pi...");
+							try {
+								Runtime.getRuntime().exec(new String[]{"shutdown","now"});
+							} catch (IOException _e) {
+								LOG.error("Exception occurred while trying to shutdown", _e);
+							}
+							break;
+						case Update:
+							monitor.submit(new UpdateChecker(true));
+							break;
+						case ReloadConfig:
+							HttpGet get = new HttpGet(host + "config");
+							get.addHeader("auth_code", authCode);
+							BreakerConfig newConfig = DaoSerializer.parse(pool.executeToString(get), BreakerConfig.class);
+							if (newConfig != null) {
+								breakerConfig = newConfig;
+								List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
+								BreakerHub hub = breakerConfig.getHub(config.getHub());
+								if (hub != null) {
+									LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(breakers), hub.getHub());
+									if (CollectionUtils.size(breakers) > 0)
+										monitor.monitorPower(hub, breakers, 1000, logger);
+								}
+							}
+							break;
+					}
+				}
+			});
+		}
+
+		@Override
+		public byte[] read(String _name) {
+			HubConfigCharacteristic ch = NullUtils.toEnum(HubConfigCharacteristic.class, _name);
+			if (HubConfigCharacteristic.HubIndex == ch)
+				return new byte[]{(byte)(config == null?0:config.getHub())};
+			if (HubConfigCharacteristic.AccountId == ch)
+				return ByteBuffer.allocate(4).putInt(breakerConfig == null?0:breakerConfig.getAccountId()).array();
+			if (HubConfigCharacteristic.NetworkState == ch)
+				return new byte[]{NetworkMonitor.getNetworkStatus().toMask()};
+			if (HubConfigCharacteristic.NetworkDetails == ch) {
+				NetworkStatus status = NetworkMonitor.getNetworkStatus();
+				DaoEntity meta = (host == null)?null:DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
+				status.setPingSuccessful(CollectionUtils.isNotEmpty(meta));
+				return DaoSerializer.toZipBson(status);
+			}
+			if (HubConfigCharacteristic.Log == ch) {
+				String[] log = NullUtils.cleanSplit(ResourceLoader.loadFileAsString(WORKING_DIR + "log/log.txt"), "\n");
+				if (log.length > 15)
+					log = Arrays.copyOfRange(log, log.length-15, log.length);
+				return ZipUtils.zip(NullUtils.toByteArray(CollectionUtils.delimit(Arrays.asList(log), "\n")));
+			}
+			if (HubConfigCharacteristic.Version == ch)
+				return NullUtils.toByteArray(version);
+			return null;
+		}
+	};
+	private static BluetoothConfig bluetoothConfig;
 	private static MqttPoster mqttPoster;
 
 	public static void main(String[] args) {
+		try {
+			Runtime.getRuntime().exec(new String[]{"systemctl","restart","dbus"});
+			ConcurrencyUtils.sleep(500);
+		} catch (IOException _e) {
+			LOG.error("Exception occurred while trying to restart", _e);
+		}
+		version = getVersionNumber();
 		config = DaoSerializer.parse(ResourceLoader.loadFileAsString(WORKING_DIR + "config.json"), MonitorConfig.class);
 		if (config == null) {
 			LOG.error("Failed to load config file from {}", WORKING_DIR + "config.json");
@@ -90,107 +224,7 @@ public class MonitorApp {
 		monitor.setDebug(config.isDebug());
 		monitor.start();
 		LEDFlasher.setLEDOn(false);
-		final BluetoothConfig bluetoothConfig = new BluetoothConfig("Lantern Hub", new BleCharacteristicListener() {
-			@Override
-			public void write(String _name, byte[] _value) {
-				HubConfigCharacteristic ch = NullUtils.toEnum(HubConfigCharacteristic.class, _name);
-				LOG.info("Char Received, Name: {} Value: {}", _name, _value);
-				monitor.submit(()->{
-					synchronized (monitor) {
-						switch (ch) {
-							case Host:
-								if ((_value.length > 0)) {
-									config.setHost(NullUtils.terminateWith(NullUtils.toString(_value), "/") + "currentmonitor/");
-									ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-								}
-								break;
-							case HubIndex:
-								if ((_value.length > 0)) {
-									config.setHub(_value[0]);
-									ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-								}
-								break;
-							case AuthCode:
-								String value = NullUtils.toString(_value);
-								if (NullUtils.isNotEmpty(value)) {
-									authCode = value;
-									config.setAuthCode(value);
-									ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-								}
-								break;
-							case WifiCredentials:
-								String ssid = HubConfigService.decryptWifiSSID(_value);
-								String pwd = HubConfigService.decryptWifiPassword(_value);
-								if (NullUtils.isNotEmpty(ssid) && NullUtils.isNotEmpty(pwd))
-									WifiConfig.setCredentials(ssid, pwd);
-								break;
-							case Flash:
-								if ((CollectionUtils.length(_value) == 0) || (_value[0] == 0)) {
-									if (flasher != null) {
-										flasher.stop();
-										flasher = null;
-									} else
-										LEDFlasher.setLEDOn(false);
-								} else {
-									if (flasher == null) {
-										flasher = new LEDFlasher();
-										monitor.submit(flasher);
-									}
-								}
-								break;
-							case Restart:
-								LOG.info("Restarting Current Monitor...");
-								try {
-									Runtime.getRuntime().exec(new String[]{"systemctl","restart","currentmonitor"});
-								} catch (IOException _e) {
-									LOG.error("Exception occurred while trying to restart", _e);
-								}
-								break;
-							case Reboot:
-								LOG.info("Rebooting Pi...");
-								try {
-									Runtime.getRuntime().exec(new String[]{"reboot","now"});
-								} catch (IOException _e) {
-									LOG.error("Exception occurred while trying to reboot", _e);
-								}
-								break;
-							case Shutdown:
-								LOG.info("Shutting down Pi...");
-								try {
-									Runtime.getRuntime().exec(new String[]{"shutdown","now"});
-								} catch (IOException _e) {
-									LOG.error("Exception occurred while trying to shutdown", _e);
-								}
-								break;
-						}
-					}
-				});
-			}
-
-			@Override
-			public byte[] read(String _name) {
-				HubConfigCharacteristic ch = NullUtils.toEnum(HubConfigCharacteristic.class, _name);
-				if (HubConfigCharacteristic.HubIndex == ch)
-					return new byte[]{(byte)(config == null?0:config.getHub())};
-				if (HubConfigCharacteristic.AccountId == ch)
-					return ByteBuffer.allocate(4).putInt(breakerConfig == null?0:breakerConfig.getAccountId()).array();
-				if (HubConfigCharacteristic.NetworkState == ch)
-					return new byte[]{NetworkMonitor.getNetworkStatus().toMask()};
-				if (HubConfigCharacteristic.NetworkDetails == ch) {
-					NetworkStatus status = NetworkMonitor.getNetworkStatus();
-					DaoEntity meta = (host == null)?null:DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
-					status.setPingSuccessful(CollectionUtils.isNotEmpty(meta));
-					return DaoSerializer.toZipBson(status);
-				}
-				if (HubConfigCharacteristic.Log == ch) {
-					String[] log = NullUtils.cleanSplit(ResourceLoader.loadFileAsString(WORKING_DIR + "log/log.txt"), "\n");
-					if (log.length > 15)
-						log = Arrays.copyOfRange(log, log.length-15, log.length);
-					return ZipUtils.zip(NullUtils.toByteArray(CollectionUtils.delimit(Arrays.asList(log), "\n")));
-				}
-				return null;
-			}
-		});
+		bluetoothConfig = new BluetoothConfig("Lantern Hub", bluetoothListener);
 		bluetoothConfig.start();
 		if (NullUtils.isNotEmpty(config.getAuthCode()))
 			authCode = config.getAuthCode();
@@ -303,6 +337,7 @@ public class MonitorApp {
 						if (!readings.isEmpty()) {
 							mqttReadings.addAll(readings);
 							post = new DaoEntity("readings", DaoSerializer.toDaoEntities(readings));
+							post.put("hub", config.getHub());
 							if (curMinute != lastMinute) {
 								HubPowerMinute minute = new HubPowerMinute();
 								minute.setAccountId(breakerConfig.getAccountId());
@@ -336,7 +371,8 @@ public class MonitorApp {
 						}
 						if (post != null) {
 							byte[] payload = DaoSerializer.toZipBson(post);
-							if (post(payload, "power/batch")) {
+							PostResponse<HubCommands> resp = post(payload, "power/batch", HubCommands.class);
+							if (resp.success) {
 								File[] files = new File(WORKING_DIR + "cache").listFiles();
 								if (files != null) {
 									for (File file : files) {
@@ -347,6 +383,11 @@ public class MonitorApp {
 											break;
 									}
 								}
+								if (resp.t != null) {
+									for (HubCommand command : resp.t.getCommands()) {
+										bluetoothListener.write(command.getCharacteristic().name(), command.getData());
+									}
+								}
 							}
 						}
 					}
@@ -355,7 +396,6 @@ public class MonitorApp {
 					if (DateUtils.diffInSeconds(new Date(), lastUpdateCheck) >= config.getUpdateInterval()) {
 						lastUpdateCheck = new Date();
 						monitor.submit(new UpdateChecker());
-						monitor.submit(new CommandChecker());
 					}
 					long now = new Date().getTime();
 					long duration = (now - firstPost)%1000;
@@ -371,34 +411,65 @@ public class MonitorApp {
 		}
 	}
 
-	private static void uploadLog() {
-		LOG.info("Commanded to upload log file, preparing...");
-		String log = ResourceLoader.loadFileAsString(WORKING_DIR + "log/log.txt");
-		if (NullUtils.isNotEmpty(log)) {
-			DaoEntity payload = new DaoEntity("command", "log").and("payload", log);
-			post(DaoSerializer.toZipBson(payload), "command");
-		}
+	private static boolean post(byte[] _payload, String _path) {
+		return post(_payload, _path, Boolean.class).success;
 	}
 
-	private static boolean post(byte[] _payload, String _path) {
+	private static <T> PostResponse<T> post(byte[] _payload, String _path, Class<T> _class) {
 		if (NullUtils.isEmpty(host))
-			return false;
+			return new PostResponse<>(false, null);
 		HttpPost post = new HttpPost(host + _path);
 		post.addHeader("auth_code", authCode);
 		post.setEntity(new ByteArrayEntity(_payload, ContentType.APPLICATION_OCTET_STREAM));
+		InputStream is = null;
 		CloseableHttpResponse resp = pool.execute(post);
 		try {
-			return ((resp != null) && (resp.getStatusLine() != null) && (resp.getStatusLine().getStatusCode() == 200));
-		} finally {
+			if ((resp != null) && (resp.getStatusLine() != null) && (resp.getStatusLine().getStatusCode() == 200)) {
+				T t = null;
+				HttpEntity entity = resp.getEntity();
+				if (entity != null) {
+					is = entity.getContent();
+					byte[] payload = IOUtils.toByteArray(is);
+					if (CollectionUtils.length(payload) > 0)
+						t = DaoSerializer.fromZipBson(payload, _class);
+				}
+				return new PostResponse<>(true, t);
+			}
+		}
+		catch (Exception _e) {
+			LOG.error("Failed to make http request to " + post.getURI().toString(), _e);
+		}
+		finally {
+			IOUtils.closeQuietly(is);
 			IOUtils.closeQuietly(resp);
+		}
+		return new PostResponse<>(false, null);
+	}
+
+	private static class PostResponse<T> {
+		public final boolean success;
+		public final T t;
+
+		public PostResponse(boolean _success, T _t) {
+			success = _success;
+			t = _t;
 		}
 	}
 
-
 	private static final class UpdateChecker implements Runnable {
+		private final boolean force;
+
+		public UpdateChecker() {
+			force = false;
+		}
+
+		public UpdateChecker(boolean _force) {
+			force = _force;
+		}
+
 		@Override
 		public void run() {
-			if (NullUtils.isNotEmpty(host) && config.isAutoUpdate()) {
+			if (NullUtils.isNotEmpty(host) && (force || config.isAutoUpdate())) {
 				DaoEntity meta = DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
 				String newVersion = DaoSerializer.getString(meta, "version");
 				if (NullUtils.isNotEqual(newVersion, version)) {
@@ -407,9 +478,14 @@ public class MonitorApp {
 					if (CollectionUtils.length(jar) == DaoSerializer.getInteger(meta, "size") && NullUtils.isEqual(DigestUtils.md5Hex(jar), DaoSerializer.getString(meta, "checksum"))) {
 						LOG.info("Update downloaded, writing jar and restarting...");
 						ResourceLoader.writeFile(WORKING_DIR + "lantern-currentmonitor.jar", jar);
-						ConcurrencyUtils.sleep(10000);
+						synchronized (running) {
+							running.set(false);
+						}
+						monitor.stopMonitoring();
+						bluetoothConfig.stop();
+						pool.shutdown();
 						try {
-							Runtime.getRuntime().exec(new String[]{"systemctl", "restart", "currentmonitor"});
+							Runtime.getRuntime().exec(new String[]{"systemctl","restart","currentmonitor"});
 						} catch (IOException _e) {
 							LOG.error("Exception occurred while trying to restart", _e);
 						}
@@ -419,65 +495,29 @@ public class MonitorApp {
 		}
 	}
 
-	private static final class CommandChecker implements Runnable {
-		@Override
-		public void run() {
-			if (NullUtils.isNotEmpty(host)) {
-				HttpGet get = new HttpGet(host + "command");
-				get.addHeader("auth_code", authCode);
-				DaoEntity meta = DaoSerializer.fromZipBson(pool.executeToByteArray(get));
-				for (String command : DaoSerializer.getList(meta, "commands", String.class)) {
-					if (NullUtils.isEqual(command, "log")) {
-						uploadLog();
-					} else if (NullUtils.makeNotNull(command).startsWith("timeout")) {
-						LOG.info("Updating timeouts...");
-						String[] timeouts = NullUtils.cleanSplit(command, "-");
-						if (CollectionUtils.size(timeouts) != 3)
-							continue;
-						config.setConnectTimeout(DaoSerializer.toInteger(timeouts[1]));
-						config.setSocketTimeout(DaoSerializer.toInteger(timeouts[2]));
-						HttpPool old = pool;
-						pool = new HttpPool(10, 10, config.getSocketTimeout(), config.getConnectTimeout(), config.getSocketTimeout());
-						old.shutdown();
-						ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-					} else if (NullUtils.isEqual(command, "extend_filesystem")) {
-						LOG.info("Extending filesystem and rebooting");
-						try {
-							Runtime.getRuntime().exec(new String[]{"sudo", "raspi-config", "--expand-rootfs"});
-							ConcurrencyUtils.sleep(5000);
-							Runtime.getRuntime().exec(new String[]{"reboot", "now"});
-						} catch (IOException _e) {
-							LOG.error("Exception occurred while trying to extend filesystem", _e);
-						}
-					} else if (NullUtils.isEqual(command, "restart")) {
-						LOG.info("Restarting...");
-						try {
-							Runtime.getRuntime().exec(new String[]{"systemctl", "restart", "currentmonitor"});
-						} catch (IOException _e) {
-							LOG.error("Exception occurred while trying to restart", _e);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	private static String getVersionNumber() {
-		InputStream is = null;
+	public static String getVersionNumber() {
 		try {
-			is = MonitorApp.class.getResourceAsStream("/META-INF/MANIFEST.MF");
-			Manifest manifest = new Manifest(is);
-			Attributes attr = manifest.getMainAttributes();
-			String version = attr.getValue("Specification-Version");
-			LOG.info("Current Version: {}", version);
-			return version;
+			Enumeration<URL> resources = MonitorApp.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+			while (resources.hasMoreElements()) {
+				InputStream is = null;
+				try {
+					is = resources.nextElement().openStream();
+					Manifest manifest = new Manifest(is);
+					Attributes attr = manifest.getMainAttributes();
+					if (NullUtils.isEqual(attr.getValue("Specification-Title"), "Lantern Power Monitor")) {
+						String version = attr.getValue("Specification-Version");
+						LOG.info("Current Version: {}", version);
+						return version;
+					}
+				}
+				finally {
+					IOUtils.closeQuietly(is);
+				}
+			}
 		}
 		catch (Exception _e) {
 			LOG.error("Failed to get current version number", _e);
-			return "";
 		}
-		finally {
-			IOUtils.closeQuietly(is);
-		}
+		return "";
 	}
 }

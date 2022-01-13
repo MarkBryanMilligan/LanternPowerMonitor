@@ -113,6 +113,12 @@ public class RulesEngine {
 		timer.schedule(nextTask, nextDate);
 	}
 
+	public void schedule(TimerTask _task, long _delay) {
+		if (timer == null)
+			return;
+		timer.schedule(_task, _delay);
+	}
+
 	public static void shutdown() {
 		if (INSTANCE == null)
 			return;

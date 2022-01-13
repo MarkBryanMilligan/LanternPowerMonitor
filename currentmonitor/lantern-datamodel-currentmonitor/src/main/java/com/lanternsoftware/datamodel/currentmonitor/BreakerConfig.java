@@ -209,7 +209,7 @@ public class BreakerConfig implements IIdentical<BreakerConfig> {
 	@Override
 	public boolean isIdentical(BreakerConfig _o) {
 		if (this == _o) return true;
-		return accountId == _o.accountId && CollectionUtils.isIdentical(meters, _o.meters) && CollectionUtils.isIdentical(panels, _o.panels) && CollectionUtils.isIdentical(breakerHubs, _o.breakerHubs) && CollectionUtils.isIdentical(breakerGroups, _o.breakerGroups) && CollectionUtils.isEqual(billingPlans, _o.billingPlans);
+		return accountId == _o.accountId && CollectionUtils.isIdentical(meters, _o.meters) && CollectionUtils.isIdentical(panels, _o.panels) && CollectionUtils.isIdentical(breakerHubs, _o.breakerHubs) && CollectionUtils.isIdentical(breakerGroups, _o.breakerGroups) && CollectionUtils.isIdentical(billingPlans, _o.billingPlans);
 	}
 
 	@Override

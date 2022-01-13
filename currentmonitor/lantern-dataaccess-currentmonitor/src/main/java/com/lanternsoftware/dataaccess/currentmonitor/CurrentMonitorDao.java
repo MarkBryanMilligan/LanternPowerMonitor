@@ -5,6 +5,7 @@ import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
 import com.lanternsoftware.datamodel.currentmonitor.EnergySummary;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyViewMode;
+import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.dao.mongo.MongoProxy;
@@ -47,6 +48,10 @@ public interface CurrentMonitorDao {
 	Account getAccountByUsername(String _username);
 	TimeZone getTimeZoneForAccount(int _accountId);
 	String getTimeZoneForAccount(String _authCode);
+
+	void putHubCommand(HubCommand _command);
+	List<HubCommand> getAllHubCommands();
+	void deleteHubCommand(String _id);
 
 	MongoProxy getProxy();
 }

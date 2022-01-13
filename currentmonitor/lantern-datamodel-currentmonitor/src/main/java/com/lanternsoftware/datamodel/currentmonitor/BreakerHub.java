@@ -6,7 +6,7 @@ import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
 import java.util.Objects;
 
-@DBSerializable
+@DBSerializable(autogen = false)
 public class BreakerHub implements IIdentical<BreakerHub> {
 	private int hub;
 	private double voltageCalibrationFactor;
@@ -22,16 +22,24 @@ public class BreakerHub implements IIdentical<BreakerHub> {
 		hub = _hub;
 	}
 
+	public double getRawVoltageCalibrationFactor() {
+		return voltageCalibrationFactor;
+	}
+
 	public double getVoltageCalibrationFactor() {
-		return voltageCalibrationFactor == 0.0?1.0:voltageCalibrationFactor;
+		return voltageCalibrationFactor == 0.0?0.3445:voltageCalibrationFactor;
 	}
 
 	public void setVoltageCalibrationFactor(double _voltageCalibrationFactor) {
 		voltageCalibrationFactor = _voltageCalibrationFactor;
 	}
 
+	public double getRawPortCalibrationFactor() {
+		return portCalibrationFactor;
+	}
+
 	public double getPortCalibrationFactor() {
-		return portCalibrationFactor == 0.0?1.0:portCalibrationFactor;
+		return portCalibrationFactor == 0.0?1.25:portCalibrationFactor;
 	}
 
 	public void setPortCalibrationFactor(double _portCalibrationFactor) {

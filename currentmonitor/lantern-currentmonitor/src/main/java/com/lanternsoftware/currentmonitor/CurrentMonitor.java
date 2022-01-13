@@ -97,12 +97,17 @@ public class CurrentMonitor {
 	}
 
 	public void monitorPower(BreakerHub _hub, List<Breaker> _breakers, int _intervalMs, PowerListener _listener) {
-		stopMonitoring();
-		listener = _listener;
-		List<Breaker> validBreakers = CollectionUtils.filter(_breakers, _b->_b.getPort() > 0 && _b.getPort() < 16);
-		sampler = new Sampler(_hub, validBreakers, _intervalMs, 2);
-		LOG.info("Starting to monitor ports {}", CollectionUtils.transformToCommaSeparated(validBreakers, _b->String.valueOf(_b.getPort())));
-		executor.submit(sampler);
+		try {
+			stopMonitoring();
+			listener = _listener;
+			List<Breaker> validBreakers = CollectionUtils.filter(_breakers, _b -> _b.getPort() > 0 && _b.getPort() < 16);
+			sampler = new Sampler(_hub, validBreakers, _intervalMs, 2);
+			LOG.info("Starting to monitor ports {}", CollectionUtils.transformToCommaSeparated(validBreakers, _b -> String.valueOf(_b.getPort())));
+			executor.submit(sampler);
+		}
+		catch (Throwable t) {
+			LOG.error("throwable", t);
+		}
 	}
 
 	private GpioPinAnalogInput getPin(int _chip, int _pin) {
@@ -182,8 +187,10 @@ public class CurrentMonitor {
 			try {
 				while (true) {
 					synchronized (this) {
-						if (!running)
+						if (!running) {
+							LOG.error("Power Monitoring Stopped");
 							break;
+						}
 					}
 					final Date readTime = new Date();
 					final long intervalStart = (interval * intervalNs) + start;

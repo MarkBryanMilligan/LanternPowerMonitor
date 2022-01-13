@@ -16,8 +16,8 @@ import java.util.TimeZone;
 
 public class BackupMinutes {
 	public static void main(String[] args) {
-		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
-		CurrentMonitorDao backupDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_PATH + "mongo.cfg"));
+		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_SOURCE + "mongo.cfg"));
+		CurrentMonitorDao backupDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_DEST + "mongo.cfg"));
 		Date now = new Date();
 		for (Account a : dao.getProxy().queryAll(Account.class)) {
 			if (a.getId() == 0)
@@ -30,12 +30,11 @@ public class BackupMinutes {
 			HubPowerMinute minute = dao.getProxy().queryOne(HubPowerMinute.class, new DaoQuery("account_id", a.getId()), DaoSort.sort("minute"));
 			if (minute == null)
 				continue;
-			Date minStart = DateUtils.addDays(DateUtils.getMidnightBeforeNow(tz), -60, tz);
-			Date start = DateUtils.getMidnightBefore(minute.getMinuteAsDate(), tz);
-			if (minStart.after(start))
-				start = minStart;
+			HubPowerMinute lastBackup = backupDao.getProxy().queryOne(HubPowerMinute.class, new DaoQuery("account_id", a.getId()), DaoSort.sortDesc("minute"));
+			Date start = lastBackup == null ? DateUtils.getMidnightBefore(minute.getMinuteAsDate(), tz) : lastBackup.getMinuteAsDate();
+//			Date start = DateUtils.date(10,16,2021,tz);
 			Date end = DateUtils.addDays(start, 1, tz);
-			while (end.before(now)) {
+			while (start.before(now)) {
 				DebugTimer t2 = new DebugTimer("Account Id: " + a.getId() + " Query Day " + DateUtils.format("MM/dd/yyyy", tz, start));
 				List<HubPowerMinute> minutes = dao.getProxy().query(HubPowerMinute.class, new DaoQuery("account_id", a.getId()).andBetweenInclusiveExclusive("minute", (int) (start.getTime() / 60000), (int) (end.getTime() / 60000)));
 				t2.stop();

@@ -6,12 +6,14 @@ import com.lanternsoftware.datamodel.currentmonitor.BillingRate;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
+import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
 import com.lanternsoftware.datamodel.currentmonitor.ChargeSummary;
 import com.lanternsoftware.datamodel.currentmonitor.ChargeTotal;
 import com.lanternsoftware.datamodel.currentmonitor.EnergySummary;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyTotal;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyViewMode;
+import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.datamodel.currentmonitor.Sequence;
 import com.lanternsoftware.util.CollectionUtils;
@@ -404,6 +406,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 			if (config == null) {
 				config = new BreakerConfig();
 				config.setAccountId(_authCode.getAccountId());
+				config.setVersion(config.getVersion());
 				return config;
 			}
 		}
@@ -416,6 +419,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		config.setMeters(CollectionUtils.aggregate(configs, BreakerConfig::getMeters));
 		config.setBillingPlans(CollectionUtils.aggregate(configs, BreakerConfig::getBillingPlans));
 		config.setBillingRates(CollectionUtils.aggregate(configs, BreakerConfig::getBillingRates));
+		config.setVersion(CollectionUtils.getLargest(CollectionUtils.transform(configs, BreakerConfig::getVersion)));
 		return config;
 	}
 
@@ -424,6 +428,16 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		DaoQuery configQuery = new DaoQuery("_id", String.valueOf(_config.getAccountId()));
 		BreakerConfig oldConfig = proxy.queryOne(BreakerConfig.class, configQuery);
 		if (oldConfig != null) {
+			logger.info("old version: {}, new version:  {}", oldConfig.getVersion(), _config.getVersion());
+			if (oldConfig.getVersion() > _config.getVersion()) {
+				for (BreakerHub hub : CollectionUtils.makeNotNull(_config.getBreakerHubs())) {
+					BreakerHub oldHub = oldConfig.getHub(hub.getHub());
+					if (oldHub != null) {
+						logger.info("Prevent overwrite of voltage calibration");
+						hub.setVoltageCalibrationFactor(oldHub.getRawVoltageCalibrationFactor());
+					}
+				}
+			}
 			_config.setVersion(oldConfig.getVersion() + 1);
 			if (NullUtils.isNotIdentical(_config, oldConfig)) {
 				DaoEntity oldEntity = DaoSerializer.toDaoEntity(oldConfig);
@@ -440,6 +454,9 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 					}
 				});
 			}
+		}
+		for (BreakerHub hub : CollectionUtils.makeNotNull(_config.getBreakerHubs())) {
+			logger.info("voltage calibration hub {}: {}", hub.getHub(), hub.getVoltageCalibrationFactor());
 		}
 		proxy.save(_config);
 	}
@@ -459,7 +476,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		AuthCode code = decryptAuthCode(_authCode);
 		if (code == null)
 			return null;
-		return proxy.queryOne(Account.class, new DaoQuery("_id", code.getAccountId()));
+		return proxy.queryOne(Account.class, new DaoQuery("_id", String.valueOf(code.getAccountId())));
 	}
 
 	@Override
@@ -570,6 +587,23 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		putAccount(acct);
 		proxy.delete("password_reset", new DaoQuery("_id", _key));
 		return true;
+	}
+
+	@Override
+	public void putHubCommand(HubCommand _command) {
+		BreakerConfig config = getConfig(_command.getAccountId());
+		if (config != null)
+			proxy.save(_command.forAllHubs(config));
+	}
+
+	@Override
+	public List<HubCommand> getAllHubCommands() {
+		return proxy.queryAll(HubCommand.class);
+	}
+
+	@Override
+	public void deleteHubCommand(String _id) {
+		proxy.delete(HubCommand.class, new DaoQuery("_id", _id));
 	}
 
 	@Override

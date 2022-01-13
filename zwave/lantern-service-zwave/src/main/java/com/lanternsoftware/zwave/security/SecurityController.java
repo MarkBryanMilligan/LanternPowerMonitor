@@ -46,7 +46,7 @@ public class SecurityController {
 					LOG.info("handling event {} pin {} most recent event is {}", eventIdx, _sw.getGpioPin(), high);
 					if (high == null)
 						return;
-					_listener.onStateChanged(_sw.getNodeId(), high);
+					_listener.onStateChanged(_sw.getNodeId(), pin.isHigh());
 				});
 			});
 	}
