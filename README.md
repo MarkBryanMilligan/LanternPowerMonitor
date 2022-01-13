@@ -45,7 +45,8 @@ This is only tangentially related.  A java library for running a zwave controlle
 
 # Ok, how do I run this thing?
 The easiest way to run the software on a hub is to download a pre-built SD card image.  One can be downloaded here:<br>
-[hub_1.0.5.zip](https://lanternsoftware.com:13781/hub_1.0.5.zip)<br><br>
+[hub_1.0.6.zip](https://cf.lanternpowermonitor.com/hub_1.0.6.zip)
+<br><br>
 Flash this to any micro sd card (4gig or larger) and you're good to go.  Fire up the hub and the phone app should be able to connect to it via bluetooth to finish the configuration.  The default password on this image is pi/LanternPowerMonitor<br><br>
 When you add the hub to your configuration via the app, you can change where the hub posts data.  If you use lanternsoftware.com (the default host), your data will be stored there securely and won't be shared with or sold to anyone.  If you really want to run your own server, you're of course welcome to do that instead, instructions are located further down.
 
