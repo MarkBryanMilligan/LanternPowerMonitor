@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <#if inprogress><meta http-equiv="refresh" content="1"></#if>
     <title>Lantern Console</title>
-    <link href="${link_prefix}/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="${link_prefix}bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="${link_prefix}bootstrap/css/style.min.css" rel="stylesheet">
 </head>
 <body>

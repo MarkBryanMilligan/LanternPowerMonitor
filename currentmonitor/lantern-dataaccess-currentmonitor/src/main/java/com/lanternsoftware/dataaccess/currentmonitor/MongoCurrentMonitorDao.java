@@ -46,14 +46,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,7 +64,8 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.Deflater;
-import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	private static final Logger logger = LoggerFactory.getLogger(MongoCurrentMonitorDao.class);
@@ -143,8 +140,6 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 				Date start = _month;
 				Date end = DateUtils.getEndOfMonth(_month, tz);
 				BreakerConfig config = getConfig(_accountId);  //TODO: get historical config for archive month in case it's changed since then.
-				List<Breaker> breakers = CollectionUtils.filter(config.getAllBreakers(), _b -> !NullUtils.isOneOf(_b.getType(), BreakerType.DOUBLE_POLE_BOTTOM, BreakerType.EMPTY));
-				breakers.sort(Comparator.comparing(Breaker::getPanel).thenComparing(Breaker::getSpace));
 				Map<Integer, Integer> breakerKeys = CollectionUtils.transformToMap(config.getAllBreakers(), Breaker::getIntKey, _b -> Breaker.intKey(_b.getPanel(), _b.getType() == BreakerType.DOUBLE_POLE_BOTTOM ? _b.getSpace() - 2 : _b.getSpace()));
 				Map<Integer, List<Float>> minuteReadings = new HashMap<>();
 				MonthlyEnergyArchive archive = new MonthlyEnergyArchive();
@@ -161,8 +156,6 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 					HubPowerMinute m = null;
 					if (i.hasNext())
 						m = i.next();
-					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-					df.setTimeZone(TimeZone.getTimeZone("UTC"));
 					while (i.hasNext()) {
 						if (m == null)
 							break;
@@ -189,6 +182,14 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 					if (m != null)
 						addReadings(minute, bytesInDay, minuteReadings, dayReadings);
 					List<BreakerEnergyArchive> breakerEnergies = new ArrayList<>();
+					byte[] nanArray = new byte[bytesInDay];
+					ByteBuffer nanBuffer = ByteBuffer.wrap(nanArray);
+					for (int offset = 0; offset < bytesInDay; offset += 4) {
+						nanBuffer.putFloat(offset, Float.NaN);
+					}
+					for (int key : breakerKeys.keySet()) {
+						dayReadings.computeIfAbsent(key, _k->nanArray);
+					}
 					for (Entry<Integer, byte[]> be : dayReadings.entrySet()) {
 						BreakerEnergyArchive breakerEnergy = new BreakerEnergyArchive();
 						breakerEnergy.setPanel(Breaker.intKeyToPanel(be.getKey()));
@@ -209,7 +210,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 				t.stop();
 
 				DebugTimer t2 = new DebugTimer("Zip Archive and write to disk for account" + archive.getAccountId());
-				OutputStream os = null;
+				ZipOutputStream os = null;
 				try {
 					File partialPath = new File(LanternFiles.BACKUP_DEST_PATH + archive.getAccountId()+File.separator + "partial");
 					FileUtils.deleteDirectory(partialPath);
@@ -217,13 +218,18 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 					String backupPath = LanternFiles.BACKUP_DEST_PATH + archive.getAccountId() + File.separator;
 					if (!archive.isComplete(tz))
 						backupPath += "partial" + File.separator;
-					os = new GZIPOutputStream(new FileOutputStream(backupPath + archive.getMonth().getTime() + ".zip")) {{def.setLevel(Deflater.BEST_SPEED);}};
+					os = new ZipOutputStream(new FileOutputStream(backupPath + archive.getMonth().getTime() + ".zip"));
+					os.setLevel(Deflater.BEST_SPEED);
+					ZipEntry e = new ZipEntry(DateUtils.format("MMMM-yyyy", tz, archive.getMonth()) + ".bson");
+					os.putNextEntry(e);
 					int batchSize = bson.length / 50;
 					for (int offset = 0; offset < bson.length; offset += batchSize) {
 						os.write(bson, offset, Math.min(batchSize, bson.length - offset));
 						status.setProgress(50 + (50f * offset / bson.length));
 						putArchiveStatus(status);
 					}
+					os.closeEntry();
+					os.flush();
 				} catch (Exception _e) {
 					logger.error("Failed to write export file", _e);
 				} finally {

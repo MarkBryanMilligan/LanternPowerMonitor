@@ -35,7 +35,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.zip.Deflater;
-import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 @WebServlet("/export/*")
 public class ExportServlet extends SecureConsoleServlet {
@@ -47,21 +49,27 @@ public class ExportServlet extends SecureConsoleServlet {
 		String[] path = path(_req);
 		if (path.length > 1) {
 			synchronized (this) {
-				InputStream is = Globals.dao.streamArchive(_authCode.getAccountId(), new Date(DaoSerializer.toLong(path[0])));
+				Date month = new Date(DaoSerializer.toLong(path[0]));
+				InputStream is = Globals.dao.streamArchive(_authCode.getAccountId(), month);
 				if (is == null) {
 					redirect(_rep, _req.getContextPath() + "/export");
 					return;
 				}
 				OutputStream os = null;
-				GZIPOutputStream gout = null;
+				ZipInputStream zis = null;
+				ZipOutputStream zos = null;
 				JsonWriter jsonWriter = null;
 				try {
 					os = _rep.getOutputStream();
 					if (NullUtils.makeNotNull(path[1]).contains("csv")) {
 						BreakerConfig config = Globals.dao.getConfig(_authCode.getAccountId());  //TODO: get historical config for this month in case it's changed since then.
 						Map<Integer, Breaker> breakers = CollectionUtils.transformToMap(config.getAllBreakers(), Breaker::getIntKey);
-						os = new GZIPOutputStream(os) {{def.setLevel(Deflater.BEST_SPEED);}};
-						MonthlyEnergyArchive archive = DaoSerializer.fromZipBson(IOUtils.toByteArray(is), MonthlyEnergyArchive.class);
+						zos = new ZipOutputStream(os);
+						zos.setLevel(Deflater.BEST_SPEED);
+						zos.putNextEntry(new ZipEntry(DateUtils.format("MMMM-yyyy", tz, month) + ".csv"));
+						zis = new ZipInputStream(is);
+						zis.getNextEntry();
+						MonthlyEnergyArchive archive = DaoSerializer.fromBson(IOUtils.toByteArray(zis), MonthlyEnergyArchive.class);
 						DailyEnergyArchive fday = CollectionUtils.getFirst(archive.getDays());
 						if (fday == null) {
 							redirect(_rep, _req.getContextPath() + "/export");
@@ -80,7 +88,7 @@ public class ExportServlet extends SecureConsoleServlet {
 						header.append("\n");
 						DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						os.write(NullUtils.toByteArray(header.toString()));
+						zos.write(NullUtils.toByteArray(header.toString()));
 						Date dayStart = archive.getMonth();
 						for (DailyEnergyArchive day : CollectionUtils.makeNotNull(archive.getDays())) {
 							Date dayEnd = DateUtils.addDays(dayStart, 1, tz);
@@ -98,16 +106,23 @@ public class ExportServlet extends SecureConsoleServlet {
 									}
 								}
 								line.append("\n");
-								os.write(NullUtils.toByteArray(line.toString()));
+								zos.write(NullUtils.toByteArray(line.toString()));
 							}
+							dayStart = dayEnd;
 						}
+						zos.flush();
 						return;
 					}
 					if (NullUtils.makeNotNull(path[1]).contains("json")) {
-						DaoEntity archive = DaoSerializer.fromZipBson(IOUtils.toByteArray(is));
-						gout = new GZIPOutputStream(os) {{def.setLevel(Deflater.BEST_SPEED);}};
-						jsonWriter = new JsonWriter(new OutputStreamWriter(gout, StandardCharsets.UTF_8), DaoSerializer.JSON_COMPACT_SETTINGS);
+						zis = new ZipInputStream(is);
+						zis.getNextEntry();
+						DaoEntity archive = DaoSerializer.fromBson(IOUtils.toByteArray(zis));
+						zos = new ZipOutputStream(os);
+						zos.setLevel(Deflater.BEST_SPEED);
+						zos.putNextEntry(new ZipEntry(DateUtils.format("MMMM-yyyy", tz, month) + ".json"));
+						jsonWriter = new JsonWriter(new OutputStreamWriter(zos, StandardCharsets.UTF_8), DaoSerializer.JSON_PRETTY_SETTINGS);
 						new DocumentCodec().encode(jsonWriter, archive.toDocument(), EncoderContext.builder().build());
+						jsonWriter.flush();
 						return;
 					}
 					IOUtils.copy(is, os);
@@ -119,7 +134,8 @@ public class ExportServlet extends SecureConsoleServlet {
 				} finally {
 					IOUtils.closeQuietly(is);
 					IOUtils.closeQuietly(jsonWriter);
-					IOUtils.closeQuietly(gout);
+					IOUtils.closeQuietly(zos);
+					IOUtils.closeQuietly(zis);
 					IOUtils.closeQuietly(os);
 				}
 			}
