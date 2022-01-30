@@ -13,7 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/config/*")
-public class ConfigServlet extends SecureServlet {
+public class ConfigServlet extends SecureServiceServlet {
 	private static final Logger logger = LoggerFactory.getLogger(ConfigServlet.class);
 
 	@Override

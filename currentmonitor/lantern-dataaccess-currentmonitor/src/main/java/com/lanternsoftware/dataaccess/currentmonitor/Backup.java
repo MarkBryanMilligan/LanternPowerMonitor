@@ -11,7 +11,7 @@ import com.lanternsoftware.datamodel.rules.Event;
 import com.lanternsoftware.datamodel.rules.FcmDevice;
 import com.lanternsoftware.datamodel.rules.Rule;
 import com.lanternsoftware.util.DebugTimer;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.dao.DaoQuery;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
 
@@ -19,8 +19,8 @@ import java.util.List;
 
 public class Backup {
 	public static void main(String[] args) {
-		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_SOURCE + "mongo.cfg"));
-		CurrentMonitorDao backupDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_DEST + "mongo.cfg"));
+		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
+		CurrentMonitorDao backupDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_DEST_PATH + "mongo.cfg"));
 
 		DebugTimer t1 = new DebugTimer("Query Accounts");
 		List<Account> accounts = dao.getProxy().queryAll(Account.class);

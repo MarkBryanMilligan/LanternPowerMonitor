@@ -15,7 +15,7 @@ import com.lanternsoftware.datamodel.rules.Rule;
 import com.lanternsoftware.rules.actions.ActionImpl;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
 import org.slf4j.Logger;
@@ -54,8 +54,8 @@ public class RulesEngine {
 
 	public RulesEngine() {
 		ServiceLoader.load(ActionImpl.class).forEach(_action->actions.put(_action.getType(), _action));
-		dao = new MongoRulesDataAccess(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
-		cmDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
+		dao = new MongoRulesDataAccess(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
+		cmDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
 		timer = new Timer("RulesEngine Timer");
 	}
 

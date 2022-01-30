@@ -15,7 +15,7 @@
             <div class="navy-line"></div>
             <h4><img class="mr-1" src="${context}/img/logo_40.png">Reset Password</h4>
 			<form class="ml-2" method="POST">
-				<input type="hidden" name="reset_key" value="${key}"/>
+				<input type="hidden" name="reset_key" value="${key!}"/>
 				<div>New Password:</div>
 				<input type="password" name="password"/>
                 <input type="submit" class="btn-primary" value="Submit"/>

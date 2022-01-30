@@ -1,7 +1,8 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoEntity;
@@ -30,7 +31,7 @@ import java.io.IOException;
 public class ResetPasswordServlet extends FreemarkerServlet {
     protected static final Logger LOG = LoggerFactory.getLogger(ResetPasswordServlet.class);
     protected static final Configuration CONFIG = FreemarkerConfigUtil.createConfig(ResetPasswordServlet.class, "/templates", 100);
-    protected static final String api_key = ResourceLoader.loadFileAsString(LanternFiles.OPS_PATH + "sendgrid.txt");
+    protected static final String api_key = ResourceLoader.loadFileAsString(LanternFiles.CONFIG_PATH + "sendgrid.txt");
 
     @Override
     protected Configuration getFreemarkerConfig() {
@@ -40,7 +41,7 @@ public class ResetPasswordServlet extends FreemarkerServlet {
     @Override
     protected void doGet(HttpServletRequest _req, HttpServletResponse _resp) {
         String[] path = getPath(_req);
-        String email = Globals.dao.getEmailForResetKey(path[1]);
+        String email = Globals.dao.getEmailForResetKey(CollectionUtils.get(path, 1));
         if (EmailValidator.getInstance().isValid(email)) {
             render(_resp, "passwordReset.ftl", model(_req, "key", path[1]));
         } else {

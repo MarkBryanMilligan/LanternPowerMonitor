@@ -6,7 +6,7 @@ import com.lanternsoftware.thermometer.ICO2Sensor;
 import com.lanternsoftware.thermometer.IThermometer;
 import com.lanternsoftware.thermometer.MHZ19BCO2Sensor;
 import com.lanternsoftware.thermometer.config.EnvironmentConfig;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoSerializer;
@@ -23,7 +23,7 @@ public class Globals implements ServletContextListener {
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
-		config = DaoSerializer.parse(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "environment.json"), EnvironmentConfig.class);
+		config = DaoSerializer.parse(ResourceLoader.loadFile(LanternFiles.CONFIG_PATH + "environment.json"), EnvironmentConfig.class);
 		IThermometer t = new HidThermometer();
 		if (t.isConnected())
 			thermometers.add(t);

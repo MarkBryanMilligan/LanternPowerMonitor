@@ -194,8 +194,24 @@ public class Breaker implements IIdentical<Breaker> {
 		return key;
 	}
 
+	public int getIntKey() {
+		return intKey(panel, space);
+	}
+
+	public static int intKeyToPanel(int _intKey) {
+		return _intKey/10000;
+	}
+
+	public static int intKeyToSpace(int _intKey) {
+		return _intKey%10000;
+	}
+
 	public static String key(int _panel, int _space) {
 		return String.format("%d-%d", _panel, _space);
+	}
+
+	public static int intKey(int _panel, int _space) {
+		return 10000*_panel + _space;
 	}
 
 	public static int portToChip(int _port) {

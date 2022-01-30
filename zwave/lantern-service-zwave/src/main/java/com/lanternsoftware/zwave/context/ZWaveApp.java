@@ -10,7 +10,7 @@ import com.lanternsoftware.datamodel.zwave.ThermostatMode;
 import com.lanternsoftware.datamodel.zwave.ZWaveConfig;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
@@ -79,9 +79,9 @@ public class ZWaveApp {
 	public void start() {
 		try {
 			pool = new HttpPool(100, 20, 5000, 5000, 5000);
-			config = DaoSerializer.parse(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "config.json"), ZWaveConfig.class);
+			config = DaoSerializer.parse(ResourceLoader.loadFile(LanternFiles.CONFIG_PATH + "config.json"), ZWaveConfig.class);
 			if (config == null) {
-				dao = new MongoZWaveDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
+				dao = new MongoZWaveDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
 				config = dao.getConfig(1);
 			}
 			if (NullUtils.isNotEmpty(config.getCommPort())) {
@@ -391,7 +391,7 @@ public class ZWaveApp {
 					if (dao != null)
 						dao.putConfig(config);
 					else
-						ResourceLoader.writeFile(LanternFiles.OPS_PATH + "config.json", DaoSerializer.toJson(config));
+						ResourceLoader.writeFile(LanternFiles.CONFIG_PATH + "config.json", DaoSerializer.toJson(config));
 				}
 			}
 		}

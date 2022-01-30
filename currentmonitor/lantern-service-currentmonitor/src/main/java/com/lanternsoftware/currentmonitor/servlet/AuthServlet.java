@@ -1,17 +1,10 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import com.lanternsoftware.currentmonitor.context.Globals;
+import com.lanternsoftware.currentmonitor.util.GoogleAuthHelper;
 import com.lanternsoftware.util.DateUtils;
-import com.lanternsoftware.util.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
-import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoEntity;
-import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.servlet.BasicAuth;
 import com.lanternsoftware.util.servlet.LanternServlet;
 import org.slf4j.Logger;
@@ -23,15 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/auth/*")
 public class AuthServlet extends LanternServlet {
-	private static final NetHttpTransport transport = new NetHttpTransport();
 	private static final Logger logger = LoggerFactory.getLogger(AuthServlet.class);
-	private static final String googleClientId;
-	private static final String googleClientSecret;
-	static {
-		DaoEntity google = DaoSerializer.parse(ResourceLoader.loadFileAsString(LanternFiles.OPS_PATH + "google_sso.txt"));
-		googleClientId = DaoSerializer.getString(google, "id");
-		googleClientSecret = DaoSerializer.getString(google, "secret");
-	}
 
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
@@ -40,16 +25,7 @@ public class AuthServlet extends LanternServlet {
 			BasicAuth auth = new BasicAuth(_req);
 			if (NullUtils.isEqual(auth.getUsername(), "googlesso")) {
 				logger.info("Attempting google SSO");
-				try {
-					GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(transport, new GsonFactory(), "https://oauth2.googleapis.com/token", googleClientId, googleClientSecret, auth.getPassword(), "").execute();
-					if (tokenResponse != null) {
-						GoogleIdToken idToken = tokenResponse.parseIdToken();
-						if (idToken != null)
-							authCode = Globals.dao.getAuthCodeForEmail(idToken.getPayload().getEmail(), DateUtils.fromTimeZoneId(_req.getHeader("timezone")));
-					}
-				} catch (Exception _e) {
-					logger.error("Failed to validate google auth code", _e);
-				}
+				authCode = GoogleAuthHelper.signin(auth.getPassword(), DateUtils.fromTimeZoneId(_req.getHeader("timezone")));
 			} else
 				authCode = Globals.dao.authenticateAccount(auth.getUsername(), auth.getPassword());
 		}

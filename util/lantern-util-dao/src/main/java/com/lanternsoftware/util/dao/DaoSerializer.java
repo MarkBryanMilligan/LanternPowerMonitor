@@ -54,6 +54,15 @@ import com.lanternsoftware.util.dao.annotations.PrimaryKey;
 public class DaoSerializer {
     private static final Logger LOG = LoggerFactory.getLogger(DaoSerializer.class);
     private static final Map<Class<?>, List<IDaoSerializer>> serializers = new HashMap<>();
+    public static final JsonWriterSettings JSON_PRETTY_SETTINGS = JsonWriterSettings.builder().int64Converter((Long _long, StrictJsonWriter _writer)->{
+        if (_long != null)
+            _writer.writeNumber(_long.toString());
+    }).indent(true).build();
+    public static final JsonWriterSettings JSON_COMPACT_SETTINGS = JsonWriterSettings.builder().int64Converter((Long _long, StrictJsonWriter _writer)->{
+        if (_long != null)
+            _writer.writeNumber(_long.toString());
+    }).indent(false).build();
+
 
     static {
         for (IDaoSerializer serializer : ServiceLoader.load(IDaoSerializer.class)) {
@@ -831,14 +840,7 @@ public class DaoSerializer {
                 Document doc = _e.toDocument();
                 if (_removeNulls)
                     removeNulls(doc.values());
-                JsonWriterSettings.Builder settings = JsonWriterSettings.builder().int64Converter(new Converter<Long>() {
-                    @Override
-                    public void convert(Long _long, StrictJsonWriter _writer) {
-                        if (_long != null)
-                            _writer.writeNumber(_long.toString());
-                    }
-                });
-                return doc.toJson(settings.indent(_pretty).build());
+                return doc.toJson(_pretty?JSON_PRETTY_SETTINGS:JSON_COMPACT_SETTINGS);
             }
         }
         catch (Exception e) {

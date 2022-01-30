@@ -14,7 +14,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.Date;
 
 @WebServlet("/charge/*")
-public class ChargeServlet extends SecureServlet {
+public class ChargeServlet extends SecureServiceServlet {
 	@Override
 	protected void get(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		String[] path = path(_req);

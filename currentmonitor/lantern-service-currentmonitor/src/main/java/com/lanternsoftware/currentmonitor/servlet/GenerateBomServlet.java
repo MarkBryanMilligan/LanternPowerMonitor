@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/generateBom")
-public class GenerateBomServlet extends SecureServlet {
+public class GenerateBomServlet extends SecureServiceServlet {
 	@Override
 	protected void get(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		AuthCode authCode = Globals.dao.decryptAuthCode(_req.getHeader("auth_code"));

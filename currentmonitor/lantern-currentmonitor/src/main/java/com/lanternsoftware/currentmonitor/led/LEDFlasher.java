@@ -28,10 +28,14 @@ public class LEDFlasher implements Runnable {
 
 	public static void setLEDOn(boolean _on) {
 		try {
-			if (_on)
+			if (_on) {
+				Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo default-on > /sys/class/leds/led0/trigger"});
 				Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo default-on > /sys/class/leds/led1/trigger"});
-			else
+			}
+			else {
+				Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo none > /sys/class/leds/led0/trigger"});
 				Runtime.getRuntime().exec(new String[]{"sh", "-c", "echo none > /sys/class/leds/led1/trigger"});
+			}
 		}
 		catch (Exception _e) {
 			LOG.error("Failed to change LED state", _e);

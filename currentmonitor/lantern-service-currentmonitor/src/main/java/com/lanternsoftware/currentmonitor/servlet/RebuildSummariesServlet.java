@@ -3,7 +3,6 @@ package com.lanternsoftware.currentmonitor.servlet;
 import com.lanternsoftware.currentmonitor.context.Globals;
 import com.lanternsoftware.datamodel.currentmonitor.Account;
 import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 
@@ -12,7 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/rebuildSummaries/*")
-public class RebuildSummariesServlet extends SecureServlet {
+public class RebuildSummariesServlet extends SecureServiceServlet {
 	@Override
 	protected void get(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		if (_authCode.getAccountId() == 100) {

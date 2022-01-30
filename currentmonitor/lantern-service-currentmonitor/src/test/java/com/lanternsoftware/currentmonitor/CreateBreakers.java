@@ -4,26 +4,14 @@ import com.lanternsoftware.dataaccess.currentmonitor.CurrentMonitorDao;
 import com.lanternsoftware.dataaccess.currentmonitor.MongoCurrentMonitorDao;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
-import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
-import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
-import com.lanternsoftware.datamodel.currentmonitor.BreakerPanel;
-import com.lanternsoftware.datamodel.currentmonitor.BreakerPolarity;
-import com.lanternsoftware.datamodel.currentmonitor.Meter;
 import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.LanternFiles;
-import com.lanternsoftware.util.NullUtils;
-import com.lanternsoftware.util.ResourceLoader;
-import com.lanternsoftware.util.dao.DaoSerializer;
+import com.lanternsoftware.util.IFilter;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public class CreateBreakers {
 	public static void main(String[] args) {
-		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
+		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
 
 /*		Breaker bf1 = new Breaker("Solar A", 2, 20, 0, 1, 50, 1.6);
 		bf1.setPolarity(BreakerPolarity.SOLAR);
@@ -212,7 +200,6 @@ public class CreateBreakers {
 		Map<Integer, Integer> panelToMeter = CollectionUtils.transformToMap(config.getPanels(), BreakerPanel::getIndex, BreakerPanel::getMeter);
 		CollectionUtils.edit(config.getAllBreakers(), _b->_b.setMeter(DaoSerializer.toInteger(panelToMeter.get(_b.getPanel()))));*/
 
-		BreakerConfig config = dao.getConfig(1);
 //		BreakerConfig config = DaoSerializer.parse(ResourceLoader.loadFileAsString(LanternFiles.OPS_PATH + "breakerconfig_backup_210107.json"), BreakerConfig.class);
 //		ResourceLoader.writeFile(LanternFiles.OPS_PATH + "breakerconfig_backup_210107.json", DaoSerializer.toJson(config));
 //		CollectionUtils.edit(config.getAllBreakerGroups(), _g->{
@@ -235,6 +222,34 @@ public class CreateBreakers {
 //				group.setId(String.valueOf(CollectionUtils.getLargest(ids) + 1));
 //			}
 //		}
+
+		BreakerConfig config = dao.getConfig(100);
+/*		TimeZone tz = TimeZone.getTimeZone("America/Chicago");
+		BillingRate summer0 = new BillingRate();
+		summer0.setMeter(-1);
+		summer0.setDayBillingCycleStart(13);
+		summer0.setFlow(GridFlow.BOTH);
+		summer0.setRate(0.13806);
+		summer0.setCurrency(BillingCurrency.DOLLAR);
+		summer0.setBeginEffective(DateUtils.date(5, 16, 2021, tz));
+		summer0.setEndEffective(DateUtils.date(9, 16, 2021, tz));
+		summer0.setRecursAnnually(true);
+
+		BillingRate winter0 = summer0.duplicate();
+		winter0.setMonthKWhEnd(1000);
+		winter0.setRate(0.09703);
+		winter0.setBeginEffective(DateUtils.date(9, 16, 2021, tz));
+		winter0.setEndEffective(DateUtils.date(5, 16, 2022, tz));
+
+		BillingRate winter1 = winter0.duplicate();
+		winter1.setMonthKWhStart(1000);
+		winter1.setMonthKWhEnd(0);
+		winter1.setRate(0.063);
+		config.setBillingRates(CollectionUtils.asArrayList(summer0, winter0, winter1));*/
+		IFilter<Breaker> filter = _b->_b.getName().contains("Water") || _b.getName().contains("Furnace") || _b.getName().contains("Basement HP");
+		CollectionUtils.filter(config.getAllBreakers(), filter).forEach(_b->_b.setMeter(0));
+		CollectionUtils.filter(config.getAllBreakers(), _b->!filter.isFiltered(_b)).forEach(_b->_b.setMeter(1));
+
 		dao.putConfig(config);
 		dao.shutdown();
 	}

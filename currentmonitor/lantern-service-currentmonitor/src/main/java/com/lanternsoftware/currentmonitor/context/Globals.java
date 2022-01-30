@@ -6,7 +6,7 @@ import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubCommands;
 import com.lanternsoftware.rules.RulesEngine;
 import com.lanternsoftware.util.DateUtils;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
 
 import javax.servlet.ServletContextEvent;
@@ -24,7 +24,7 @@ public class Globals implements ServletContextListener {
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
-		dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.OPS_PATH + "mongo.cfg"));
+		dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
 		RulesEngine.instance().start();
 		RulesEngine.instance().schedule(new CommandTask(), 0);
 	}

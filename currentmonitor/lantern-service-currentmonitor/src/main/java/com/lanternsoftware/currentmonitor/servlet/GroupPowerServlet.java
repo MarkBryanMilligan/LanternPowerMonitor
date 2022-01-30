@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/power/group/*")
-public class GroupPowerServlet extends SecureServlet {
+public class GroupPowerServlet extends SecureServiceServlet {
 	@Override
 	protected void get(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		String[] path = path(_req);

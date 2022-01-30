@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -80,6 +81,15 @@ public abstract class LanternServlet extends HttpServlet {
 		}
 		finally {
 			IOUtils.closeQuietly(is);
+		}
+	}
+
+	public void redirect(HttpServletResponse _response, String _sURL) {
+		try {
+			_response.sendRedirect(_response.encodeRedirectURL(_sURL));
+		}
+		catch (IOException _e) {
+			_response.setStatus(500);
 		}
 	}
 

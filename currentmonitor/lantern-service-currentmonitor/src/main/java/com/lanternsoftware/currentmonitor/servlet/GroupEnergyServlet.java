@@ -15,7 +15,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.*;
 
 @WebServlet("/energy/group/*")
-public class GroupEnergyServlet extends SecureServlet {
+public class GroupEnergyServlet extends SecureServiceServlet {
 	@Override
 	protected void get(AuthCode _authCode, HttpServletRequest _req, HttpServletResponse _rep) {
 		String[] path = path(_req);

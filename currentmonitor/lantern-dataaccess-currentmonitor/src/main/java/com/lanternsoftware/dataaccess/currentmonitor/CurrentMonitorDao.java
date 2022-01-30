@@ -7,9 +7,12 @@ import com.lanternsoftware.datamodel.currentmonitor.EnergySummary;
 import com.lanternsoftware.datamodel.currentmonitor.EnergyViewMode;
 import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
+import com.lanternsoftware.datamodel.currentmonitor.archive.ArchiveStatus;
+import com.lanternsoftware.util.DateRange;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.dao.mongo.MongoProxy;
 
+import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -26,6 +29,15 @@ public interface CurrentMonitorDao {
 	void putEnergySummary(EnergySummary _energy);
 
 	void putHubPowerMinute(HubPowerMinute _power);
+	Iterable<HubPowerMinute> streamHubPowerMinutes(int _accountId, Date _start, Date _end);
+
+	void archiveMonth(int _accountId, Date _month);
+	InputStream streamArchive(int _accountId, Date _month);
+	void putArchiveStatus(ArchiveStatus _status);
+	void deleteArchiveStatus(int _accountId, Date _month);
+	List<ArchiveStatus> getArchiveStatus(int _accountId);
+
+	DateRange getMonitoredDateRange(int _accountId);
 
 	BreakerConfig getConfig(int _accountId);
 	BreakerConfig getMergedConfig(AuthCode _authCode);

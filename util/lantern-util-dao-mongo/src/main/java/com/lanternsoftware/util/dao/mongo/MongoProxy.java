@@ -1,5 +1,42 @@
 package com.lanternsoftware.util.dao.mongo;
 
+import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.ITransformer;
+import com.lanternsoftware.util.NullUtils;
+import com.lanternsoftware.util.cryptography.RSAUtils;
+import com.lanternsoftware.util.dao.AbstractDaoProxy;
+import com.lanternsoftware.util.dao.DaoEntity;
+import com.lanternsoftware.util.dao.DaoProxyType;
+import com.lanternsoftware.util.dao.DaoQuery;
+import com.lanternsoftware.util.dao.DaoSerializer;
+import com.lanternsoftware.util.dao.DaoSort;
+import com.lanternsoftware.util.dao.DaoSortField;
+import com.lanternsoftware.util.dao.annotations.PrimaryKey;
+import com.lanternsoftware.util.hash.MD5HashTool;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
+import com.mongodb.ServerAddress;
+import com.mongodb.bulk.BulkWriteResult;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.DeleteOneModel;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.WriteModel;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
+import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -13,46 +50,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-
-import com.lanternsoftware.util.dao.AbstractDaoProxy;
-import com.lanternsoftware.util.dao.DaoEntity;
-import com.lanternsoftware.util.dao.DaoProxyType;
-import com.lanternsoftware.util.dao.DaoQuery;
-import com.lanternsoftware.util.dao.DaoSerializer;
-import com.lanternsoftware.util.dao.DaoSort;
-import com.lanternsoftware.util.dao.DaoSortField;
-import com.lanternsoftware.util.dao.annotations.PrimaryKey;
-import com.mongodb.bulk.BulkWriteResult;
-import com.mongodb.client.model.DeleteOneModel;
-import com.mongodb.client.model.ReplaceOptions;
-import org.bson.Document;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.ITransformer;
-import com.lanternsoftware.util.NullUtils;
-import com.lanternsoftware.util.cryptography.RSAUtils;
-import com.lanternsoftware.util.hash.MD5HashTool;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.IndexOptions;
-import com.mongodb.client.model.ReplaceOneModel;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.WriteModel;
-import com.mongodb.client.result.DeleteResult;
-import com.mongodb.client.result.UpdateResult;
 
 public class MongoProxy extends AbstractDaoProxy {
     private static final Logger LOG = LoggerFactory.getLogger(MongoProxy.class);
@@ -146,6 +143,15 @@ public class MongoProxy extends AbstractDaoProxy {
     }
 
     public List<DaoEntity> queryForEntities(String _tableName, final String _primaryKey, DaoQuery _query, Collection<String> _fields, DaoSort _sort, int _offset, int _count) {
+        return CollectionUtils.transform(queryIterator(_tableName, _primaryKey, _query, _fields, _sort, _offset, _count), DaoEntity::new);
+    }
+
+    public <T> Iterable<T> queryIterator(Class<T> _class, DaoQuery _query, Collection<String> _fields, DaoSort _sort, int _offset, int _count) {
+        String pk = CollectionUtils.getFirst(DaoSerializer.getFieldsByAnnotation(_class, PrimaryKey.class));
+        return queryIterator(DaoSerializer.getTableName(_class, getType()), pk, _query, _fields, _sort, _offset, _count).map(_d->DaoSerializer.fromDaoEntity(new DaoEntity(_d), _class));
+    }
+
+    public FindIterable<Document> queryIterator(String _tableName, final String _primaryKey, DaoQuery _query, Collection<String> _fields, DaoSort _sort, int _offset, int _count) {
         final String pk = NullUtils.isEmpty(_primaryKey) ? "_id" : _primaryKey;
         FindIterable<Document> iter;
         if (_query != null) {
@@ -214,7 +220,7 @@ public class MongoProxy extends AbstractDaoProxy {
             iter.skip(_offset);
         if (_count > 0)
             iter.limit(_count);
-        return CollectionUtils.transform(iter, DaoEntity::new);
+        return iter;
     }
 
     @Override

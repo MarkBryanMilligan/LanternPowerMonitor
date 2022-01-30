@@ -10,7 +10,7 @@ import com.lanternsoftware.datamodel.rules.Alert;
 import com.lanternsoftware.datamodel.rules.FcmDevice;
 import com.lanternsoftware.datamodel.rules.Rule;
 import com.lanternsoftware.rules.RulesEngine;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -25,7 +25,7 @@ public abstract class AbstractAlertAction implements ActionImpl {
 	static {
 		FirebaseMessaging m = null;
 		try {
-			FileInputStream is = new FileInputStream(LanternFiles.OPS_PATH + "google_account_key.json");
+			FileInputStream is = new FileInputStream(LanternFiles.CONFIG_PATH + "google_account_key.json");
 			FirebaseOptions options = FirebaseOptions.builder().setCredentials(GoogleCredentials.fromStream(is)).build();
 			m = FirebaseMessaging.getInstance(FirebaseApp.initializeApp(options));
 			IOUtils.closeQuietly(is);

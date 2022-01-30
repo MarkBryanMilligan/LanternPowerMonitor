@@ -1,6 +1,5 @@
 package com.lanternsoftware.util.cryptography;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.LongBuffer;
@@ -17,7 +16,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.ResourceLoader;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
@@ -79,7 +78,7 @@ public class AESTool {
 	}
 
 	public static AESTool authTool() {
-		return new AESTool(ResourceLoader.loadFile(LanternFiles.OPS_PATH + "authKey.dat"));
+		return new AESTool(ResourceLoader.loadFile(LanternFiles.CONFIG_PATH + "authKey.dat"));
 	}
 
 	/**

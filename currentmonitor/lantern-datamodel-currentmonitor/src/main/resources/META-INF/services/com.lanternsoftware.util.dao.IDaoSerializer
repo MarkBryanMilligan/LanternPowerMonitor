@@ -1,3 +1,7 @@
+com.lanternsoftware.datamodel.currentmonitor.archive.dao.ArchiveStatusSerializer
+com.lanternsoftware.datamodel.currentmonitor.archive.dao.BreakerEnergyArchiveSerializer
+com.lanternsoftware.datamodel.currentmonitor.archive.dao.DailyEnergyArchiveSerializer
+com.lanternsoftware.datamodel.currentmonitor.archive.dao.MonthlyEnergyArchiveSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.AccountSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.BillingPlanSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.BillingRateSerializer

@@ -3,7 +3,7 @@ package com.lanternsoftware.currentmonitor;
 
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoSerializer;
 
@@ -23,6 +23,6 @@ public class CreateConfig {
 		b1.setPort(1);
 		b1.setSizeAmps(20);
 		c.setMqttBreakers(CollectionUtils.asArrayList(b1));
-		ResourceLoader.writeFile(LanternFiles.OPS_PATH + "mqtt1.json", DaoSerializer.toJson(c));
+		ResourceLoader.writeFile(LanternFiles.CONFIG_PATH + "mqtt1.json", DaoSerializer.toJson(c));
 	}
 }

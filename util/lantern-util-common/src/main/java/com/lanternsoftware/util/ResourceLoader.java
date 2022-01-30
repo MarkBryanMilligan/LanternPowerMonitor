@@ -116,6 +116,8 @@ public abstract class ResourceLoader {
     public static void writeFile(String _sFile, byte[] _btData) {
         FileOutputStream os = null;
         try {
+            int idx = _sFile.lastIndexOf(File.separator);
+            new File((idx > 0)?_sFile.substring(0, idx):_sFile).mkdirs();
             os = new FileOutputStream(_sFile, false);
             os.write(_btData);
             os.flush();

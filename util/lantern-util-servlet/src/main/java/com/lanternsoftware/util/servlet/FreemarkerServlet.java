@@ -30,10 +30,6 @@ public abstract class FreemarkerServlet extends LanternServlet {
 		return path;
 	}
 
-	public static void redirect(HttpServletResponse _response, String _sURL) throws IOException {
-		_response.sendRedirect(_response.encodeRedirectURL(_sURL));
-	}
-
 	public void render(HttpServletResponse _rep, String _sHtmlResourceKey, Map<String, Object> _mapModel) {
 		String html = FreemarkerUtil.render(getFreemarkerConfig(), _sHtmlResourceKey, _mapModel);
 		if (html == null)

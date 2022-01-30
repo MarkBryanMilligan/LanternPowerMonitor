@@ -2,12 +2,13 @@ package com.lanternsoftware.dataaccess.currentmonitor;
 
 import com.lanternsoftware.datamodel.currentmonitor.Account;
 import com.lanternsoftware.datamodel.currentmonitor.BillingPlan;
-import com.lanternsoftware.datamodel.currentmonitor.BillingRate;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerGroup;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
+import com.lanternsoftware.datamodel.currentmonitor.BreakerPowerMinute;
+import com.lanternsoftware.datamodel.currentmonitor.BreakerType;
 import com.lanternsoftware.datamodel.currentmonitor.ChargeSummary;
 import com.lanternsoftware.datamodel.currentmonitor.ChargeTotal;
 import com.lanternsoftware.datamodel.currentmonitor.EnergySummary;
@@ -16,7 +17,12 @@ import com.lanternsoftware.datamodel.currentmonitor.EnergyViewMode;
 import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.datamodel.currentmonitor.Sequence;
+import com.lanternsoftware.datamodel.currentmonitor.archive.ArchiveStatus;
+import com.lanternsoftware.datamodel.currentmonitor.archive.BreakerEnergyArchive;
+import com.lanternsoftware.datamodel.currentmonitor.archive.DailyEnergyArchive;
+import com.lanternsoftware.datamodel.currentmonitor.archive.MonthlyEnergyArchive;
 import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.DateRange;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.DebugTimer;
 import com.lanternsoftware.util.NullUtils;
@@ -28,24 +34,41 @@ import com.lanternsoftware.util.dao.DaoSort;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
 import com.lanternsoftware.util.dao.mongo.MongoProxy;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.mutable.MutableDouble;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.zip.Deflater;
+import java.util.zip.GZIPOutputStream;
 
 public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	private static final Logger logger = LoggerFactory.getLogger(MongoCurrentMonitorDao.class);
@@ -65,6 +88,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		proxy.ensureIndex(ChargeSummary.class, DaoSort.sort("account_id").then("plan_id").then("group_id").then("view_mode"));
 		proxy.ensureIndex(ChargeTotal.class, DaoSort.sort("account_id").then("plan_id").then("group_id").then("view_mode").then("start"));
 		proxy.ensureIndex(DirtyMinute.class, DaoSort.sort("posted"));
+		proxy.ensureIndex(ArchiveStatus.class, DaoSort.sort("account_id"));
 		for (DirtyMinute minute : proxy.queryAll(DirtyMinute.class)) {
 			updateEnergySummaries(minute);
 		}
@@ -98,6 +122,196 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 				});
 			}
 		}, 10000);
+	}
+
+	@Override
+	public Iterable<HubPowerMinute> streamHubPowerMinutes(int _accountId, Date _start, Date _end) {
+		return proxy.queryIterator(HubPowerMinute.class, new DaoQuery("account_id", _accountId).andBetweenInclusiveExclusive("minute", DateUtils.toLong(_start)/60000, DateUtils.toLong(_end)/60000), null, DaoSort.sort("start"), 0, 0);
+	}
+
+	@Override
+	public void archiveMonth(int _accountId, Date _month) {
+		ArchiveStatus status = new ArchiveStatus();
+		status.setAccountId(_accountId);
+		status.setMonth(_month);
+		status.setProgress(1);
+		putArchiveStatus(status);
+		executor.submit(()->{
+			synchronized (MongoCurrentMonitorDao.this) {
+				TimeZone tz = getTimeZoneForAccount(_accountId);
+				DebugTimer timer = new DebugTimer("Monthly Archive Generation for account " + _accountId + " month " + DateUtils.format("MMMM yyyy", tz, _month));
+				Date start = _month;
+				Date end = DateUtils.getEndOfMonth(_month, tz);
+				BreakerConfig config = getConfig(_accountId);  //TODO: get historical config for archive month in case it's changed since then.
+				List<Breaker> breakers = CollectionUtils.filter(config.getAllBreakers(), _b -> !NullUtils.isOneOf(_b.getType(), BreakerType.DOUBLE_POLE_BOTTOM, BreakerType.EMPTY));
+				breakers.sort(Comparator.comparing(Breaker::getPanel).thenComparing(Breaker::getSpace));
+				Map<Integer, Integer> breakerKeys = CollectionUtils.transformToMap(config.getAllBreakers(), Breaker::getIntKey, _b -> Breaker.intKey(_b.getPanel(), _b.getType() == BreakerType.DOUBLE_POLE_BOTTOM ? _b.getSpace() - 2 : _b.getSpace()));
+				Map<Integer, List<Float>> minuteReadings = new HashMap<>();
+				MonthlyEnergyArchive archive = new MonthlyEnergyArchive();
+				archive.setAccountId(_accountId);
+				archive.setMonth(start);
+				List<DailyEnergyArchive> days = new ArrayList<>();
+				archive.setDays(days);
+				while (start.before(end)) {
+					Map<Integer, byte[]> dayReadings = new HashMap<>();
+					Date dayEnd = DateUtils.addDays(start, 1, tz);
+					int minute = 0;
+					int bytesInDay = (int) (4 * DateUtils.diffInSeconds(start, dayEnd));
+					Iterator<HubPowerMinute> i = streamHubPowerMinutes(_accountId, start, dayEnd).iterator();
+					HubPowerMinute m = null;
+					if (i.hasNext())
+						m = i.next();
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+					df.setTimeZone(TimeZone.getTimeZone("UTC"));
+					while (i.hasNext()) {
+						if (m == null)
+							break;
+						for (BreakerPowerMinute breaker : CollectionUtils.makeNotNull(m.getBreakers())) {
+							if (!breakerKeys.containsKey(breaker.breakerIntKey()))
+								continue;
+							int key = breakerKeys.get(breaker.breakerIntKey());
+							List<Float> r = minuteReadings.get(key);
+							if (r == null)
+								minuteReadings.put(key, breaker.getReadings());
+							else {
+								for (int idx = 0; idx < minuteReadings.size(); idx++) {
+									r.set(idx, r.get(idx) + breaker.getReadings().get(idx));
+								}
+							}
+						}
+						HubPowerMinute cur = i.next();
+						if (cur.getMinute() != m.getMinute()) {
+							addReadings(minute, bytesInDay, minuteReadings, dayReadings);
+							minute++;
+						}
+						m = cur;
+					}
+					if (m != null)
+						addReadings(minute, bytesInDay, minuteReadings, dayReadings);
+					List<BreakerEnergyArchive> breakerEnergies = new ArrayList<>();
+					for (Entry<Integer, byte[]> be : dayReadings.entrySet()) {
+						BreakerEnergyArchive breakerEnergy = new BreakerEnergyArchive();
+						breakerEnergy.setPanel(Breaker.intKeyToPanel(be.getKey()));
+						breakerEnergy.setSpace(Breaker.intKeyToSpace(be.getKey()));
+						breakerEnergy.setReadings(be.getValue());
+						breakerEnergies.add(breakerEnergy);
+					}
+					DailyEnergyArchive day = new DailyEnergyArchive();
+					day.setBreakers(breakerEnergies);
+					days.add(day);
+					start = dayEnd;
+					status.setProgress(50f * (start.getTime() - _month.getTime()) / (end.getTime() - _month.getTime()));
+					putArchiveStatus(status);
+				}
+				timer.stop();
+				DebugTimer t = new DebugTimer("Convert Archive to bson for account " + archive.getAccountId());
+				byte[] bson = DaoSerializer.toBson(archive);
+				t.stop();
+
+				DebugTimer t2 = new DebugTimer("Zip Archive and write to disk for account" + archive.getAccountId());
+				OutputStream os = null;
+				try {
+					File partialPath = new File(LanternFiles.BACKUP_DEST_PATH + archive.getAccountId()+File.separator + "partial");
+					FileUtils.deleteDirectory(partialPath);
+					partialPath.mkdirs();
+					String backupPath = LanternFiles.BACKUP_DEST_PATH + archive.getAccountId() + File.separator;
+					if (!archive.isComplete(tz))
+						backupPath += "partial" + File.separator;
+					os = new GZIPOutputStream(new FileOutputStream(backupPath + archive.getMonth().getTime() + ".zip")) {{def.setLevel(Deflater.BEST_SPEED);}};
+					int batchSize = bson.length / 50;
+					for (int offset = 0; offset < bson.length; offset += batchSize) {
+						os.write(bson, offset, Math.min(batchSize, bson.length - offset));
+						status.setProgress(50 + (50f * offset / bson.length));
+						putArchiveStatus(status);
+					}
+				} catch (Exception _e) {
+					logger.error("Failed to write export file", _e);
+				} finally {
+					IOUtils.closeQuietly(os);
+				}
+				t2.stop();
+				deleteArchiveStatus(_accountId, _month);
+			}
+		});
+	}
+
+	private void addReadings(int _minuteInDay, int _bytesInDay, Map<Integer, List<Float>> _minuteReadings, Map<Integer, byte[]> _dayReadings) {
+		for (Entry<Integer, List<Float>> entry : _minuteReadings.entrySet()) {
+			byte[] dayBytes = _dayReadings.computeIfAbsent(entry.getKey(), _r->new byte[_bytesInDay]);
+			ByteBuffer bb = ByteBuffer.wrap(dayBytes);
+			for (int fl = 0; fl < CollectionUtils.size(entry.getValue()); fl++) {
+				bb.putFloat(_minuteInDay*240 + (fl*4), CollectionUtils.get(entry.getValue(), fl));
+			}
+		}
+		_minuteReadings.clear();
+	}
+
+	@Override
+	public InputStream streamArchive(int _accountId, Date _month) {
+		try {
+			String complete = LanternFiles.BACKUP_DEST_PATH + _accountId + File.separator + _month.getTime() + ".zip";
+			if (new File(complete).exists())
+				return new FileInputStream(complete);
+			String partial = LanternFiles.BACKUP_DEST_PATH + _accountId + File.separator + "partial" + File.separator + _month.getTime() + ".zip";
+			if (new File(partial).exists())
+				return new FileInputStream(partial);
+		}
+		catch (Exception _e) {
+			logger.error("Failed to load archive", _e);
+		}
+		return null;
+	}
+
+	@Override
+	public void putArchiveStatus(ArchiveStatus _status) {
+		proxy.save(_status);
+	}
+
+	@Override
+	public void deleteArchiveStatus(int _accountId, Date _month) {
+		proxy.delete(ArchiveStatus.class, new DaoQuery("_id", MonthlyEnergyArchive.toId(_accountId, _month)));
+	}
+
+	@Override
+	public List<ArchiveStatus> getArchiveStatus(int _accountId) {
+		Map<Date, ArchiveStatus> statuses = CollectionUtils.transformToSortedMap(proxy.query(ArchiveStatus.class, new DaoQuery("account_id", _accountId)), ArchiveStatus::getMonth);
+		File folder = new File(LanternFiles.BACKUP_DEST_PATH + _accountId);
+		if (folder.exists()) {
+			for (File file : CollectionUtils.asArrayList(folder.listFiles())) {
+				if (file.isFile()) {
+					Date month = new Date(DaoSerializer.toLong(file.getName().replace(".zip", "")));
+					statuses.computeIfAbsent(month, _m -> new ArchiveStatus(_accountId, _m, 100));
+				}
+			}
+		}
+		File partial = new File(LanternFiles.BACKUP_DEST_PATH + _accountId + File.separator + "partial");
+		if (partial.exists()) {
+			for (File file : CollectionUtils.asArrayList(partial.listFiles())) {
+				if (file.isFile() && (new Date().getTime() - file.lastModified() < 86400000)) {
+					Date month = new Date(DaoSerializer.toLong(file.getName().replace(".zip", "")));
+					statuses.computeIfAbsent(month, _m -> new ArchiveStatus(_accountId, _m, 100));
+				}
+			}
+		}
+		DateRange range = getMonitoredDateRange(_accountId);
+		TimeZone tz = getTimeZoneForAccount(_accountId);
+		Date month = DateUtils.getStartOfMonth(range.getStart(), tz);
+		Date end = DateUtils.getEndOfMonth(range.getEnd(), tz);
+		while (month.before(end)) {
+			statuses.computeIfAbsent(month, _m->new ArchiveStatus(_accountId, _m, 0));
+			month = DateUtils.addMonths(month, 1, tz);
+		}
+		return new ArrayList<>(statuses.values());
+	}
+
+	@Override
+	public DateRange getMonitoredDateRange(int _accountId) {
+		DaoQuery query = new DaoQuery("account_id", _accountId).and("view_mode", EnergyViewMode.MONTH.name());
+		EnergySummary first = proxy.queryOne(EnergySummary.class, query, DaoSort.sort("start"));
+		EnergySummary last = proxy.queryOne(EnergySummary.class, query, DaoSort.sortDesc("start"));
+		if ((first != null) && (last != null))
+			return new DateRange(first.getStart(), last.getStart());
+		return null;
 	}
 
 	private void updateEnergySummaries(DirtyMinute _minute) {
@@ -259,32 +473,6 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 			Map<String, List<ChargeTotal>> charges = CollectionUtils.transformToMultiMap(yearTotals, ChargeTotal::getGroupId);
 			ChargeSummary summary = new ChargeSummary(rootGroup, plan, charges, EnergyViewMode.ALL, new Date(0), _tz);
 			putChargeSummary(summary);
-		}
-	}
-
-	private void rebuildSummaries(int _accountId, Collection<BillingRate> _rates) {
-		logger.info("Rebuilding summaries due to a change in {} rates", CollectionUtils.size(_rates));
-		HubPowerMinute firstMinute = proxy.queryOne(HubPowerMinute.class, new DaoQuery("account_id", _accountId), DaoSort.sort("minute"));
-		if (firstMinute == null)
-			return;
-		TimeZone tz = getTimeZoneForAccount(_accountId);
-		Map<String, BillingRate> rates = CollectionUtils.transformToMap(_rates, _r -> String.format("%d%d", DaoSerializer.toLong(_r.getBeginEffective()), DaoSerializer.toLong(_r.getEndEffective())));
-		for (BillingRate rate : rates.values()) {
-			Date start = rate.getBeginEffective();
-			Date end = rate.getEndEffective();
-			Date now = new Date();
-			if ((start == null) || start.before(firstMinute.getMinuteAsDate()))
-				start = firstMinute.getMinuteAsDate();
-			if ((end == null) || end.after(now))
-				end = now;
-			rebuildSummaries(_accountId, start, end);
-			if (rate.isRecursAnnually()) {
-				while (end.before(now)) {
-					start = DateUtils.addYears(start, 1, tz);
-					end = DateUtils.addYears(end, 1, tz);
-					rebuildSummaries(_accountId, start, end);
-				}
-			}
 		}
 	}
 
@@ -488,13 +676,13 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	public String getAuthCodeForEmail(String _email, TimeZone _tz) {
 		_email = _email.toLowerCase().trim();
 		Account account = getAccountByUsername(_email);
-		if (account == null) {
+		if ((account == null) && (_tz != null)) {
 			account = new Account();
 			account.setUsername(_email);
 			account.setTimezone(_tz.getID());
 			putAccount(account);
 		}
-		return toAuthCode(account.getId(), account.getAuxiliaryAccountIds());
+		return (account == null)?null:toAuthCode(account.getId(), account.getAuxiliaryAccountIds());
 	}
 
 	public String toAuthCode(int _acctId, List<Integer> _auxAcctIds) {

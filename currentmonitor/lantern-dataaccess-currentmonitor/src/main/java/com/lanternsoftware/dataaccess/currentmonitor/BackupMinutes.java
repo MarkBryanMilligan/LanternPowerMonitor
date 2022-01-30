@@ -4,7 +4,7 @@ import com.lanternsoftware.datamodel.currentmonitor.Account;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.DebugTimer;
-import com.lanternsoftware.util.LanternFiles;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.DaoQuery;
 import com.lanternsoftware.util.dao.DaoSort;
@@ -16,8 +16,8 @@ import java.util.TimeZone;
 
 public class BackupMinutes {
 	public static void main(String[] args) {
-		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_SOURCE + "mongo.cfg"));
-		CurrentMonitorDao backupDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_DEST + "mongo.cfg"));
+		CurrentMonitorDao dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
+		CurrentMonitorDao backupDao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.BACKUP_DEST_PATH + "mongo.cfg"));
 		Date now = new Date();
 		for (Account a : dao.getProxy().queryAll(Account.class)) {
 			if (a.getId() == 0)

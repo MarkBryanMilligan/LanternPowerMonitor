@@ -7,7 +7,7 @@ import com.lanternsoftware.util.servlet.LanternServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-public abstract class SecureServlet extends LanternServlet {
+public abstract class SecureServiceServlet extends LanternServlet {
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
 		AuthCode authCode = Globals.dao.decryptAuthCode(_req.getHeader("auth_code"));

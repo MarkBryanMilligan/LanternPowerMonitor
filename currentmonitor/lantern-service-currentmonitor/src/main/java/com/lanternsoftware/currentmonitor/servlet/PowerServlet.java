@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @WebServlet("/power/*")
-public class PowerServlet extends SecureServlet {
+public class PowerServlet extends SecureServiceServlet {
 	private static final Logger logger = LoggerFactory.getLogger(MongoCurrentMonitorDao.class);
 
 	@Override

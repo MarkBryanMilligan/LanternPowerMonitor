@@ -3,6 +3,7 @@ package com.lanternsoftware.util;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.zip.Deflater;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -19,7 +20,7 @@ public abstract class ZipUtils {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         GZIPOutputStream stream = null;
         try {
-            stream = new GZIPOutputStream(out);
+            stream = new GZIPOutputStream(out){{def.setLevel(Deflater.BEST_SPEED);}};
             stream.write(_btData);
             IOUtils.closeQuietly(stream);
             return out.toByteArray();

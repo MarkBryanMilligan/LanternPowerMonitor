@@ -30,6 +30,10 @@ public class BreakerPowerMinute {
 		return Breaker.key(panel, space);
 	}
 
+	public int breakerIntKey() {
+		return Breaker.intKey(panel, space);
+	}
+
 	public List<Float> getReadings() {
 		return readings;
 	}
