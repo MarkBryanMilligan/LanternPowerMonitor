@@ -187,7 +187,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 					for (int offset = 0; offset < bytesInDay; offset += 4) {
 						nanBuffer.putFloat(offset, Float.NaN);
 					}
-					for (int key : breakerKeys.keySet()) {
+					for (int key : breakerKeys.values()) {
 						dayReadings.computeIfAbsent(key, _k->nanArray);
 					}
 					for (Entry<Integer, byte[]> be : dayReadings.entrySet()) {

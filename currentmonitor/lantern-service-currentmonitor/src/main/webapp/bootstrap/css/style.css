@@ -227,3 +227,7 @@
 .error {
     color: darkred;
 }
+
+.header-logo {
+    height: calc(1.5rem + .8vw)
+}

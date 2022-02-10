@@ -164,11 +164,8 @@ public class MonitorApp {
 								breakerConfig = newConfig;
 								List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
 								BreakerHub hub = breakerConfig.getHub(config.getHub());
-								if (hub != null) {
-									LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(breakers), hub.getHub());
-									if (CollectionUtils.size(breakers) > 0)
-										monitor.monitorPower(hub, breakers, 1000, logger);
-								}
+								if (hub != null)
+									monitor.monitorPower(hub, breakers, 1000, logger);
 							}
 							break;
 					}
@@ -270,19 +267,18 @@ public class MonitorApp {
 			LOG.info("Breaker Config loaded");
 			BreakerHub hub = breakerConfig.getHub(config.getHub());
 			if (hub != null) {
-				if (config.isNeedsCalibration() && (config.getAutoCalibrationVoltage() != 0.0)) {
-					double newCal = monitor.calibrateVoltage(hub.getVoltageCalibrationFactor(), config.getAutoCalibrationVoltage());
-					if (newCal != 0.0) {
-						hub.setVoltageCalibrationFactor(newCal);
+				if (config.isNeedsCalibration()) {
+					CalibrationResult cal = monitor.calibrateVoltage(hub.getVoltageCalibrationFactor());
+					if (cal != null) {
+						hub.setVoltageCalibrationFactor(cal.getVoltageCalibrationFactor());
+						hub.setFrequency(cal.getFrequency());
 						config.setNeedsCalibration(false);
 						ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 						post(DaoSerializer.toZipBson(breakerConfig), "config");
 					}
 				}
 				List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
-				LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(breakers), hub.getHub());
-				if (CollectionUtils.size(breakers) > 0)
-					monitor.monitorPower(hub, breakers, 1000, logger);
+				monitor.monitorPower(hub, breakers, 1000, logger);
 			}
 			monitor.submit(new PowerPoster());
 		}

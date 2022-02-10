@@ -56,44 +56,71 @@ public class CurrentMonitor {
 		chips.clear();
 		pins.clear();
 		gpio.shutdown();
-		LOG.info("Current Monitor Stopped");
+		LOG.info("Power Monitor Service Stopped");
 	}
 
 	public void setDebug(boolean _debug) {
 		debug = _debug;
 	}
 
-	public double calibrateVoltage(double _curCalibration, float _voltage) {
+	public CalibrationResult calibrateVoltage(double _curCalibration) {
 		GpioPinAnalogInput voltagePin = getPin(0, 0);
 		if (voltagePin == null)
-			return 0.0;
-		List<Double> samples = new ArrayList<>(120000);
+			return null;
+		int maxSamples = 120000;
+		CalibrationSample[] samples = new CalibrationSample[maxSamples];
+		int offset = 0;
+		for (;offset < maxSamples; offset++) {
+			samples[offset] = new CalibrationSample();
+		}
+		offset = 0;
 		long intervalEnd = System.nanoTime() + 2000000000L; //Scan voltage for 2 seconds
-		while (System.nanoTime() < intervalEnd) {
-			samples.add(voltagePin.getValue());
+		while (offset < maxSamples) {
+			samples[offset].time = System.nanoTime();
+			samples[offset].voltage = voltagePin.getValue();
+			offset++;
+			if (samples[offset-1].time > intervalEnd)
+				break;
 		}
-
 		double vOffset = 0.0;
-		for (Double sample : samples) {
-			vOffset += sample;
+		for (CalibrationSample sample : samples) {
+			vOffset += sample.voltage;
 		}
-		vOffset /= samples.size();
+		vOffset /= offset;
+		int cycles = 0;
+		boolean under = true;
+		if (samples[0].voltage > (vOffset * 1.3)) {
+			cycles = 1;
+			under = false;
+		}
+		double voltage;
 		double vRms = 0.0;
-		for (Double sample : samples) {
-			sample -= vOffset;
-			vRms += sample * sample;
+		for (int sample = 0; sample < offset; sample++) {
+			voltage = samples[sample].voltage - vOffset;
+			vRms += voltage * voltage;
+			if (under && (samples[sample].voltage > (vOffset * 1.3))) {
+				cycles += 1;
+				under = false;
+			}
+			else if (samples[sample].voltage < vOffset * 0.7) {
+				under = true;
+			}
 		}
-		vRms /= samples.size();
+		vRms /= offset;
+
 		double oldVrms = _curCalibration * Math.sqrt(vRms);
 		if (oldVrms < 20) {
 			LOG.error("Could not get a valid voltage read, please check that your AC/AC transformer is connected");
-			return 0.0;
+			return null;
 		}
-		double newCal = (_voltage/oldVrms) * _curCalibration;
+		int frequency = Math.round(cycles/((samples[offset-1].time-samples[0].time)/100000000f))*10;
+		LOG.info("Detected Frequency: " + frequency);
+
+		double newCal = ((frequency > 55 ? 120:230)/oldVrms) * _curCalibration;
 		double newVrms = newCal * Math.sqrt(vRms);
 		LOG.info("Old Voltage Calibration: {}  Old vRMS: {}", _curCalibration, oldVrms);
 		LOG.info("New Voltage Calibration: {}  New vRMS: {}", newCal, newVrms);
-		return newCal;
+		return new CalibrationResult(newCal, frequency);
 	}
 
 	public void monitorPower(BreakerHub _hub, List<Breaker> _breakers, int _intervalMs, PowerListener _listener) {
@@ -101,6 +128,9 @@ public class CurrentMonitor {
 			stopMonitoring();
 			listener = _listener;
 			List<Breaker> validBreakers = CollectionUtils.filter(_breakers, _b -> _b.getPort() > 0 && _b.getPort() < 16);
+			if (CollectionUtils.isEmpty(validBreakers))
+				return;
+			LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(validBreakers), _hub.getHub());
 			sampler = new Sampler(_hub, validBreakers, _intervalMs, 2);
 			LOG.info("Starting to monitor ports {}", CollectionUtils.transformToCommaSeparated(validBreakers, _b -> String.valueOf(_b.getPort())));
 			executor.submit(sampler);
@@ -188,7 +218,7 @@ public class CurrentMonitor {
 				while (true) {
 					synchronized (this) {
 						if (!running) {
-							LOG.error("Power Monitoring Stopped");
+							LOG.info("Power Monitoring Stopped");
 							break;
 						}
 					}

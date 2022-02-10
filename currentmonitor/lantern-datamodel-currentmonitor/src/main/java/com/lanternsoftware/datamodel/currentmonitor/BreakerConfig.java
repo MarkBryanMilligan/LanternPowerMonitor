@@ -185,6 +185,14 @@ public class BreakerConfig implements IIdentical<BreakerConfig> {
 		return null;
 	}
 
+	public Meter getMeterForHub(int _hub) {
+		Meter m = null;
+		Breaker b = CollectionUtils.filterOne(getAllBreakers(), _b->_b.getHub() == _hub);
+		if (b != null)
+			m = CollectionUtils.filterOne(meters, _m->_m.getIndex() == b.getMeter());
+		return (m != null) ? m : new Meter(getAccountId(), 0, "Main");
+	}
+
 	public BreakerGroup findParentGroup(BreakerGroup _group) {
 		for (BreakerGroup group : CollectionUtils.makeNotNull(breakerGroups)) {
 			BreakerGroup parent = group.findParentGroup(_group);

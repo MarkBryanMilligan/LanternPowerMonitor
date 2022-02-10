@@ -75,15 +75,16 @@ public class ExportServlet extends SecureConsoleServlet {
 							redirect(_rep, _req.getContextPath() + "/export");
 							return;
 						}
-						StringBuilder header = new StringBuilder("Timestamp");
+						StringBuilder header = new StringBuilder("\"Timestamp\"");
 						for (BreakerEnergyArchive ba : CollectionUtils.makeNotNull(fday.getBreakers())) {
 							Breaker b = breakers.get(Breaker.intKey(ba.getPanel(), ba.getSpace()));
-							header.append(",");
+							header.append(",\"");
 							if (b != null) {
 								header.append(b.getKey());
 								header.append("-");
 								header.append(b.getName());
 							}
+							header.append("\"");
 						}
 						header.append("\n");
 						DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");

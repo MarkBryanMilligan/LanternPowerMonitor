@@ -11,6 +11,15 @@ public class Meter implements IIdentical<Meter> {
 	private int index;
 	private String name;
 
+	public Meter() {
+	}
+
+	public Meter(int _accountId, int _index, String _name) {
+		accountId = _accountId;
+		index = _index;
+		name = _name;
+	}
+
 	public int getAccountId() {
 		return accountId;
 	}
