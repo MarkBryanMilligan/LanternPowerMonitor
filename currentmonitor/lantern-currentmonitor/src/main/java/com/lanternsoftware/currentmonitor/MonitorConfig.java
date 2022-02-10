@@ -16,9 +16,6 @@ public class MonitorConfig {
     private boolean debug;
     private int connectTimeout;
     private int socketTimeout;
-    private int updateInterval;
-    private boolean autoUpdate;
-    private float autoCalibrationVoltage;
     private boolean needsCalibration;
     private String mqttBrokerUrl;
     private String mqttUserName;
@@ -98,30 +95,6 @@ public class MonitorConfig {
 
     public void setSocketTimeout(int _socketTimeout) {
         socketTimeout = _socketTimeout;
-    }
-
-    public int getUpdateInterval() {
-        return updateInterval == 0 ? 300 : updateInterval;
-    }
-
-    public void setUpdateInterval(int _updateInterval) {
-        updateInterval = _updateInterval;
-    }
-
-    public boolean isAutoUpdate() {
-        return autoUpdate;
-    }
-
-    public void setAutoUpdate(boolean _autoUpdate) {
-        autoUpdate = _autoUpdate;
-    }
-
-    public float getAutoCalibrationVoltage() {
-        return autoCalibrationVoltage;
-    }
-
-    public void setAutoCalibrationVoltage(float _autoCalibrationVoltage) {
-        autoCalibrationVoltage = _autoCalibrationVoltage;
     }
 
     public boolean isNeedsCalibration() {

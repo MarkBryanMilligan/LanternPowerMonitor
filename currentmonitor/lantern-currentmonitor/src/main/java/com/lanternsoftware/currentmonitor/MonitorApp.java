@@ -17,7 +17,6 @@ import com.lanternsoftware.datamodel.currentmonitor.HubConfigService;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.datamodel.currentmonitor.NetworkStatus;
 import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.DateUtils;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.ZipUtils;
@@ -63,7 +62,6 @@ public class MonitorApp {
 	private static MonitorConfig config;
 	private static BreakerConfig breakerConfig;
 	private static String host;
-	private static Date lastUpdateCheck = new Date();
 	private static HttpPool pool;
 	private static LEDFlasher flasher = null;
 	private static final AtomicBoolean running = new AtomicBoolean(true);
@@ -154,7 +152,7 @@ public class MonitorApp {
 							}
 							break;
 						case Update:
-							monitor.submit(new UpdateChecker(true));
+							monitor.submit(new UpdateChecker());
 							break;
 						case ReloadConfig:
 							HttpGet get = new HttpGet(host + "config");
@@ -389,10 +387,6 @@ public class MonitorApp {
 					}
 					if (mqttPoster != null)
 						monitor.submit(() -> mqttPoster.postPower(mqttReadings));
-					if (DateUtils.diffInSeconds(new Date(), lastUpdateCheck) >= config.getUpdateInterval()) {
-						lastUpdateCheck = new Date();
-						monitor.submit(new UpdateChecker());
-					}
 					long now = new Date().getTime();
 					long duration = (now - firstPost)%1000;
 					if (now - lastPost < 1000) {
@@ -453,19 +447,9 @@ public class MonitorApp {
 	}
 
 	private static final class UpdateChecker implements Runnable {
-		private final boolean force;
-
-		public UpdateChecker() {
-			force = false;
-		}
-
-		public UpdateChecker(boolean _force) {
-			force = _force;
-		}
-
 		@Override
 		public void run() {
-			if (NullUtils.isNotEmpty(host) && (force || config.isAutoUpdate())) {
+			if (NullUtils.isNotEmpty(host)) {
 				DaoEntity meta = DaoSerializer.fromZipBson(pool.executeToByteArray(new HttpGet(host + "update/version")));
 				String newVersion = DaoSerializer.getString(meta, "version");
 				if (NullUtils.isNotEqual(newVersion, version)) {
