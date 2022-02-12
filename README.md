@@ -48,7 +48,7 @@ The easiest way to run the software on a hub is to download a pre-built SD card 
 [hub_1.0.7.zip](https://cf.lanternpowermonitor.com/hub_1.0.7.zip)
 <br><br>
 Flash this to any micro sd card (4gig or larger) and you're good to go.  Fire up the hub and the phone app should be able to connect to it via bluetooth to finish the configuration.  The default password on this image is pi/LanternPowerMonitor<br><br>
-When you add the hub to your configuration via the app, you can change where the hub posts data.  If you use lanternsoftware.com (the default host), your data will be stored there securely and won't be shared with or sold to anyone.  If you really want to run your own server, you're of course welcome to do that instead, instructions are located further down.
+When you add the hub to your configuration via the app, you can change where the hub posts data.  If you use lanternpowermonitor.com (the default host), your data will be stored there securely and won't be shared with or sold to anyone.  If you really want to run your own server, you're of course welcome to do that instead, instructions are located further down.
 
 ## Now that the service is running on the pi, how do I configure everything in the android app?
 1. Create your panel in the "Configure Panels" page from the main menu. Before you have your hub connected, there will be no place to select a hub and port for each breaker. Don't worry, we'll get to that later.
@@ -82,9 +82,7 @@ Create a configuration file at /opt/currentmonitor/config.json<br>
 Use the format below to get started
 ```
 {
-	"hub": 0,
-	"host": "https://lanternsoftware.com/currentmonitor",
-	"auto_calibration_voltage": 120.0,
+	"host": "https://lanternpowermonitor.com/currentmonitor",
 	"needs_calibration": true
 }
 ```

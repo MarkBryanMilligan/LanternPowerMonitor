@@ -65,10 +65,10 @@ public class ResetPasswordServlet extends FreemarkerServlet {
             String email = DaoSerializer.getString(payload, "email");
             if (EmailValidator.getInstance().isValid(email)) {
                 String key = Globals.dao.addPasswordResetKey(email);
-                Email from = new Email("info@lanternsoftware.com");
+                Email from = new Email("mark.milligan@lanternsoftware.com");
                 String subject = "Password Reset - Lantern Power Monitor";
                 Email to = new Email(email);
-                Content content = new Content("text/plain", "Reset your password using this link:\nhttps://lanternsoftware.com/currentmonitor/resetPassword/" + key);
+                Content content = new Content("text/plain", "Reset your password using this link:\nhttps://lanternpowermonitor.com/currentmonitor/resetPassword/" + key);
                 Mail mail = new Mail(from, subject, to, content);
                 SendGrid sg = new SendGrid(api_key);
                 Request request = new Request();
