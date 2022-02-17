@@ -1,18 +1,14 @@
 package com.lanternsoftware.currentmonitor.servlet.console;
 
-import com.lanternsoftware.currentmonitor.servlet.FreemarkerCMServlet;
-import com.lanternsoftware.currentmonitor.util.GoogleAuthHelper;
-import com.lanternsoftware.util.NullUtils;
-
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/logout")
-public class LogoutServlet extends FreemarkerCMServlet {
+public class LogoutServlet extends AuthenticatedConsoleServlet {
 	@Override
-	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
+	protected void get(HttpServletRequest _req, HttpServletResponse _rep) {
 		_req.getSession().removeAttribute("auth_code");
 		Cookie authCookie = new Cookie("auth_code", "");
 		authCookie.setMaxAge(0);
@@ -22,6 +18,6 @@ public class LogoutServlet extends FreemarkerCMServlet {
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest _req, HttpServletResponse _rep) {
+	protected void post(HttpServletRequest _req, HttpServletResponse _rep) {
 	}
 }

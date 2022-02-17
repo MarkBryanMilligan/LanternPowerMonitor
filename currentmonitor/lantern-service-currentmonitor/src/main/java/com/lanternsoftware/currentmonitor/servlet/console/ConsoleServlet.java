@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("")
-public class ConsoleServlet extends SecureConsoleServlet {
+public class ConsoleServlet extends AuthenticatedConsoleServlet {
 	private static final Logger logger = LoggerFactory.getLogger(ConsoleServlet.class);
 
 	@Override

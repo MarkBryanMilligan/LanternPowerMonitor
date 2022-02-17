@@ -1,6 +1,5 @@
 package com.lanternsoftware.currentmonitor.servlet.console;
 
-import com.lanternsoftware.currentmonitor.servlet.FreemarkerCMServlet;
 import com.lanternsoftware.currentmonitor.util.GoogleAuthHelper;
 import com.lanternsoftware.util.NullUtils;
 
@@ -10,14 +9,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @WebServlet("/gso")
-public class GsoServlet extends FreemarkerCMServlet {
+public class GsoServlet extends SecureConsoleServlet {
 	@Override
-	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
+	protected void get(HttpServletRequest _req, HttpServletResponse _rep) {
 		render(_rep, "login.ftl", model(_req));
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest _req, HttpServletResponse _rep) {
+	protected void post(HttpServletRequest _req, HttpServletResponse _rep) {
 		String code = getRequestPayloadAsString(_req);
 		if (NullUtils.isNotEmpty(code)) {
 			String authCode = GoogleAuthHelper.signin(code, null);
