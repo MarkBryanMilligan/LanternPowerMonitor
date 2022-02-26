@@ -116,6 +116,10 @@ public abstract class ResourceLoader {
     public static void writeFile(String _sFile, byte[] _btData) {
         FileOutputStream os = null;
         try {
+            if (File.separator.equals("/"))
+                _sFile = _sFile.replace("\\", File.separator);
+            else
+                _sFile = _sFile.replace("/", File.separator);
             int idx = _sFile.lastIndexOf(File.separator);
             new File((idx > 0)?_sFile.substring(0, idx):_sFile).mkdirs();
             os = new FileOutputStream(_sFile, false);

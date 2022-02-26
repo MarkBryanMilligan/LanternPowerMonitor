@@ -117,7 +117,7 @@ After your reactor build, the compiled war will be at LanternPowerMonitor/curren
 That can be deployed to tomcat.  The 'host' parameter in the raspberry pi config.json file needs to point to wherever you deploy the service so your hubs post the data to your server instead of the official lantern software one.<br>
 I'd recommend a valid dns entry and an ssl certificate, but, it's up to you, you're already knee deep in "I'll do what I want" territory here.<br><br>
 Before you deploy it, you need to generate a config file that contains the mongodb credentials.<br>
-There is a file at lantern-service-currentmonitor/src/test/java/com/lanternsoftware/currentmonitor/CreateMongoConfig.java that can do this for you.<br>
+There is a file at lantern-config-currentmonitor/src/main/java/com/lanternsoftware/currentmonitor/CreateMongoConfig.java that can do this for you.<br>
 Place the generated config file in /opt/tomcat (which is where I have tomcat installed).  If you want it to be read from somewhere else, you can modify the paths in LanternFiles.java<br><br>
 The last thing you need is a private aes key to encrypt user auth tokens.  One of those can be generated with CreateAuthKey.java.<br>
 I realize these instructions aren't complete, but if you're going down this path, I suspect you sort of already know what you're doing, so hopefully that's enough to point you in the right direction.

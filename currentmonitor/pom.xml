@@ -12,6 +12,7 @@
 	</properties>
 
 	<modules>
+		<module>lantern-config-currentmonitor</module>
 		<module>lantern-currentmonitor</module>
 		<module>lantern-dataaccess-currentmonitor</module>
 		<module>lantern-datamodel-currentmonitor</module>
