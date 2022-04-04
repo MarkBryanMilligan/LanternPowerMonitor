@@ -45,6 +45,9 @@ public abstract class AbstractAlertAction implements ActionImpl {
 			try {
 				messaging.send(msg);
 			} catch (Exception _e) {
+				if (_e.getMessage().contains("not found")) {
+					RulesEngine.instance().dao().removeFcmDevice(device.getId());
+				}
 				logger.error("Failed to send message to account {}, device {}", _rule.getAccountId(), device.getName(), _e);
 			}
 		}

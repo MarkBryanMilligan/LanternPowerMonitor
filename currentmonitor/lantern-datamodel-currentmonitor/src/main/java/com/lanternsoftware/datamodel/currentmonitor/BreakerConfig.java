@@ -203,7 +203,7 @@ public class BreakerConfig implements IIdentical<BreakerConfig> {
 	}
 
 	public BillingCurrency getCurrency() {
-		return CollectionUtils.getFirst(CollectionUtils.transformToSet(billingRates, BillingRate::getCurrency));
+		return CollectionUtils.getFirst(CollectionUtils.transformToSet(CollectionUtils.aggregate(billingPlans, BillingPlan::getRates), BillingRate::getCurrency));
 	}
 
 	@Override

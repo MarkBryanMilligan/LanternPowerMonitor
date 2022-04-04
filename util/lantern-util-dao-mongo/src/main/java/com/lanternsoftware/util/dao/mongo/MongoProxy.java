@@ -379,7 +379,10 @@ public class MongoProxy extends AbstractDaoProxy {
 
     @Override
     public int count(String _tableName, DaoQuery _query) {
-        return (int) db().getCollection(_tableName).count(prepareQuery(_query));
+        if (CollectionUtils.isEmpty(_query))
+            return (int) db().getCollection(_tableName).countDocuments();
+        else
+            return (int) db().getCollection(_tableName).countDocuments(prepareQuery(_query));
     }
 
     public void ensureIndex(Class<?> _class, DaoSort _indexOrder) {

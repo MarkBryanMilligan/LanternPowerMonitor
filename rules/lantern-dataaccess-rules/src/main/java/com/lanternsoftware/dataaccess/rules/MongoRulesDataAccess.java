@@ -65,6 +65,11 @@ public class MongoRulesDataAccess implements RulesDataAccess {
 	}
 
 	@Override
+	public void removeFcmDevice(String _id) {
+		proxy.delete(FcmDevice.class, new DaoQuery("_id", _id));
+	}
+
+	@Override
 	public List<FcmDevice> getFcmDevicesForAccount(int _accountId) {
 		return proxy.query(FcmDevice.class, new DaoQuery("account_id", _accountId));
 	}

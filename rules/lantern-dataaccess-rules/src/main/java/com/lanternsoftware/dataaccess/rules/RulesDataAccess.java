@@ -17,5 +17,6 @@ public interface RulesDataAccess {
 	Event getMostRecentEvent(int _accountId, EventType _type, String _sourceId);
 	List<Event> getEvents(int _accountId, EventType _type, String _sourceId, Date _from, Date _to);
 	void putFcmDevice(FcmDevice _device);
+	void removeFcmDevice(String _id);
 	List<FcmDevice> getFcmDevicesForAccount(int _accountId);
 }

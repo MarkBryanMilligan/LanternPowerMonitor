@@ -3,7 +3,7 @@
     <property name="log.pattern" value="%date %-5level %logger{0} - %message%n"/>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/opt/tomcat/logs/log.txt</file>
+        <file>/opt/tomcat/log/log.txt</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>/opt/tomcat/log/log.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
             <maxFileSize>20MB</maxFileSize>
