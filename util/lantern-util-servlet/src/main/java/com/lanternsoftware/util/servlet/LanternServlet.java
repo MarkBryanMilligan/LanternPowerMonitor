@@ -55,6 +55,13 @@ public abstract class LanternServlet extends HttpServlet {
 		setResponseEntity(_response, 200, MediaType.APPLICATION_OCTET_STREAM, DaoSerializer.toZipBson(_object));
 	}
 
+	protected void jsonResponse(HttpServletResponse _response, Object _object, boolean _binary) {
+		if (_binary)
+			zipBsonResponse(_response, _object);
+		else
+			jsonResponse(_response, _object);
+	}
+
 	protected void jsonResponse(HttpServletResponse _response, Object _object)
 	{
 		setResponseEntity(_response, 200, MediaType.APPLICATION_JSON, DaoSerializer.toJson(_object));

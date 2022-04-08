@@ -28,7 +28,7 @@ public class GoogleAuthHelper {
 
 	public static String signin(String _code, TimeZone _tz) {
 		try {
-			GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(transport, new GsonFactory(), "https://oauth2.googleapis.com/token", googleClientId, googleClientSecret, _code, "postmessage").execute();
+			GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(transport, new GsonFactory(), "https://oauth2.googleapis.com/token", googleClientId, googleClientSecret, _code, "https://lanternsoftware.com/console").execute();
 			if (tokenResponse != null) {
 				GoogleIdToken idToken = tokenResponse.parseIdToken();
 				if (idToken != null)

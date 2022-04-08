@@ -14,26 +14,27 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Locale;
 
-@WebServlet("/signup")
+@WebServlet("/signup/*")
 public class SignupServlet extends LanternServlet {
 	@Override
 	protected void doGet(HttpServletRequest _req, HttpServletResponse _rep) {
+		boolean binary = isPath(_req, 0, "bin");
 		BasicAuth auth = new BasicAuth(_req);
 		Account acct = Globals.dao.getAccountByUsername(auth.getUsername().toLowerCase().trim());
 		if (acct != null) {
-			jsonResponse(_rep, SignupResponse.error("An account for " + auth.getUsername() + " already exists"));
+			jsonResponse(_rep, SignupResponse.error("An account for " + auth.getUsername() + " already exists"), binary);
 			return;
 		}
 		if (!EmailValidator.getInstance().isValid(auth.getUsername())) {
-			jsonResponse(_rep, SignupResponse.error(auth.getUsername() + " is not a valid email address"));
+			jsonResponse(_rep, SignupResponse.error(auth.getUsername() + " is not a valid email address"), binary);
 			return;
 		}
 		if (NullUtils.length(auth.getPassword()) < 8) {
-			jsonResponse(_rep, SignupResponse.error("Your password must be at least 8 characters long"));
+			jsonResponse(_rep, SignupResponse.error("Your password must be at least 8 characters long"), binary);
 			return;
 		}
 		if (NullUtils.isEqual("password", auth.getPassword())) {
-			jsonResponse(_rep, SignupResponse.error("Seriously?  \"password\"?  Come on."));
+			jsonResponse(_rep, SignupResponse.error("Seriously?  \"password\"?  Come on."), binary);
 			return;
 		}
 		acct = new Account();
@@ -42,6 +43,6 @@ public class SignupServlet extends LanternServlet {
 		acct.setTimezone(DateUtils.fromTimeZoneId(_req.getHeader("timezone")).getID());
 		Globals.dao.putAccount(acct);
 		String authCode = Globals.dao.authenticateAccount(auth.getUsername(), auth.getPassword());
-		jsonResponse(_rep, SignupResponse.success(authCode, acct.getTimezone()));
+		jsonResponse(_rep, SignupResponse.success(authCode, acct.getTimezone()), binary);
 	}
 }
