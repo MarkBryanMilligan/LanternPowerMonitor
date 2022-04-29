@@ -21,6 +21,7 @@
     </appender>
 
     <logger name="com.lanternsoftware" level="INFO"/>
+    <logger name="com.pi4j" level="INFO"/>
 
     <root level="OFF">
         <appender-ref ref="FILE"/>

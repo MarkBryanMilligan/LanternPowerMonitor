@@ -1,27 +1,27 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.lanternsoftware.zwave</groupId>
     <artifactId>lantern-service-zwave</artifactId>
     <packaging>war</packaging>
     <version>1.0.0</version>
     <name>lantern-service-zwave</name>
 
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+    <parent>
+        <groupId>com.lanternsoftware.zwave</groupId>
+        <artifactId>zwave</artifactId>
+        <version>1.0.0</version>
+    </parent>
 
     <dependencies>
         <dependency>
             <groupId>com.lanternsoftware.zwave</groupId>
             <artifactId>lantern-datamodel-zwave</artifactId>
-            <version>1.0.0</version>
+            <version>${zw.version}</version>
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.currentmonitor</groupId>
             <artifactId>lantern-datamodel-currentmonitor</artifactId>
-            <version>1.0.0</version>
+            <version>${cm.version}</version>
         </dependency>
         <dependency>
             <groupId>com.pi4j</groupId>
@@ -31,22 +31,22 @@
         <dependency>
             <groupId>com.lanternsoftware.zwave</groupId>
             <artifactId>lantern-zwave</artifactId>
-            <version>1.0.0</version>
+            <version>${zw.version}</version>
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.rules</groupId>
             <artifactId>lantern-datamodel-rules</artifactId>
-            <version>1.0.0</version>
+            <version>${rules.version}</version>
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.util</groupId>
             <artifactId>lantern-util-dao-mongo</artifactId>
-            <version>1.0.0</version>
+            <version>${util.version}</version>
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.util</groupId>
             <artifactId>lantern-util-http</artifactId>
-            <version>1.0.0</version>
+            <version>${util.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -83,8 +83,8 @@
                     <optimize>true</optimize>
                     <showDeprecation>true</showDeprecation>
                     <encoding>UTF-8</encoding>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
             </plugin>
             <plugin>

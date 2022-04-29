@@ -90,6 +90,9 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 			updateEnergySummaries(minute);
 		}
 		proxy.delete(DirtyMinute.class, new DaoQuery());
+		if (!proxy.exists(Sequence.class, null)) {
+			proxy.save(new Sequence());
+		}
 	}
 
 	public void shutdown() {
@@ -303,7 +306,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		TimeZone tz = getTimeZoneForAccount(_accountId);
 		Date month = DateUtils.getStartOfMonth(range.getStart(), tz);
 		Date end = DateUtils.getEndOfMonth(range.getEnd(), tz);
-		while (month.before(end)) {
+		while ((month != null) && month.before(end)) {
 			statuses.computeIfAbsent(month, _m->new ArchiveStatus(_accountId, _m, 0));
 			month = DateUtils.addMonths(month, 1, tz);
 		}
@@ -326,6 +329,8 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		TimeZone tz = getTimeZoneForAccount(_minute.getAccountId());
 		BreakerConfig config = getConfig(_minute.getAccountId());
 		BreakerGroup group = CollectionUtils.getFirst(config.getBreakerGroups());
+		if (group == null)
+			return;
 		Date day = DateUtils.getMidnightBefore(_minute.getMinuteAsDate(), tz);
 		DebugTimer t2 = new DebugTimer("Updating energy", logger);
 		EnergySummary energy = getEnergySummary(_minute.getAccountId(), group.getId(), EnergyViewMode.DAY, day);
@@ -412,13 +417,13 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		putEnergySummary(summary);
 	}
 
-	private void updateChargeSummary(BreakerConfig _config, EnergySummary _energySummary, TimeZone _tz) {
+	public void updateChargeSummary(BreakerConfig _config, EnergySummary _energySummary, TimeZone _tz) {
 		Date lookback = null;
 		for (BillingPlan p : CollectionUtils.makeNotNull(_config.getBillingPlans())) {
 			Date cycleStart = p.getBillingCycleStart(_energySummary.getStart(), _tz);
 			if (cycleStart.after(_energySummary.getStart()))
 				cycleStart = DateUtils.addMonths(cycleStart, -1, _tz);
-			if ((lookback == null) || cycleStart.before(lookback))
+			if ((lookback == null) || ((cycleStart != null) && cycleStart.before(lookback)))
 				lookback = cycleStart;
 		}
 		if (lookback != null) {
@@ -462,7 +467,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 				Date yearMonthStart = yearStart;
 				Set<String> monthSummaryIds = new HashSet<>();
 				Date loopEnd = DateUtils.addDays(yearEnd, 1, _tz);
-				while (yearMonthStart.before(loopEnd)) {
+				while ((yearMonthStart != null) && yearMonthStart.before(loopEnd)) {
 					Date billingStart = plan.getBillingCycleStart(yearMonthStart, _tz);
 					if (DateUtils.isBetween(billingStart, yearStart, yearEnd))
 						monthSummaryIds.add(ChargeSummary.toId(rootGroup.getAccountId(), plan.getPlanId(), rootGroup.getId(), EnergyViewMode.MONTH, billingStart));
@@ -691,6 +696,11 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		return (account == null)?null:toAuthCode(account.getId(), account.getAuxiliaryAccountIds());
 	}
 
+	@Override
+	public String exchangeAuthCode(String _authCode, int _acctId) {
+		return null;
+	}
+
 	public String toAuthCode(int _acctId, List<Integer> _auxAcctIds) {
 		if (_acctId < 1)
 			return null;
@@ -777,6 +787,8 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		if (entity == null)
 			return false;
 		Account acct = getAccountByUsername(aes.decryptFromBase64ToString(_key));
+		if (acct == null)
+			return false;
 		acct.setPassword(_password);
 		putAccount(acct);
 		proxy.delete("password_reset", new DaoQuery("_id", _key));

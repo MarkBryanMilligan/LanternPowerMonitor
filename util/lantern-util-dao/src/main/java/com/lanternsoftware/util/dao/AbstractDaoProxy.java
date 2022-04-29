@@ -1,6 +1,8 @@
 package com.lanternsoftware.util.dao;
 
-import java.util.Arrays;
+import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.NullUtils;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,10 +12,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.ITransformer;
-import com.lanternsoftware.util.NullUtils;
 
 public abstract class AbstractDaoProxy implements IDaoProxy {
     private ExecutorService executor;
@@ -57,37 +55,37 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
 
     @Override
     public <T> Future<List<T>> queryAsync(Class<T> _class, DaoQuery _query) {
-        return submit(new QueryExecution<T>(this, _class, _query));
+        return submit(new QueryExecution<>(this, _class, _query));
     }
 
     @Override
     public <T> Future<List<T>> queryAsync(Class<T> _class, DaoQuery _query, DaoSort _sort) {
-        return submit(new QueryExecution<T>(this, _class, _query, _sort));
+        return submit(new QueryExecution<>(this, _class, _query, _sort));
     }
 
     @Override
     public <T> Future<List<T>> queryAsync(Class<T> _class, DaoQuery _query, Collection<String> _fields) {
-        return submit(new QueryExecution<T>(this, _class, _query, _fields));
+        return submit(new QueryExecution<>(this, _class, _query, _fields));
     }
 
     @Override
     public <T> Future<List<T>> queryAsync(Class<T> _class, DaoQuery _query, Collection<String> _fields, DaoSort _sort) {
-        return submit(new QueryExecution<T>(this, _class, _query, _fields, _sort));
+        return submit(new QueryExecution<>(this, _class, _query, _fields, _sort));
     }
 
     @Override
     public <T, V> Future<List<V>> queryWithFinalizer(Class<T> _class, DaoQuery _query, Collection<String> _fields, DaoSort _sort, QueryFinalizer<T, V> _finalizer) {
-        return submit(new QueryFinalizerExecution<T, V>(this, _class, _query, _fields, _sort, _finalizer));
+        return submit(new QueryFinalizerExecution<>(this, _class, _query, _fields, _sort, _finalizer));
     }
 
     @Override
     public <T> DaoPage<T> queryPage(Class<T> _class, DaoQuery _query, Collection<String> _fields, DaoSort _sort, int _offset, int _count) {
-        return new DaoPage<T>(query(_class, _query, _fields, _sort, _offset, _count), count(_class, _query));
+        return new DaoPage<>(query(_class, _query, _fields, _sort, _offset, _count), count(_class, _query));
     }
 
     @Override
     public DaoPage<DaoEntity> queryForEntitiesPage(String _tableName, DaoQuery _query, Collection<String> _fields, DaoSort _sort, int _offset, int _count) {
-        return new DaoPage<DaoEntity>(queryForEntities(_tableName, _query, _fields, _sort, _offset, _count), count(_tableName, _query));
+        return new DaoPage<>(queryForEntities(_tableName, _query, _fields, _sort, _offset, _count), count(_tableName, _query));
     }
 
     @Override
@@ -112,22 +110,22 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
 
     @Override
     public <T> Future<T> queryOneAsync(Class<T> _class, DaoQuery _query) {
-        return submit(new QueryOneExecution<T>(this, _class, _query));
+        return submit(new QueryOneExecution<>(this, _class, _query));
     }
 
     @Override
     public <T> Future<T> queryOneAsync(Class<T> _class, DaoQuery _query, DaoSort _sort) {
-        return submit(new QueryOneExecution<T>(this, _class, _query, _sort));
+        return submit(new QueryOneExecution<>(this, _class, _query, _sort));
     }
 
     @Override
     public <T> Future<T> queryOneAsync(Class<T> _class, DaoQuery _query, Collection<String> _fields) {
-        return submit(new QueryOneExecution<T>(this, _class, _query, _fields));
+        return submit(new QueryOneExecution<>(this, _class, _query, _fields));
     }
 
     @Override
     public <T> Future<T> queryOneAsync(Class<T> _class, DaoQuery _query, Collection<String> _fields, DaoSort _sort) {
-        return submit(new QueryOneExecution<T>(this, _class, _query, _fields, _sort));
+        return submit(new QueryOneExecution<>(this, _class, _query, _fields, _sort));
     }
 
     @Override
@@ -157,7 +155,7 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
 
     @Override
     public <T> DaoPage<T> queryImportantPage(Class<T> _class, DaoQuery _query, DaoSort _sort, int _offset, int _count) {
-        return new DaoPage<T>(queryImportant(_class, _query, _sort, _offset, _count), count(_class, _query));
+        return new DaoPage<>(queryImportant(_class, _query, _sort, _offset, _count), count(_class, _query));
     }
 
     @Override
@@ -247,22 +245,12 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
 
     @Override
     public List<String> queryForField(Class<?> _class, DaoQuery _query, final String _field, DaoSort _sort) {
-        return CollectionUtils.transform(queryForEntities(DaoSerializer.getTableName(_class, getType()), _query, Arrays.asList(_field), _sort), new ITransformer<DaoEntity, String>() {
-            @Override
-            public String transform(DaoEntity _daoEntity) {
-                return DaoSerializer.getString(_daoEntity, _field);
-            }
-        });
+        return CollectionUtils.transform(queryForEntities(DaoSerializer.getTableName(_class, getType()), _query, List.of(_field), _sort), _daoEntity -> DaoSerializer.getString(_daoEntity, _field));
     }
 
     @Override
     public List<String> queryForField(String _tableName, DaoQuery _query, final String _field) {
-        return CollectionUtils.transform(queryForEntities(_tableName, _query, Arrays.asList(_field)), new ITransformer<DaoEntity, String>() {
-            @Override
-            public String transform(DaoEntity _daoEntity) {
-                return DaoSerializer.getString(_daoEntity, _field);
-            }
-        });
+        return CollectionUtils.transform(queryForEntities(_tableName, _query, List.of(_field)), _daoEntity -> DaoSerializer.getString(_daoEntity, _field));
     }
 
     @Override
@@ -272,7 +260,7 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
 
     @Override
     public <T> Map<String, T> save(Collection<T> _objects) {
-        Map<String, T> ids = new HashMap<String, T>();
+        Map<String, T> ids = new HashMap<>();
         for (T o : _objects) {
             String id = save(o);
             if (NullUtils.isNotEmpty(id))
@@ -284,6 +272,8 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
     @Override
     public Map<String, DaoEntity> save(Class<?> _class, Collection<DaoEntity> _entities) {
         Map<String, DaoEntity> ids = new HashMap<>();
+        if (_entities == null)
+            return ids;
         for (DaoEntity e : _entities) {
             ids.put(saveEntity(_class, e), e);
         }
@@ -328,12 +318,7 @@ public abstract class AbstractDaoProxy implements IDaoProxy {
     }
 
     protected <T> List<T> toObjects(List<DaoEntity> _entities, final Class<T> _class) {
-        return CollectionUtils.transform(_entities, new ITransformer<DaoEntity, T>() {
-            @Override
-            public T transform(DaoEntity _daoEntity) {
-                return DaoSerializer.fromDaoEntity(_daoEntity, _class, getType());
-            }
-        });
+        return CollectionUtils.transform(_entities, _daoEntity -> DaoSerializer.fromDaoEntity(_daoEntity, _class, getType()));
     }
     protected DaoQuery prepareQuery(DaoQuery _query) {
         if (queryPreparer == null)

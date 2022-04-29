@@ -1,30 +1,27 @@
 package com.lanternsoftware.util.dao.ephemeral;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.UUID;
-
+import com.lanternsoftware.util.CollectionUtils;
+import com.lanternsoftware.util.IFilter;
+import com.lanternsoftware.util.NullUtils;
+import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.AbstractDaoProxy;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoProxyType;
 import com.lanternsoftware.util.dao.DaoQuery;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.DaoSort;
+import com.lanternsoftware.util.dao.annotations.PrimaryKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.IFilter;
-import com.lanternsoftware.util.ITransformer;
-import com.lanternsoftware.util.NullUtils;
-import com.lanternsoftware.util.ResourceLoader;
-import com.lanternsoftware.util.dao.annotations.PrimaryKey;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.UUID;
 
 public class EphemeralProxy extends AbstractDaoProxy {
     private static final Logger LOG = LoggerFactory.getLogger(EphemeralProxy.class);
@@ -42,16 +39,19 @@ public class EphemeralProxy extends AbstractDaoProxy {
         try {
             File file = new File(_path);
             if (file.isDirectory()) {
-                for (File child : file.listFiles()) {
-                    if (child.getName().endsWith(".json")) {
-                        Class<?> clazz = null;
-                        try {
-                            clazz = Class.forName(child.getName().substring(0, child.getName().length()-5));
-                        } catch (ClassNotFoundException _e) {
-                            continue;
+                File[] files = file.listFiles();
+                if (files != null) {
+                    for (File child : files) {
+                        if (child.getName().endsWith(".json")) {
+                            Class<?> clazz;
+                            try {
+                                clazz = Class.forName(child.getName().substring(0, child.getName().length() - 5));
+                            } catch (ClassNotFoundException _e) {
+                                continue;
+                            }
+                            List<DaoEntity> entities = DaoSerializer.parseList(NullUtils.toString(ResourceLoader.loadFile(child)));
+                            proxy.save(clazz, entities);
                         }
-                        List<DaoEntity> entities = DaoSerializer.parseList(NullUtils.toString(ResourceLoader.loadFile(child)));
-                        proxy.save(clazz, entities);
                     }
                 }
             }
@@ -108,18 +108,14 @@ public class EphemeralProxy extends AbstractDaoProxy {
     @Override
     public synchronized void update(Class<?> _class, DaoQuery _query, DaoEntity _changes) {
         for (DaoEntity entity : queryForEntities(DaoSerializer.getTableName(_class, getType()), _query)) {
-            for (Entry<String, Object> change : _changes.entrySet()) {
-                entity.put(change.getKey(), change.getValue());
-            }
+            entity.putAll(_changes);
         }
     }
 
     @Override
     public synchronized <T> T updateOne(Class<T> _class, DaoQuery _query, DaoEntity _changes) {
         DaoEntity entity = CollectionUtils.getFirst(queryForEntities(DaoSerializer.getTableName(_class, getType()), _query));
-        for (Entry<String, Object> change : _changes.entrySet()) {
-            entity.put(change.getKey(), change.getValue());
-        }
+        entity.putAll(_changes);
         return DaoSerializer.fromDaoEntity(entity, _class);
     }
 
@@ -152,18 +148,12 @@ public class EphemeralProxy extends AbstractDaoProxy {
                     }
                 } else if (value instanceof Integer) {
                     if (((Integer) value) == 0) {
-                        value = new Long(getNextSequence()).intValue();
-
+                        value = Long.valueOf(getNextSequence()).intValue();
                     }
                 }
                 _entity.put(key, value);
             }
-            pk = CollectionUtils.commaSeparated(CollectionUtils.transform(CollectionUtils.getAll(_entity, _primaryKeys), new ITransformer<Object, String>() {
-                @Override
-                public String transform(Object _o) {
-                    return DaoSerializer.toString(_o);
-                }
-            }));
+            pk = CollectionUtils.commaSeparated(CollectionUtils.transform(CollectionUtils.getAll(_entity, _primaryKeys), DaoSerializer::toString));
         }
         else
             pk = DaoSerializer.getString(_entity, "_id");
@@ -187,12 +177,7 @@ public class EphemeralProxy extends AbstractDaoProxy {
         IFilter<DaoEntity> filter = new QueryFilter(_query);
         Map<String, DaoEntity> table = tables.get(_tableName);
         if (table != null) {
-            Iterator<DaoEntity> iter = table.values().iterator();
-            while (iter.hasNext()) {
-                DaoEntity entity = iter.next();
-                if (filter.isFiltered(entity))
-                    iter.remove();
-            }
+            table.values().removeIf(filter::isFiltered);
         }
         return true;
     }
@@ -241,16 +226,16 @@ public class EphemeralProxy extends AbstractDaoProxy {
                     if ((comp != null) && !DaoSerializer.getString(_daoEntity, qual.getKey()).toLowerCase().contains(((String) comp).toLowerCase()))
                         return false;
                     comp = child.get("$equalssIgnoreCase");
-                    if ((comp != null) && !DaoSerializer.getString(_daoEntity, qual.getKey()).toLowerCase().equals(((String) comp).toLowerCase()))
+                    if ((comp != null) && !DaoSerializer.getString(_daoEntity, qual.getKey()).equalsIgnoreCase(((String) comp)))
                         return false;
                     comp = child.get("$startsWithIgnoreCase");
                     if ((comp != null) && !DaoSerializer.getString(_daoEntity, qual.getKey()).toLowerCase().startsWith(((String) comp).toLowerCase()))
                         return false;
                     comp = child.get("$in");
-                    if ((comp != null) && !in(_daoEntity.get(qual.getKey()), (Collection) comp))
+                    if ((comp != null) && !in(_daoEntity.get(qual.getKey()), (Collection<?>) comp))
                         return false;
                     comp = child.get("$nin");
-                    if ((comp != null) && in(_daoEntity.get(qual.getKey()), (Collection) comp))
+                    if ((comp != null) && in(_daoEntity.get(qual.getKey()), (Collection<?>) comp))
                         return false;
                 }
                 else if ((qual.getValue() instanceof String) && NullUtils.isEqual(qual.getValue(), "$null")) {
@@ -268,10 +253,10 @@ public class EphemeralProxy extends AbstractDaoProxy {
         }
     }
 
-    private boolean in(Object field, Collection qual) {
+    private boolean in(Object field, Collection<?> qual) {
         for (Object qualObject : qual) {
             if (field instanceof Collection) {
-                for (Object fieldObject : (Collection) field) {
+                for (Object fieldObject : (Collection<?>) field) {
                     if (NullUtils.isEqual(fieldObject, qualObject))
                         return true;
                 }

@@ -36,6 +36,10 @@ public class NetworkStatus {
 		pingSuccessful = _pingSuccessful;
 	}
 
+	public boolean isNetworkConnected() {
+		return isWifiConnected() || isEthernetConnected();
+	}
+
 	public boolean isWifiConnected() {
 		return CollectionUtils.isNotEmpty(wifiIPs);
 	}

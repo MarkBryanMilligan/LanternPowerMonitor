@@ -39,7 +39,7 @@ public class BreakerHub implements IIdentical<BreakerHub> {
 	}
 
 	public double getPortCalibrationFactor() {
-		return portCalibrationFactor == 0.0?1.25:portCalibrationFactor;
+		return portCalibrationFactor == 0.0?1.20:portCalibrationFactor;
 	}
 
 	public void setPortCalibrationFactor(double _portCalibrationFactor) {

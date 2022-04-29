@@ -1,22 +1,19 @@
 package com.lanternsoftware.currentmonitor.servlet;
 
 import com.lanternsoftware.currentmonitor.context.Globals;
+import com.lanternsoftware.currentmonitor.email.IEmailProvider;
+import com.lanternsoftware.currentmonitor.email.MailJetProvider;
+import com.lanternsoftware.datamodel.currentmonitor.Account;
+import com.lanternsoftware.datamodel.currentmonitor.EmailCredentials;
 import com.lanternsoftware.util.CollectionUtils;
-import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.email.EmailValidator;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.servlet.FreemarkerConfigUtil;
 import com.lanternsoftware.util.servlet.FreemarkerServlet;
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.Response;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
 import freemarker.template.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,13 +22,13 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.MediaType;
-import java.io.IOException;
 
 @WebServlet("/resetPassword/*")
 public class ResetPasswordServlet extends FreemarkerServlet {
     protected static final Logger LOG = LoggerFactory.getLogger(ResetPasswordServlet.class);
     protected static final Configuration CONFIG = FreemarkerConfigUtil.createConfig(ResetPasswordServlet.class, "/templates", 100);
-    protected static final String api_key = ResourceLoader.loadFileAsString(LanternFiles.CONFIG_PATH + "sendgrid.txt");
+    protected static final EmailCredentials credentials = DaoSerializer.parse(ResourceLoader.loadFileAsString(LanternFiles.CONFIG_PATH + "email.json"), EmailCredentials.class);
+    protected static final IEmailProvider provider = new MailJetProvider();
 
     @Override
     protected Configuration getFreemarkerConfig() {
@@ -63,25 +60,11 @@ public class ResetPasswordServlet extends FreemarkerServlet {
         } else {
             DaoEntity payload = getRequestZipBson(_req);
             String email = DaoSerializer.getString(payload, "email");
-            if (EmailValidator.getInstance().isValid(email)) {
+            Account account = Globals.dao.getAccountByUsername(email);
+            if ((account != null) && EmailValidator.getInstance().isValid(email)) {
                 String key = Globals.dao.addPasswordResetKey(email);
-                Email from = new Email("mark.milligan@lanternsoftware.com");
-                String subject = "Password Reset - Lantern Power Monitor";
-                Email to = new Email(email);
-                Content content = new Content("text/plain", "Reset your password using this link:\nhttps://lanternpowermonitor.com/currentmonitor/resetPassword/" + key);
-                Mail mail = new Mail(from, subject, to, content);
-                SendGrid sg = new SendGrid(api_key);
-                Request request = new Request();
-                try {
-                    request.setMethod(Method.POST);
-                    request.setEndpoint("mail/send");
-                    request.setBody(mail.build());
-                    Response response = sg.api(request);
-                    zipBsonResponse(_resp, new DaoEntity("success", response.getStatusCode() == 200));
-                } catch (IOException ex) {
-                    LOG.error("Failed to send password reset email", ex);
-                    _resp.setStatus(500);
-                }
+                int status = provider.sendTextEmail(credentials, email, "Password Reset - Lantern Power Monitor", "Reset your password using this link:\n" + credentials.getServerUrlBase() + "resetPassword/" + key);
+                zipBsonResponse(_resp, new DaoEntity("success", status == 200));
             }
             else
                 _resp.setStatus(400);

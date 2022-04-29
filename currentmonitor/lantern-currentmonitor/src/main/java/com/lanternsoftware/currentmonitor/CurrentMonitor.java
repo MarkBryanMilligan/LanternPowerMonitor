@@ -1,23 +1,20 @@
 package com.lanternsoftware.currentmonitor;
 
+import com.lanternsoftware.currentmonitor.adc.MCP3008;
+import com.lanternsoftware.currentmonitor.adc.MCP3008Pin;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPolarity;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
-import com.pi4j.gpio.extension.base.AdcGpioProvider;
-import com.pi4j.gpio.extension.mcp.MCP3008GpioProvider;
-import com.pi4j.gpio.extension.mcp.MCP3008Pin;
-import com.pi4j.io.gpio.GpioController;
-import com.pi4j.io.gpio.GpioFactory;
-import com.pi4j.io.gpio.GpioPinAnalogInput;
-import com.pi4j.io.spi.SpiChannel;
-import com.pi4j.io.spi.SpiDevice;
+import com.pi4j.Pi4J;
+import com.pi4j.context.Context;
+import com.pi4j.io.spi.Spi;
+import com.pi4j.io.spi.SpiMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -30,22 +27,15 @@ import java.util.concurrent.Executors;
 public class CurrentMonitor {
 	private static final Logger LOG = LoggerFactory.getLogger(CurrentMonitor.class);
 	private static final int BATCH_CNT = 4;
-	private GpioController gpio;
 	private final ExecutorService executor = Executors.newCachedThreadPool();
-	private final Map<Integer, AdcGpioProvider> chips = new HashMap<>();
-	private final Map<Integer, GpioPinAnalogInput> pins = new HashMap<>();
+	private Context pi4j;
+	private final Map<Integer, MCP3008> chips = new HashMap<>();
 	private Sampler sampler;
 	private PowerListener listener;
 	private boolean debug = false;
 
 	public void start() {
-		try {
-			gpio = GpioFactory.getInstance();
-			LOG.info("Current Monitor Started");
-		}
-		catch (Throwable t) {
-			LOG.info("Failed to get gpio factory", t);
-		}
+		pi4j = Pi4J.newAutoContext();
 	}
 
 	public void stop() {
@@ -53,9 +43,12 @@ public class CurrentMonitor {
 		ConcurrencyUtils.sleep(1000);
 		executor.shutdown();
 		ConcurrencyUtils.sleep(1000);
+		for (MCP3008 mcp : chips.values()) {
+			mcp.shutdown(pi4j);
+		}
+		ConcurrencyUtils.sleep(1000);
+		pi4j.shutdown();
 		chips.clear();
-		pins.clear();
-		gpio.shutdown();
 		LOG.info("Power Monitor Service Stopped");
 	}
 
@@ -64,10 +57,9 @@ public class CurrentMonitor {
 	}
 
 	public CalibrationResult calibrateVoltage(double _curCalibration) {
-		GpioPinAnalogInput voltagePin = getPin(0, 0);
-		if (voltagePin == null)
-			return null;
-		int maxSamples = 120000;
+		LOG.info("Calibrating Voltage");
+		MCP3008Pin voltagePin = new MCP3008Pin(getChip(0), 0);
+		int maxSamples = 240000;
 		CalibrationSample[] samples = new CalibrationSample[maxSamples];
 		int offset = 0;
 		for (;offset < maxSamples; offset++) {
@@ -77,7 +69,7 @@ public class CurrentMonitor {
 		long intervalEnd = System.nanoTime() + 2000000000L; //Scan voltage for 2 seconds
 		while (offset < maxSamples) {
 			samples[offset].time = System.nanoTime();
-			samples[offset].voltage = voltagePin.getValue();
+			samples[offset].voltage = voltagePin.read();
 			offset++;
 			if (samples[offset-1].time > intervalEnd)
 				break;
@@ -128,10 +120,12 @@ public class CurrentMonitor {
 			stopMonitoring();
 			listener = _listener;
 			List<Breaker> validBreakers = CollectionUtils.filter(_breakers, _b -> _b.getPort() > 0 && _b.getPort() < 16);
-			if (CollectionUtils.isEmpty(validBreakers))
+			if (CollectionUtils.isEmpty(validBreakers)) {
+				LOG.error("No breakers found for hub number {}", _hub.getHub());
 				return;
+			}
 			LOG.info("Monitoring {} breakers for hub {}", CollectionUtils.size(validBreakers), _hub.getHub());
-			sampler = new Sampler(_hub, validBreakers, _intervalMs, 2);
+			sampler = new Sampler(_hub, validBreakers, _intervalMs, 5);
 			LOG.info("Starting to monitor ports {}", CollectionUtils.transformToCommaSeparated(validBreakers, _b -> String.valueOf(_b.getPort())));
 			executor.submit(sampler);
 		}
@@ -140,34 +134,17 @@ public class CurrentMonitor {
 		}
 	}
 
-	private GpioPinAnalogInput getPin(int _chip, int _pin) {
-		GpioPinAnalogInput pin;
-		synchronized (pins) {
-			AdcGpioProvider chip = chips.get(_chip);
-			if (chip == null) {
-				SpiChannel channel = SpiChannel.getByNumber(_chip);
-				if (channel == null)
-					return null;
-				try {
-					chip = new MCP3008GpioProvider(channel, 1250000, SpiDevice.DEFAULT_SPI_MODE, false);
-					chips.put(_chip, chip);
-				} catch (IOException _e) {
-					LOG.error("Failed to connect to chip {}", _chip, _e);
-					return null;
-				}
-			}
-			int pinKey = pinKey(_chip, _pin);
-			pin = pins.get(pinKey);
-			if (pin == null) {
-				pin = gpio.provisionAnalogInputPin(chip, MCP3008Pin.ALL[_pin], String.valueOf(pinKey));
-				pins.put(pinKey, pin);
-			}
+	private synchronized MCP3008 getChip(int _chip) {
+		MCP3008 chip = chips.get(_chip);
+		if (chip == null) {
+			String id = "SPI" + _chip;
+			LOG.info("Creating chip {}", id);
+			Spi spi = pi4j.create(Spi.newConfigBuilder(pi4j).mode(SpiMode.MODE_0).id(id).name("MCP3008_" + _chip).address(_chip).baud(810000).build());
+			LOG.info("is open {}", spi.isOpen());
+			chip = new MCP3008(spi);
+			chips.put(_chip, chip);
 		}
-		return pin;
-	}
-
-	private Integer pinKey(int _chip, int _pin) {
-		return (_chip*8)+_pin;
+		return chip;
 	}
 
 	public void submit(Runnable _runnable) {
@@ -190,14 +167,14 @@ public class CurrentMonitor {
 
 		public Sampler(BreakerHub _hub, List<Breaker> _breakers, int _intervalMs, int _concurrentBreakerCnt) {
 			hub = _hub;
-			GpioPinAnalogInput voltagePin = getPin(0, 0);
+			MCP3008Pin voltagePin = new MCP3008Pin(getChip(0), 0);
 			breakers = CollectionUtils.transform(_breakers, _b->{
 				LOG.info("Getting Chip {}, Pin {} for port {}", _b.getChip(), _b.getPin(), _b.getPort());
-				GpioPinAnalogInput currentPin = getPin(_b.getChip(), _b.getPin());
+				MCP3008Pin currentPin = new MCP3008Pin(getChip(_b.getChip()), _b.getPin());
 				List<BreakerSamples> batches = new ArrayList<>(BATCH_CNT);
 				for (int i=0; i<BATCH_CNT; i++) {
 					List<PowerSample> samples = new ArrayList<>(30000/_breakers.size());
-					for (int j=0; j<30000/_breakers.size(); j++) {
+					for (int j=0; j<60000/_breakers.size(); j++) {
 						samples.add(new PowerSample());
 					}
 					batches.add(new BreakerSamples(_b, voltagePin, currentPin, samples));
@@ -213,6 +190,7 @@ public class CurrentMonitor {
 			long start = System.nanoTime();
 			long interval = 0;
 			int cycle;
+			int curBreaker;
 			BreakerSamples[] cycleBreakers = new BreakerSamples[concurrentBreakerCnt];
 			try {
 				while (true) {
@@ -227,22 +205,18 @@ public class CurrentMonitor {
 					long intervalEnd = intervalStart + intervalNs;
 					cycle = 0;
 					final int batch = (int) (interval % BATCH_CNT);
-					int curBreaker;
-					for (curBreaker = 0; curBreaker < breakers.size(); curBreaker++) {
-						breakers.get(curBreaker).get(batch).setSampleCnt(0);
-					}
 					while (System.nanoTime() < intervalEnd) {
 						for (curBreaker = 0; curBreaker < concurrentBreakerCnt; curBreaker++) {
 							cycleBreakers[curBreaker] = breakers.get(((cycle * concurrentBreakerCnt) + curBreaker) % breakers.size()).get(batch);
+							cycleBreakers[curBreaker].incrementCycleCnt();
 						}
 						cycle++;
 						long cycleEnd = intervalStart + (cycle * (intervalNs / hub.getFrequency()));
 						while (System.nanoTime() < cycleEnd) {
 							for (curBreaker = 0; curBreaker < concurrentBreakerCnt; curBreaker++) {
-								PowerSample sample = cycleBreakers[curBreaker].getSample(cycleBreakers[curBreaker].getSampleCnt());
-								sample.voltage = cycleBreakers[curBreaker].getVoltagePin().getValue();
-								sample.current = cycleBreakers[curBreaker].getCurrentPin().getValue();
-								cycleBreakers[curBreaker].setSampleCnt(cycleBreakers[curBreaker].getSampleCnt()+1);
+								PowerSample sample = cycleBreakers[curBreaker].incrementSample();
+								sample.voltage = cycleBreakers[curBreaker].getVoltagePin().read();
+								sample.current = cycleBreakers[curBreaker].getCurrentPin().read();
 							}
 						}
 					}
@@ -284,10 +258,11 @@ public class CurrentMonitor {
 							if (debug) {
 								synchronized (CurrentMonitor.this) {
 									LOG.info("===========================Start Port {}", samples.getBreaker().getPort());
+									LOG.info("Cycles: {}", samples.getCycleCnt());
 									LOG.info("Samples: {}", samples.getSampleCnt());
 									LOG.info("vMin: {}, vMax: {}, vOffset: {}", String.format("%.3f", CollectionUtils.getSmallest(validSamples, Comparator.comparing(_v -> _v.voltage)).voltage), String.format("%.3f", CollectionUtils.getLargest(validSamples, Comparator.comparing(_v -> _v.voltage)).voltage), String.format("%.3f", vOffset));
 									LOG.info("iMin: {}, iMax: {}, iOffset: {}", String.format("%.3f", CollectionUtils.getSmallest(validSamples, Comparator.comparing(_v -> _v.current)).current), String.format("%.3f", CollectionUtils.getLargest(validSamples, Comparator.comparing(_v -> _v.current)).current), String.format("%.3f", iOffset));
-									double iRms = samples.getBreaker().getFinalCalibrationFactor() * Math.sqrt(CollectionUtils.mean(CollectionUtils.transform(validSamples, _p -> _p.current * _p.current)));
+									double iRms = hub.getPortCalibrationFactor() * samples.getBreaker().getFinalCalibrationFactor() * Math.sqrt(CollectionUtils.mean(CollectionUtils.transform(validSamples, _p -> _p.current * _p.current)));
 									LOG.info("vRms: {}", String.format("%.3f", vRms));
 									LOG.info("iRms: {}", String.format("%.3f", iRms));
 									double apparentPower = vRms * iRms;
@@ -298,6 +273,8 @@ public class CurrentMonitor {
 									LOG.info("===========================End Port {}", samples.getBreaker().getPort());
 								}
 							}
+							samples.setSampleCnt(0);
+							samples.setCycleCnt(0);
 							listener.onPowerEvent(new BreakerPower(samples.getBreaker().getPanel(), samples.getBreaker().getSpace(), readTime, realPower, vRms));
 						}
 					});

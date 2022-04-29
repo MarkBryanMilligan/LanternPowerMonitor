@@ -49,7 +49,7 @@ public class JdbcProxy extends AbstractJdbcProxy {
         else
             driver = "oracle.jdbc.driver.OracleDriver";
         try {
-            DriverManager.registerDriver(Class.forName(driver).asSubclass(Driver.class).newInstance());
+            DriverManager.registerDriver(Class.forName(driver).asSubclass(Driver.class).getDeclaredConstructor().newInstance());
             JdbcProxy proxy = new JdbcProxy(DriverManager.getConnection(_connectionString, _username, _password));
             proxy.databaseType = _type;
             return proxy;

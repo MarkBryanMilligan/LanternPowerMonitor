@@ -19,7 +19,7 @@ public abstract class MessageEngine {
 		for (Message m : ServiceLoader.load(Message.class)) {
 			messages.put(m.getKey(), m);
 		}
-		for (IMessageSubscriber s : ServiceLoader.load(IMessageSubscriber.class)) {
+		for (IMessageSubscriber<?> s : ServiceLoader.load(IMessageSubscriber.class)) {
 			subscribe(s);
 		}
 	}
@@ -50,7 +50,7 @@ public abstract class MessageEngine {
 			return null;
 		}
 		try {
-			Message ret = message.getClass().newInstance();
+			Message ret = message.getClass().getDeclaredConstructor().newInstance();
 			ret.fromPayload(_data);
 			return ret;
 		} catch (Exception _e) {

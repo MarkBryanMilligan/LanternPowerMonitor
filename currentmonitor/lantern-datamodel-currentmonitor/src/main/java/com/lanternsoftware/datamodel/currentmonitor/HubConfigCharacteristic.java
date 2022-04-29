@@ -21,7 +21,7 @@ public enum HubConfigCharacteristic {
 	Shutdown(13, CharacteristicFlag.WRITE),
 	Version(14, CharacteristicFlag.READ),
 	Update(15, CharacteristicFlag.WRITE),
-	ReloadConfig(15, CharacteristicFlag.WRITE);
+	ReloadConfig(16, CharacteristicFlag.WRITE);
 
 	public final int idx;
 	public final UUID uuid;

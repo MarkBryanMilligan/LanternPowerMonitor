@@ -4,12 +4,13 @@
 	<groupId>com.lanternsoftware.currentmonitor</groupId>
 	<artifactId>currentmonitor</artifactId>
 	<name>currentmonitor</name>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 
-	<properties>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
-	</properties>
+	<parent>
+		<groupId>com.lanternsoftware</groupId>
+		<artifactId>LanternPowerMonitor</artifactId>
+		<version>1.0.0</version>
+	</parent>
 
 	<modules>
 		<module>lantern-config-currentmonitor</module>

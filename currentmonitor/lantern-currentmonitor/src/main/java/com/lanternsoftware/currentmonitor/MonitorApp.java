@@ -35,12 +35,9 @@ import org.apache.http.entity.ContentType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -210,8 +207,8 @@ public class MonitorApp {
 		version = getVersionNumber();
 		config = DaoSerializer.parse(ResourceLoader.loadFileAsString(WORKING_DIR + "config.json"), MonitorConfig.class);
 		if (config == null) {
-			LOG.error("Failed to load config file from {}", WORKING_DIR + "config.json");
-			return;
+			config = new MonitorConfig();
+			ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 		}
 		pool = new HttpPool(10, 10, config.getSocketTimeout(), config.getConnectTimeout(), config.getSocketTimeout());
 		if (NullUtils.isNotEmpty(config.getHost()))
@@ -219,8 +216,6 @@ public class MonitorApp {
 		monitor.setDebug(config.isDebug());
 		monitor.start();
 		LEDFlasher.setLEDOn(false);
-		bluetoothConfig = new BluetoothConfig("Lantern Hub", bluetoothListener);
-		bluetoothConfig.start();
 		if (NullUtils.isNotEmpty(config.getAuthCode()))
 			authCode = config.getAuthCode();
 		else if (NullUtils.isNotEmpty(host) && NullUtils.isNotEmpty(config.getUsername()) && NullUtils.isNotEmpty(config.getPassword())) {
@@ -231,7 +226,8 @@ public class MonitorApp {
 		if (NullUtils.isNotEmpty(config.getMqttBrokerUrl()))
 			mqttPoster = new MqttPoster(config);
 		if (NullUtils.isNotEmpty(host) && NullUtils.isNotEmpty(authCode)) {
-			while (true) {
+			int configAttempts = 0;
+			while (configAttempts < 5) {
 				HttpGet get = new HttpGet(host + "config");
 				get.addHeader("auth_code", authCode);
 				breakerConfig = DaoSerializer.parse(pool.executeToString(get), BreakerConfig.class);
@@ -239,8 +235,11 @@ public class MonitorApp {
 					break;
 				LOG.error("Failed to load breaker config.  Retrying in 5 seconds...");
 				ConcurrencyUtils.sleep(5000);
+				configAttempts++;
 			}
 		}
+		bluetoothConfig = new BluetoothConfig("Lantern Hub", bluetoothListener);
+		bluetoothConfig.start();
 		if ((mqttPoster != null) && (breakerConfig == null)) {
 			LOG.info("Hub not configured by a Lantern Power Monitor server, defaulting to MQTT mode only");
 			BreakerHub hub = new BreakerHub();
@@ -266,13 +265,18 @@ public class MonitorApp {
 			BreakerHub hub = breakerConfig.getHub(config.getHub());
 			if (hub != null) {
 				if (config.isNeedsCalibration()) {
-					CalibrationResult cal = monitor.calibrateVoltage(hub.getVoltageCalibrationFactor());
-					if (cal != null) {
-						hub.setVoltageCalibrationFactor(cal.getVoltageCalibrationFactor());
-						hub.setFrequency(cal.getFrequency());
-						config.setNeedsCalibration(false);
-						ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
-						post(DaoSerializer.toZipBson(breakerConfig), "config");
+					try {
+						CalibrationResult cal = monitor.calibrateVoltage(hub.getVoltageCalibrationFactor());
+						if (cal != null) {
+							hub.setVoltageCalibrationFactor(cal.getVoltageCalibrationFactor());
+							hub.setFrequency(cal.getFrequency());
+							config.setNeedsCalibration(false);
+							ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
+							post(DaoSerializer.toZipBson(breakerConfig), "config");
+						}
+					}
+					catch (Throwable t) {
+						LOG.error("Exception trying to read from voltage pin", t);
 					}
 				}
 				List<Breaker> breakers = breakerConfig.getBreakersForHub(config.getHub());
@@ -288,18 +292,10 @@ public class MonitorApp {
 			monitor.stop();
 			pool.shutdown();
 		}, "Monitor Shutdown"));
-		Console c = System.console();
-		BufferedReader reader = (c == null)?new BufferedReader(new InputStreamReader(System.in)):null;
-		while (running.get()) {
-			try {
-				String command = c != null ? c.readLine() : reader.readLine();
-				if (NullUtils.isEqual("exit", command))
-					break;
-			}
-			catch (Exception _e) {
-				LOG.error("Exception while reading from console input", _e);
-				break;
-			}
+		try {
+			monitor.wait();
+		} catch (InterruptedException _e) {
+			LOG.error("Interrupted, shutting down", _e);
 		}
 	}
 
@@ -360,7 +356,7 @@ public class MonitorApp {
 							byte[] payload = DaoSerializer.toZipBson(minutePost);
 							if (!post(payload, "power/hub")) {
 								LOG.info("Failed Posting HubPowerMinute, writing cache");
-								ResourceLoader.writeFile(WORKING_DIR + "cache/" + UUID.randomUUID().toString() + ".min", payload);
+								ResourceLoader.writeFile(WORKING_DIR + "cache/" + UUID.randomUUID() + ".min", payload);
 							}
 						}
 						if (post != null) {

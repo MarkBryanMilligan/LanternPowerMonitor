@@ -2,6 +2,7 @@ package com.lanternsoftware.currentmonitor;
 
 
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
+import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
 import java.util.List;
@@ -12,11 +13,11 @@ public class MonitorConfig {
     private String authCode;
     private String username;
     private String password;
-    private int hub;
+    private int hub = -1;
     private boolean debug;
     private int connectTimeout;
     private int socketTimeout;
-    private boolean needsCalibration;
+    private boolean needsCalibration = true;
     private String mqttBrokerUrl;
     private String mqttUserName;
     private String mqttPassword;
@@ -34,7 +35,7 @@ public class MonitorConfig {
     }
 
     public String getHost() {
-        return host;
+        return NullUtils.isEmpty(host) ? "https://lanternpowermonitor.com/" : host;
     }
 
     public void setHost(String _host) {

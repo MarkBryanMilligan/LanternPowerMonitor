@@ -6,10 +6,10 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.lanternsoftware.currentmonitor.context.Globals;
-import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoSerializer;
+import com.lanternsoftware.util.external.LanternFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

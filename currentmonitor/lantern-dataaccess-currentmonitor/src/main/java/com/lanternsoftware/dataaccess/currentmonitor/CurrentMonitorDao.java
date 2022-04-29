@@ -54,6 +54,7 @@ public interface CurrentMonitorDao {
 	String getAuthCodeForEmail(String _email, TimeZone _tz);
 	Account authCodeToAccount(String _authCode);
 	AuthCode decryptAuthCode(String _authCode);
+	String exchangeAuthCode(String _authCode, int _acctId);
 
 	Account putAccount(Account _account);
 	Account getAccount(int _accountId);
