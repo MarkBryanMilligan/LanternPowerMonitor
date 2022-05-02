@@ -11,23 +11,11 @@
         <version>1.1.0</version>
     </parent>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.api-client</groupId>
-                <artifactId>google-api-client-bom</artifactId>
-                <version>1.33.4</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
         <dependency>
             <groupId>com.lanternsoftware.currentmonitor</groupId>
             <artifactId>lantern-dataaccess-currentmonitor</artifactId>
-            <version>1.0.0</version>
+            <version>${cm.version}</version>
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.util</groupId>
@@ -36,18 +24,18 @@
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.util</groupId>
+            <artifactId>lantern-util-cloudservices</artifactId>
+            <version>${util.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lanternsoftware.util</groupId>
             <artifactId>lantern-util-http</artifactId>
             <version>${util.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.lanternsoftware.rules</groupId>
             <artifactId>lantern-service-rules</artifactId>
             <version>${rules.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.api-client</groupId>
-            <artifactId>google-api-client</artifactId>
         </dependency>
         <dependency>
             <groupId>javax</groupId>
@@ -66,6 +54,11 @@
             <version>1.2.3</version>
         </dependency>
         <dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>3.19.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.mailjet</groupId>
             <artifactId>mailjet-client</artifactId>
             <version>4.2.0</version>
@@ -81,7 +74,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
+                <version>3.10.1</version>
                 <executions>
                     <execution>
                         <goals>
@@ -100,7 +93,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
-                <version>2.5</version>
+                <version>3.3.2</version>
                 <configuration>
                     <webResources>
                         <resource>

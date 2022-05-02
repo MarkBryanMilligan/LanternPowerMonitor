@@ -214,7 +214,6 @@ public class MonitorApp {
 		if (NullUtils.isNotEmpty(config.getHost()))
 			host = NullUtils.terminateWith(config.getHost(), "/");
 		monitor.setDebug(config.isDebug());
-		monitor.start();
 		LEDFlasher.setLEDOn(false);
 		if (NullUtils.isNotEmpty(config.getAuthCode()))
 			authCode = config.getAuthCode();

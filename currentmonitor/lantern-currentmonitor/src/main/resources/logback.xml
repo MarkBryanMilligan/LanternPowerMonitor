@@ -2,12 +2,6 @@
 <configuration>
     <property name="log.pattern" value="%date %-5level %logger{0} - %message%n"/>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${log.pattern}</pattern>
-        </encoder>
-    </appender>
-
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>/opt/currentmonitor/log/log.txt</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">

@@ -6,12 +6,9 @@ import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPolarity;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
+import com.lanternsoftware.pigpio.PiGpioFactory;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
-import com.pi4j.Pi4J;
-import com.pi4j.context.Context;
-import com.pi4j.io.spi.Spi;
-import com.pi4j.io.spi.SpiMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,26 +25,17 @@ public class CurrentMonitor {
 	private static final Logger LOG = LoggerFactory.getLogger(CurrentMonitor.class);
 	private static final int BATCH_CNT = 4;
 	private final ExecutorService executor = Executors.newCachedThreadPool();
-	private Context pi4j;
 	private final Map<Integer, MCP3008> chips = new HashMap<>();
 	private Sampler sampler;
 	private PowerListener listener;
 	private boolean debug = false;
-
-	public void start() {
-		pi4j = Pi4J.newAutoContext();
-	}
 
 	public void stop() {
 		stopMonitoring();
 		ConcurrencyUtils.sleep(1000);
 		executor.shutdown();
 		ConcurrencyUtils.sleep(1000);
-		for (MCP3008 mcp : chips.values()) {
-			mcp.shutdown(pi4j);
-		}
-		ConcurrencyUtils.sleep(1000);
-		pi4j.shutdown();
+		PiGpioFactory.shutdown();
 		chips.clear();
 		LOG.info("Power Monitor Service Stopped");
 	}
@@ -139,9 +127,7 @@ public class CurrentMonitor {
 		if (chip == null) {
 			String id = "SPI" + _chip;
 			LOG.info("Creating chip {}", id);
-			Spi spi = pi4j.create(Spi.newConfigBuilder(pi4j).mode(SpiMode.MODE_0).id(id).name("MCP3008_" + _chip).address(_chip).baud(810000).build());
-			LOG.info("is open {}", spi.isOpen());
-			chip = new MCP3008(spi);
+			chip = new MCP3008(PiGpioFactory.getSpiChannel(_chip, 810000, false));
 			chips.put(_chip, chip);
 		}
 		return chip;

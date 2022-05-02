@@ -12,28 +12,7 @@
         <version>1.0.0</version>
     </parent>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.google.api-client</groupId>
-                <artifactId>google-api-client-bom</artifactId>
-                <version>1.32.1</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
-        <dependency>
-            <groupId>com.google.api-client</groupId>
-            <artifactId>google-api-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.firebase</groupId>
-            <artifactId>firebase-admin</artifactId>
-            <version>8.0.0</version>
-        </dependency>
         <dependency>
             <groupId>com.lanternsoftware.rules</groupId>
             <artifactId>lantern-dataaccess-rules</artifactId>
@@ -50,6 +29,11 @@
             <version>${util.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.lanternsoftware.util</groupId>
+            <artifactId>lantern-util-cloudservices</artifactId>
+            <version>${util.version}</version>
+        </dependency>
+        <dependency>
             <groupId>javax</groupId>
             <artifactId>javaee-api</artifactId>
             <version>8.0</version>
@@ -59,6 +43,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.29</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -71,7 +61,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.2</version>
+                <version>3.10.1</version>
                 <executions>
                     <execution>
                         <goals>

@@ -6,8 +6,9 @@ import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubCommands;
 import com.lanternsoftware.rules.RulesEngine;
 import com.lanternsoftware.util.DateUtils;
-import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
+import com.lanternsoftware.util.external.LanternFiles;
+import com.lanternsoftware.util.http.HttpFactory;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -32,6 +33,7 @@ public class Globals implements ServletContextListener {
 	@Override
 	public void contextDestroyed(ServletContextEvent sce) {
 		dao.shutdown();
+		HttpFactory.shutdown();
 		RulesEngine.shutdown();
 	}
 
