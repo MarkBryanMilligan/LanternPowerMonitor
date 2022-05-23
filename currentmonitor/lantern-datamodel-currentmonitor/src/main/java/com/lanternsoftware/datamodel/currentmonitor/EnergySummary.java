@@ -8,7 +8,6 @@ import com.lanternsoftware.util.dao.annotations.DBSerializable;
 import com.lanternsoftware.util.mutable.MutableDouble;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,6 +25,7 @@ public class EnergySummary {
 	private EnergyViewMode viewMode;
 	private Date start;
 	private List<EnergySummary> subGroups;
+	private boolean main;
 	private float[] energy;
 	private float[] gridEnergy;
 	private double peakToGrid;
@@ -40,6 +40,7 @@ public class EnergySummary {
 	public EnergySummary(BreakerGroup _group, List<HubPowerMinute> _power, EnergyViewMode _viewMode, Date _start, TimeZone _timezone) {
 		groupId = _group.getId();
 		groupName = _group.getName();
+		main = _group.isMain();
 		viewMode = _viewMode;
 		start = _start;
 		accountId = _group.getAccountId();
@@ -50,29 +51,30 @@ public class EnergySummary {
 	}
 
 	public void addEnergy(BreakerGroup _group, List<HubPowerMinute> _hubPower) {
-		Map<String, Breaker> breakers = CollectionUtils.transformToMap(_group.getAllBreakers(), Breaker::getKey);
-		Map<String, BreakerGroup> breakerKeyToGroup = new HashMap<>();
+		Map<Integer, Breaker> breakers = CollectionUtils.transformToMap(_group.getAllBreakers(), Breaker::getIntKey);
+		Map<Integer, BreakerGroup> breakerKeyToGroup = new HashMap<>();
 		for (BreakerGroup group : _group.getAllBreakerGroups()) {
 			for (Breaker b : CollectionUtils.makeNotNull(group.getBreakers())) {
-				breakerKeyToGroup.put(b.getKey(), group);
+				breakerKeyToGroup.put(b.getIntKey(), group);
 			}
 		}
 		addEnergy(breakers, breakerKeyToGroup, _hubPower);
 	}
 
-	public void addEnergy(Map<String, Breaker> _breakers, Map<String, BreakerGroup> _breakerKeyToGroup, List<HubPowerMinute> _hubPower) {
+	public void addEnergy(Map<Integer, Breaker> _breakers, Map<Integer, BreakerGroup> _breakerKeyToGroup, List<HubPowerMinute> _hubPower) {
 		if (CollectionUtils.isEmpty(_hubPower) || CollectionUtils.anyQualify(_hubPower, _p -> _p.getAccountId() != accountId))
 			return;
 		_hubPower.sort(Comparator.comparing(HubPowerMinute::getMinute));
 		for (Date minute : CollectionUtils.transformToSet(_hubPower, HubPowerMinute::getMinuteAsDate)) {
 			resetEnergy(minute);
 		}
+		Set<Integer> meterMainsTracked = CollectionUtils.transformToSet(CollectionUtils.filter(_breakers.values(), Breaker::isMain), Breaker::getMeter);
 		int idx;
 		Map<Integer, Map<Integer, MeterMinute>> minutes = new HashMap<>();
 		for (HubPowerMinute hubPower : _hubPower) {
 			Date minute = hubPower.getMinuteAsDate();
 			for (BreakerPowerMinute breaker : CollectionUtils.makeNotNull(hubPower.getBreakers())) {
-				String key = breaker.breakerKey();
+				int key = breaker.breakerIntKey();
 				Breaker b = _breakers.get(key);
 				if (b == null)
 					continue;
@@ -84,10 +86,12 @@ public class EnergySummary {
 				for (Float power : CollectionUtils.makeNotNull(breaker.getReadings())) {
 					if (idx >= 60)
 						break;
-					if (power > 0)
-						meter.usage[idx] += power;
-					else
-						meter.solar[idx] -= power;
+					if (!meterMainsTracked.contains(b.getMeter()) || b.isMain()) {
+						if (power > 0)
+							meter.usage[idx] += power;
+						else
+							meter.solar[idx] -= power;
+					}
 					addEnergy(group.getId(), minute, power);
 					idx++;
 				}
@@ -125,7 +129,7 @@ public class EnergySummary {
 		for (HubPowerMinute hubPower : _hubPower) {
 			Date minute = hubPower.getMinuteAsDate();
 			for (BreakerPowerMinute breaker : CollectionUtils.makeNotNull(hubPower.getBreakers())) {
-				String key = breaker.breakerKey();
+				int key = breaker.breakerIntKey();
 				Breaker b = _breakers.get(key);
 				if (b == null)
 					continue;
@@ -288,6 +292,14 @@ public class EnergySummary {
 		subGroups = _subGroups;
 	}
 
+	public boolean isMain() {
+		return main;
+	}
+
+	public void setMain(boolean _main) {
+		main = _main;
+	}
+
 	public float[] getEnergy() {
 		return energy;
 	}
@@ -362,7 +374,7 @@ public class EnergySummary {
 
 	public double joules(Set<String> _selectedBreakers, boolean _includeSubgroups, GridFlow _mode) {
 		double joules = 0.0;
-		if (_includeSubgroups) {
+		if (_includeSubgroups && !isMain()) {
 			for (EnergySummary group : CollectionUtils.makeNotNull(subGroups)) {
 				joules += group.joules(_selectedBreakers, true, _mode);
 			}

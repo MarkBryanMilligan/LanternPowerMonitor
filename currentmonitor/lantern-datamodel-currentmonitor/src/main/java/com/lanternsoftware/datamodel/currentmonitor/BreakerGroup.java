@@ -182,6 +182,20 @@ public class BreakerGroup implements IIdentical<BreakerGroup> {
 		return groups;
 	}
 
+	public boolean containsPolarity(Set<String> _groupIds, BreakerPolarity _polarity) {
+		if ((CollectionUtils.isEmpty(_groupIds) || _groupIds.contains(id)) && CollectionUtils.anyQualify(breakers, _b->_b.getPolarity() == _polarity))
+			return true;
+		for (BreakerGroup subGroup : CollectionUtils.makeNotNull(subGroups)) {
+			if (subGroup.containsPolarity(_groupIds, _polarity))
+				return true;
+		}
+		return false;
+	}
+
+	public boolean isMain() {
+		return CollectionUtils.anyQualify(breakers, Breaker::isMain);
+	}
+
 	public boolean removeInvalidGroups(Set<Integer> _validPanels) {
 		if (subGroups != null)
 			subGroups.removeIf(_g->!_g.removeInvalidGroups(_validPanels));

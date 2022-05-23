@@ -35,7 +35,7 @@ public class MonitorConfig {
     }
 
     public String getHost() {
-        return NullUtils.isEmpty(host) ? "https://lanternpowermonitor.com/" : host;
+        return NullUtils.isEmpty(host) ? "https://lanternpowermonitor.com/currentmonitor/" : host;
     }
 
     public void setHost(String _host) {

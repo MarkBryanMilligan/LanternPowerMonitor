@@ -26,6 +26,7 @@ public class Breaker implements IIdentical<Breaker> {
 	private BreakerPolarity polarity;
 	private boolean doublePower;
 	private BreakerType type;
+	private boolean main;
 	private transient String key;
 
 	public Breaker() {
@@ -148,7 +149,7 @@ public class Breaker implements IIdentical<Breaker> {
 	}
 
 	public BreakerPolarity getPolarity() {
-		return polarity;
+		return polarity == null ? BreakerPolarity.NORMAL : polarity;
 	}
 
 	public void setPolarity(BreakerPolarity _polarity) {
@@ -182,6 +183,14 @@ public class Breaker implements IIdentical<Breaker> {
 
 	public void setType(BreakerType _type) {
 		type = _type;
+	}
+
+	public boolean isMain() {
+		return main;
+	}
+
+	public void setMain(boolean _main) {
+		main = _main;
 	}
 
 	public double getFinalCalibrationFactor() {
@@ -269,7 +278,7 @@ public class Breaker implements IIdentical<Breaker> {
 	@Override
 	public boolean isIdentical(Breaker _o) {
 		if (this == _o) return true;
-		return panel == _o.panel && space == _o.space && meter == _o.meter && hub == _o.hub && port == _o.port && sizeAmps == _o.sizeAmps && Double.compare(_o.calibrationFactor, calibrationFactor) == 0 && Double.compare(_o.lowPassFilter, lowPassFilter) == 0 && doublePower == _o.doublePower && Objects.equals(name, _o.name) && Objects.equals(description, _o.description) && polarity == _o.polarity && type == _o.type && Objects.equals(key, _o.key);
+		return panel == _o.panel && space == _o.space && meter == _o.meter && hub == _o.hub && port == _o.port && sizeAmps == _o.sizeAmps && Double.compare(_o.calibrationFactor, calibrationFactor) == 0 && Double.compare(_o.lowPassFilter, lowPassFilter) == 0 && doublePower == _o.doublePower && Objects.equals(name, _o.name) && Objects.equals(description, _o.description) && polarity == _o.polarity && type == _o.type;
 	}
 
 	@Override

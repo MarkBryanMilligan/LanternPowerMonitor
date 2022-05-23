@@ -10,6 +10,7 @@ import com.lanternsoftware.util.dao.annotations.PrimaryKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @DBSerializable(autogen = false)
 public class BreakerConfig implements IIdentical<BreakerConfig> {
@@ -202,8 +203,20 @@ public class BreakerConfig implements IIdentical<BreakerConfig> {
 		return null;
 	}
 
+	public boolean containsPolarity(Set<String> _groupIds, BreakerPolarity _polarity) {
+		for (BreakerGroup subGroup : CollectionUtils.makeNotNull(breakerGroups)) {
+			if (subGroup.containsPolarity(_groupIds, _polarity))
+				return true;
+		}
+		return false;
+	}
+
 	public BillingCurrency getCurrency() {
 		return CollectionUtils.getFirst(CollectionUtils.transformToSet(CollectionUtils.aggregate(billingPlans, BillingPlan::getRates), BillingRate::getCurrency));
+	}
+
+	public boolean isMainsPowerTrackedForMeter(int _meter) {
+		return CollectionUtils.anyQualify(getAllBreakers(), _b->_b.isMain() && (_b.getMeter() == _meter));
 	}
 
 	@Override

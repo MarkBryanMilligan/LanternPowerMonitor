@@ -9,7 +9,6 @@ import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoProxyType;
 import com.lanternsoftware.util.dao.DaoSerializer;
 
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
@@ -38,6 +37,7 @@ public class EnergySummarySerializer extends AbstractDaoSerializer<EnergySummary
 		d.put("view_mode", DaoSerializer.toEnumName(_o.getViewMode()));
 		d.put("start", DaoSerializer.toLong(_o.getStart()));
 		d.put("sub_groups", DaoSerializer.toDaoEntities(_o.getSubGroups(), DaoProxyType.MONGO));
+		d.put("main", _o.isMain());
 		TimeZone tz = DateUtils.defaultTimeZone(_o.getTimeZone());
 		d.put("timezone", tz.getID());
 		if (_o.getEnergy() != null)
@@ -61,6 +61,7 @@ public class EnergySummarySerializer extends AbstractDaoSerializer<EnergySummary
 		o.setViewMode(DaoSerializer.getEnum(_d, "view_mode", EnergyViewMode.class));
 		o.setStart(DaoSerializer.getDate(_d, "start"));
 		o.setSubGroups(DaoSerializer.getList(_d, "sub_groups", EnergySummary.class));
+		o.setMain(DaoSerializer.getBoolean(_d, "main"));
 		o.setTimeZone(DateUtils.fromTimeZoneId(DaoSerializer.getString(_d, "timezone")));
 		o.setEnergy(CollectionUtils.toFloatArray(DaoSerializer.getByteArray(_d, "energy")));
 		o.setGridEnergy(CollectionUtils.toFloatArray(DaoSerializer.getByteArray(_d, "grid_energy")));

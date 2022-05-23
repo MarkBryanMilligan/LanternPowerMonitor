@@ -12,33 +12,35 @@ public class PiGpioFactory {
 	private static boolean initialized = false;
 
 	public static Spi getSpiChannel(int _channel, int _baud, boolean _auxiliary) {
-		ensureInitialized();
+		if (!ensureInitialized())
+			return null;
 		int channelId = (0xff & _channel);
 		if (_auxiliary)
 			channelId |= 0x100;
 		Spi handle = spiHandles.get(channelId);
-		if (handle == null) {
-			int h = PIGPIO.spiOpen(_channel, _baud, _auxiliary ? 0x100 : 0);
-			if (h >= 0) {
-				handle = new Spi(h);
-				spiHandles.put(channelId, handle);
-			}
-			else {
-				LOG.error("Failed to get SPI handle");
-			}
+		if (handle != null)
+			return handle;
+		int h = PIGPIO.spiOpen(_channel, _baud, _auxiliary ? 0x100 : 0);
+		if (h >= 0) {
+			handle = new Spi(h);
+			spiHandles.put(channelId, handle);
+			return handle;
 		}
-		return handle;
+		LOG.error("Failed to get SPI handle");
+		return null;
 	}
 
-	private static void ensureInitialized() {
+	private static boolean ensureInitialized() {
 		if (initialized)
-			return;
+			return true;
 		int init = PIGPIO.gpioInitialise();
 		LOG.info("GPIO init: {}", init);
-		if (init < 0)
+		if (init < 0) {
 			LOG.error("Failed to initialize PiGpio");
-		else
-			initialized = true;
+			return false;
+		}
+		initialized = true;
+		return true;
 	}
 
 	public static void shutdown() {

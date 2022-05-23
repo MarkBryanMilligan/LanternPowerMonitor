@@ -40,6 +40,7 @@ public class BreakerSerializer extends AbstractDaoSerializer<Breaker>
 		d.put("polarity", DaoSerializer.toEnumName(_o.getPolarity()));
 		d.put("double_power", _o.isDoublePower());
 		d.put("type", DaoSerializer.toEnumName(_o.getType()));
+		d.put("main", _o.isMain());
 		return d;
 	}
 
@@ -60,6 +61,7 @@ public class BreakerSerializer extends AbstractDaoSerializer<Breaker>
 		o.setPolarity(DaoSerializer.getEnum(_d, "polarity", BreakerPolarity.class));
 		o.setDoublePower(DaoSerializer.getBoolean(_d, "double_power"));
 		o.setType(DaoSerializer.getEnum(_d, "type", BreakerType.class));
+		o.setMain(DaoSerializer.getBoolean(_d, "main"));
 		return o;
 	}
 }
