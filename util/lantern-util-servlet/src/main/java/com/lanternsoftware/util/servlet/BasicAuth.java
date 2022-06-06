@@ -1,13 +1,10 @@
 package com.lanternsoftware.util.servlet;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-
-import javax.servlet.http.HttpServletRequest;
-
+import com.lanternsoftware.util.NullUtils;
 import org.apache.commons.codec.binary.Base64;
 
-import com.lanternsoftware.util.NullUtils;
+import javax.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
 
 public class BasicAuth {
     private final String username;
