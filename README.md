@@ -13,6 +13,10 @@ The android application is available here:
 <br>
 [Lantern Power Monitor - Google Play](https://play.google.com/store/apps/details?id=com.lanternsoftware.lantern)
 <br><br>
+The iOS application is available here:
+<br>
+[Lantern Power Monitor - App Store](https://apps.apple.com/us/app/lantern-power-monitor/id1620735464)
+<br><br>
 The LanternPowerMonitor subreddit is a great place to ask questions and stay tuned for updates and news.
 <br>
 [/r/LanternPowerMonitor](https://www.reddit.com/r/LanternPowerMonitor/)
@@ -45,7 +49,7 @@ This is only tangentially related.  A java library for running a zwave controlle
 
 # Ok, how do I run this thing?
 The easiest way to run the software on a hub is to download a pre-built SD card image.  One can be downloaded here:<br>
-[hub_1.0.8.zip](https://cf.lanternpowermonitor.com/hub_1.0.8.zip)
+[hub_1.1.1.zip](https://cf.lanternpowermonitor.com/hub_1.1.1.zip)
 <br><br>
 Flash this to any micro sd card (4gig or larger) and you're good to go.  Fire up the hub and the phone app should be able to connect to it via bluetooth to finish the configuration.  The default password on this image is pi/LanternPowerMonitor<br><br>
 When you add the hub to your configuration via the app, you can change where the hub posts data.  If you use lanternpowermonitor.com (the default host), your data will be stored there securely and won't be shared with or sold to anyone.  If you really want to run your own server, you're of course welcome to do that instead, instructions are located further down.
@@ -53,7 +57,7 @@ When you add the hub to your configuration via the app, you can change where the
 ## Now that the service is running on the pi, how do I configure everything in the android app?
 1. Create your panel in the "Configure Panels" page from the main menu. Before you have your hub connected, there will be no place to select a hub and port for each breaker. Don't worry, we'll get to that later.
 
-1. With your hub plugged in and running for at least 30 seconds or so, go into the "Configure Hubs" page from the main menu. In here you'll see a status of "Scanning for Hubs..." (if you're on at least 1.0.7 of the app). If you're in range of your hub and its service is running, the app should find it pretty quickly (less than 15 seconds). If this is the first hub you've added, it will prompt you for your wifi credentials. After that, it will send via bluetooth the hub index (so it knows which hub it is), host (so it knows where to post data), auth code (so it knows which account it is and can post data), the encrypted wifi credentials, and finally a command to reboot.
+1. With your hub plugged in and running for at least a minute, go into the "Configure Hubs" page from the main menu. In here you'll see a status of "Scanning for Hubs..." If you're in range of your hub and its service is running, the app should find it pretty quickly (less than 15 seconds). If this is the first hub you've added, it will prompt you for your wifi credentials. After that, it will send via bluetooth the hub index (so it knows which hub it is), host (so it knows where to post data), auth code (so it knows which account it is and can post data), the encrypted wifi credentials, and finally a command to reboot.
 
 1. After your hub reboots, it should acquire an ip from your router, start the service, and try to start posting data. The hubs will try to auto-calibrate your voltage to 120V too, but if your AC/AC transformer is not plugged in, it will notice that and not try to auto-calibrate. It will continue to try to auto-calibrate each time you restart the hub until it does so succesfully.
 
@@ -72,25 +76,17 @@ First, you and I will get along just fine.  Second, do a reactor build from the 
 The compiled service will be at LanternPowerMonitor/currentmonitor/lantern-currentmonitor/target/lantern-currentmonitor.jar<br>
 This is a shaded jar that contains all of the required components to function.  It must be copied to /opt/currentmonitor on the pi.<br><br>
 
-After that, you need to install wiring-pi:
+After that, you need to install pigpio:
 ```
-sudo apt-get install wiringpi
+sudo apt-get install pigpio
 ```
 You also need to have java 1.8 or newer installed.
-
-Create a configuration file at /opt/currentmonitor/config.json<br>
-Use the format below to get started
-```
-{
-	"host": "https://lanternpowermonitor.com/currentmonitor",
-	"needs_calibration": true
-}
-```
 To install the current monitor service, use a service file like the one below:
 ```
 [Unit]
 Description=Current Monitor
-After=syslog.target network.target
+After=syslog.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
