@@ -4,9 +4,6 @@ import com.lanternsoftware.util.ResourceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
-
 public class PIGPIO {
     protected static final Logger LOG = LoggerFactory.getLogger(PIGPIO.class);
 
@@ -20,10 +17,11 @@ public class PIGPIO {
 				osArch = "armhf";
 			String path = "/lib/" + osArch + "/lantern-pigpio.so";
 			byte[] file = ResourceLoader.getByteArrayResource(PIGPIO.class, path);
-			String target = Files.createTempFile("lantern-pigpio", "so").toAbsolutePath().toString();
-			ResourceLoader.writeFile(target, file);
-			System.load(target);
-		} catch (IOException _e) {
+			LOG.info("library size: {}", file.length);
+			String libPath = "/opt/currentmonitor/lantern-pigpio.so";
+			ResourceLoader.writeFile(libPath, file);
+			System.load(libPath);
+		} catch (Exception _e) {
             LOG.error("Failed to load lantern-pigpio.so from resource", _e);
 		}
 	}

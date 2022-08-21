@@ -8,6 +8,7 @@ import com.lanternsoftware.datamodel.currentmonitor.EnergyViewMode;
 import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.datamodel.currentmonitor.archive.ArchiveStatus;
+import com.lanternsoftware.datamodel.currentmonitor.hub.HubSample;
 import com.lanternsoftware.util.DateRange;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.dao.mongo.MongoProxy;
@@ -44,7 +45,6 @@ public interface CurrentMonitorDao {
 	void putConfig(BreakerConfig _config);
 
 	void rebuildSummaries(int _accountId);
-	void rebuildSummariesAsync(int _accountId);
 	void rebuildSummaries(int _accountId, Date _start, Date _end);
 
 	String addPasswordResetKey(String _email);
@@ -65,6 +65,9 @@ public interface CurrentMonitorDao {
 	void putHubCommand(HubCommand _command);
 	List<HubCommand> getAllHubCommands();
 	void deleteHubCommand(String _id);
+
+	void putHubSample(HubSample _sample);
+	List<HubSample> getSamplesForAccount(int _accountId);
 
 	MongoProxy getProxy();
 }

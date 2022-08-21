@@ -17,13 +17,14 @@ public class RebuildSummariesServlet extends SecureServiceServlet {
 		if (_authCode.getAccountId() == 100) {
 			String[] path = path(_req);
 			if (path.length > 0) {
-				Globals.dao.rebuildSummariesAsync(DaoSerializer.toInteger(CollectionUtils.get(path, 0)));
+				Globals.opsExecutor.submit(() -> Globals.dao.rebuildSummaries(DaoSerializer.toInteger(CollectionUtils.get(path, 0))));
 			}
 			else {
 				for (String sId : Globals.dao.getProxy().queryForField(Account.class, null, "_id")) {
 					int id = DaoSerializer.toInteger(sId);
-					if (id != 0)
-						Globals.dao.rebuildSummariesAsync(id);
+					if (id != 0) {
+						Globals.opsExecutor.submit(() -> Globals.dao.rebuildSummaries(id));
+					}
 				}
 			}
 		}

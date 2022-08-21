@@ -2,7 +2,6 @@ package com.lanternsoftware.zwave.context;
 
 import com.lanternsoftware.datamodel.rules.Event;
 import com.lanternsoftware.datamodel.rules.EventType;
-import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.datamodel.zwave.Switch;
 import com.lanternsoftware.datamodel.zwave.SwitchSchedule;
 import com.lanternsoftware.datamodel.zwave.SwitchTransition;
@@ -10,13 +9,14 @@ import com.lanternsoftware.datamodel.zwave.ThermostatMode;
 import com.lanternsoftware.datamodel.zwave.ZWaveConfig;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
-import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
 import com.lanternsoftware.util.cryptography.AESTool;
 import com.lanternsoftware.util.dao.DaoSerializer;
+import com.lanternsoftware.util.dao.auth.AuthCode;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
+import com.lanternsoftware.util.external.LanternFiles;
 import com.lanternsoftware.util.http.HttpPool;
 import com.lanternsoftware.zwave.controller.Controller;
 import com.lanternsoftware.zwave.dao.MongoZWaveDao;
@@ -54,6 +54,8 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ZWaveApp {
 	public static final AESTool aes = AESTool.authTool();
@@ -75,11 +77,13 @@ public class ZWaveApp {
 	private SwitchScheduleTask nextScheduleTask;
 	private final Map<Integer, Double> sensors = new HashMap<>();
 	private final Object ZWAVE_MUTEX = new Object();
+	private ExecutorService executor = null;
 
 	public void start() {
 		try {
 			pool = new HttpPool(100, 20, 5000, 5000, 5000);
 			config = DaoSerializer.parse(ResourceLoader.loadFile(LanternFiles.CONFIG_PATH + "config.json"), ZWaveConfig.class);
+			executor = Executors.newFixedThreadPool(5);
 			if (config == null) {
 				dao = new MongoZWaveDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
 				config = dao.getConfig(1);
@@ -202,6 +206,7 @@ public class ZWaveApp {
 
 			@Override
 			public void onMessage(MultilevelSwitchReportRequest _message) {
+				logger.info("Received MultilevelSwitchReportRequest");
 				onSwitchLevelChange(_message.getNodeId(), _message.getLevel());
 			}
 		});
@@ -214,6 +219,7 @@ public class ZWaveApp {
 
 			@Override
 			public void onMessage(BinarySwitchReportRequest _message) {
+				logger.info("Received BinarySwitchReportRequest");
 				onSwitchLevelChange(_message.getNodeId(), _message.getLevel());
 			}
 		});
@@ -226,9 +232,17 @@ public class ZWaveApp {
 
 			@Override
 			public void onMessage(CRC16EncapRequest _message) {
-				onSwitchLevelChange(_message.getNodeId(), _message.isOn()?0xFF:0);
+//				logger.info("Received CRC16EncapRequest");
+//				onSwitchLevelChange(_message.getNodeId(), _message.isOn()?0xFF:0);
 			}
 		});
+
+//		for (Switch sw : config.getSwitches()) {
+//			if (sw.getNodeId() < 255) {
+//				controller.send(new NodeNeighborUpdateRequest(sw.getNodeId()));
+//				ConcurrencyUtils.sleep(5000);
+//			}
+//		}
 
 //		controller.send(new MultilevelSwitchSetRequest((byte)2, 0xFF));
 
@@ -244,26 +258,30 @@ public class ZWaveApp {
 //		controller.send(new ThermostatModeGetRequest((byte)11));
 	}
 
-	private void onSwitchLevelChange(int _secondaryNodeId, int _primaryLevel) {
+	private void onSwitchLevelChange(int _nodeId, int _level) {
 		synchronized (switches) {
-			Switch sw = switches.get(_secondaryNodeId);
-			if ((sw != null) && !sw.isPrimary()) {
-				int newLevel = sw.isMultilevel()?_primaryLevel:((_primaryLevel == 0)?0:99);
+			Switch sw = switches.get(_nodeId);
+			if (sw != null) {
+				logger.info("Received level change for node {} to level {} via z-wave", _nodeId, _level);
+				if (_level == -1)
+					_level = 255;
+				int newLevel = sw.isMultilevel()?NullUtils.bound(_level, 0, 99):((_level == 0)?0:99);
 				sw.setLevel(newLevel);
 				fireSwitchLevelEvent(sw);
-				for (Switch peer : CollectionUtils.makeNotNull(peers.get(_secondaryNodeId))) {
-					if (peer.isPrimary()) {
-						logger.info("Mirror Event from node {} to node {}", _secondaryNodeId, peer.getNodeId());
-						if (peer.isMultilevel()) {
-							peer.setLevel(newLevel);
-							controller.send(new MultilevelSwitchSetRequest((byte) peer.getNodeId(), newLevel));
-						} else {
-							peer.setLevel(newLevel > 0 ? 0xff : 0);
-							controller.send(new BinarySwitchSetRequest((byte) peer.getNodeId(), newLevel > 0));
-						}
+				for (Switch peer : CollectionUtils.makeNotNull(peers.get(_nodeId))) {
+					logger.info("Mirror Event from {} node {} to {} node {} level {}", sw.isPrimary() ? "primary" : "secondary", _nodeId, peer.isPrimary() ? "primary" : "secondary", peer.getNodeId(), newLevel);
+					if (peer.isMultilevel()) {
+						peer.setLevel(newLevel);
+						controller.send(new MultilevelSwitchSetRequest((byte) peer.getNodeId(), newLevel));
+					} else {
+						peer.setLevel(newLevel != 0 ? 0xff : 0);
+						controller.send(new BinarySwitchSetRequest((byte) peer.getNodeId(), newLevel != 0));
 					}
 				}
 				persistConfig();
+			}
+			else {
+				logger.info("Received level change for unknown node {}", _nodeId);
 			}
 		}
 	}
@@ -294,18 +312,20 @@ public class ZWaveApp {
 	public void fireSwitchLevelEvent(Switch _sw) {
 		if (NullUtils.isEmpty(config.getRulesUrl()) || _sw.isSuppressEvents())
 			return;
-		Event event = new Event();
-		event.setEventDescription(_sw.getFullDisplay() + " set to " + _sw.getLevel());
-		event.setType(EventType.SWITCH_LEVEL);
-		event.setTime(new Date());
-		event.setValue(_sw.getLevel());
-		event.setSourceId(String.valueOf(_sw.getNodeId()));
-		event.setAccountId(config.getAccountId());
-		logger.info("Sending event to rules server - " + event.getEventDescription());
-		HttpPost post = new HttpPost(NullUtils.terminateWith(config.getRulesUrl(), "/") + "event");
-		post.setHeader("auth_code", authCode);
-		post.setEntity(new ByteArrayEntity(DaoSerializer.toZipBson(event)));
-		pool.execute(post);
+		executor.submit(()->{
+			Event event = new Event();
+			event.setEventDescription(_sw.getFullDisplay() + " set to " + _sw.getLevel());
+			event.setType(EventType.SWITCH_LEVEL);
+			event.setTime(new Date());
+			event.setValue(_sw.getLevel());
+			event.setSourceId(String.valueOf(_sw.getNodeId()));
+			event.setAccountId(config.getAccountId());
+			logger.info("Sending event to rules server - " + event.getEventDescription());
+			HttpPost post = new HttpPost(NullUtils.terminateWith(config.getRulesUrl(), "/") + "event");
+			post.setHeader("auth_code", authCode);
+			post.setEntity(new ByteArrayEntity(DaoSerializer.toZipBson(event)));
+			pool.execute(post);
+		});
 	}
 
 	public void setSwitchLevel(int _nodeId, int _level, boolean _updatePeers) {
@@ -401,11 +421,13 @@ public class ZWaveApp {
 			peers.remove(config.getUrl());
 			for (String peer : peers) {
 				for (Switch sw : modified) {
-					logger.info("Sending update for switch {} {} level {} to {}", sw.getNodeId(), sw.getFullDisplay(), sw.getLevel(), peer);
-					HttpPost post = new HttpPost(peer + "/switch/" + sw.getNodeId());
-					post.setHeader("auth_code", authCode);
-					post.setEntity(new ByteArrayEntity(DaoSerializer.toZipBson(sw)));
-					pool.execute(post);
+					executor.submit(()->{
+						logger.info("Sending update for switch {} {} level {} to {}", sw.getNodeId(), sw.getFullDisplay(), sw.getLevel(), peer);
+						HttpPost post = new HttpPost(peer + "/switch/" + sw.getNodeId());
+						post.setHeader("auth_code", authCode);
+						post.setEntity(new ByteArrayEntity(DaoSerializer.toZipBson(sw)));
+						pool.execute(post);
+					});
 				}
 			}
 		}
@@ -441,6 +463,10 @@ public class ZWaveApp {
 			pool.shutdown();
 			pool = null;
 		}
+		if (executor != null) {
+			executor.shutdown();
+			executor = null;
+		}
 		if (dao != null) {
 			dao.shutdown();
 			dao = null;
@@ -455,7 +481,7 @@ public class ZWaveApp {
 		for (Switch node : nodes) {
 			logger.info("Setting {}, Node {} to {}", node.getName(), node.getNodeId(), _level);
 			byte nid = (byte) (node.getNodeId()%1000);
-			controller.send(node.isMultilevel() ? new MultilevelSwitchSetRequest(nid, _level) : new BinarySwitchSetRequest(nid, _level > 0));
+			controller.send(node.isMultilevel() ? new MultilevelSwitchSetRequest(nid, _level) : new BinarySwitchSetRequest(nid, _level != 0));
 		}
 	}
 

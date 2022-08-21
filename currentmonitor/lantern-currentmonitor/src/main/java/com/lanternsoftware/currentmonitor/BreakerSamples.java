@@ -2,6 +2,7 @@ package com.lanternsoftware.currentmonitor;
 
 import com.lanternsoftware.currentmonitor.adc.MCP3008Pin;
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
+import com.lanternsoftware.datamodel.currentmonitor.hub.PowerSample;
 
 import java.util.List;
 

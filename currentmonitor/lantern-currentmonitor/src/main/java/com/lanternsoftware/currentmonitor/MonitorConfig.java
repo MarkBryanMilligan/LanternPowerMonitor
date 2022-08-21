@@ -17,6 +17,7 @@ public class MonitorConfig {
     private boolean debug;
     private int connectTimeout;
     private int socketTimeout;
+    private boolean postSamples = false;
     private boolean needsCalibration = true;
     private String mqttBrokerUrl;
     private String mqttUserName;
@@ -96,6 +97,14 @@ public class MonitorConfig {
 
     public void setSocketTimeout(int _socketTimeout) {
         socketTimeout = _socketTimeout;
+    }
+
+    public boolean isPostSamples() {
+        return postSamples;
+    }
+
+    public void setPostSamples(boolean _postSamples) {
+        postSamples = _postSamples;
     }
 
     public boolean isNeedsCalibration() {

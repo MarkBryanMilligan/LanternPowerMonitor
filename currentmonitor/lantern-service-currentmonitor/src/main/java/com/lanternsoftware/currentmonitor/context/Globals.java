@@ -18,9 +18,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Globals implements ServletContextListener {
 	public static CurrentMonitorDao dao;
+	public static ExecutorService opsExecutor;
 	private static final Map<Integer, Map<Integer, List<HubCommand>>> commands = new HashMap<>();
 
 	@Override
@@ -28,10 +31,12 @@ public class Globals implements ServletContextListener {
 		dao = new MongoCurrentMonitorDao(MongoConfig.fromDisk(LanternFiles.CONFIG_PATH + "mongo.cfg"));
 		RulesEngine.instance().start();
 		RulesEngine.instance().schedule(new CommandTask(), 0);
+		opsExecutor = Executors.newFixedThreadPool(7);
 	}
 
 	@Override
 	public void contextDestroyed(ServletContextEvent sce) {
+		opsExecutor.shutdown();
 		dao.shutdown();
 		HttpFactory.shutdown();
 		RulesEngine.shutdown();

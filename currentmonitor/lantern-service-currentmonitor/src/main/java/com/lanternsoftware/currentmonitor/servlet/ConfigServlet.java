@@ -4,6 +4,7 @@ import com.lanternsoftware.currentmonitor.context.Globals;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerConfig;
 import com.lanternsoftware.datamodel.currentmonitor.HubCommand;
 import com.lanternsoftware.datamodel.currentmonitor.HubConfigCharacteristic;
+import com.lanternsoftware.rules.RulesEngine;
 import com.lanternsoftware.util.dao.auth.AuthCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,8 @@ public class ConfigServlet extends SecureServiceServlet {
 		if ((oldConfig == null) || !oldConfig.isIdentical(config))
 			Globals.dao.putHubCommand(new HubCommand(config.getAccountId(), HubConfigCharacteristic.ReloadConfig, null));
 		Globals.dao.putConfig(config);
-		zipBsonResponse(_rep, Globals.dao.getMergedConfig(_authCode));
+		config = Globals.dao.getMergedConfig(_authCode);
+		RulesEngine.instance().sendFcmMessage(config.getAccountId(), config);
+		zipBsonResponse(_rep, config);
 	}
 }

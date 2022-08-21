@@ -34,6 +34,7 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		d.put("debug", _o.isDebug());
 		d.put("connect_timeout", _o.getConnectTimeout());
 		d.put("socket_timeout", _o.getSocketTimeout());
+		d.put("post_samples", _o.isPostSamples());
 		d.put("needs_calibration", _o.isNeedsCalibration());
 		d.put("mqtt_broker_url", _o.getMqttBrokerUrl());
 		d.put("mqtt_user_name", _o.getMqttUserName());
@@ -57,6 +58,7 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		o.setDebug(DaoSerializer.getBoolean(_d, "debug"));
 		o.setConnectTimeout(DaoSerializer.getInteger(_d, "connect_timeout"));
 		o.setSocketTimeout(DaoSerializer.getInteger(_d, "socket_timeout"));
+		o.setPostSamples(DaoSerializer.getBoolean(_d, "post_samples"));
 		o.setNeedsCalibration(DaoSerializer.getBoolean(_d, "needs_calibration"));
 		o.setMqttBrokerUrl(DaoSerializer.getString(_d, "mqtt_broker_url"));
 		o.setMqttUserName(DaoSerializer.getString(_d, "mqtt_user_name"));

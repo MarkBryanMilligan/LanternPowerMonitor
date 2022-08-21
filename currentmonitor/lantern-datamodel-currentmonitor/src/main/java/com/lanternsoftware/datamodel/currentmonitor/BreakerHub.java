@@ -11,6 +11,8 @@ public class BreakerHub implements IIdentical<BreakerHub> {
 	private int hub;
 	private double voltageCalibrationFactor;
 	private double portCalibrationFactor;
+	private int phaseCnt;
+	private int phaseOffsetNs;
 	private int frequency;
 	private String bluetoothMac;
 
@@ -46,8 +48,24 @@ public class BreakerHub implements IIdentical<BreakerHub> {
 		portCalibrationFactor = _portCalibrationFactor;
 	}
 
+	public int getPhaseCnt() {
+		return phaseCnt == 0 ? 2 : phaseCnt;
+	}
+
+	public void setPhaseCnt(int _phaseCnt) {
+		phaseCnt = _phaseCnt;
+	}
+
+	public int getPhaseOffsetNs() {
+		return phaseOffsetNs;
+	}
+
+	public void setPhaseOffsetNs(int _phaseOffsetNs) {
+		phaseOffsetNs = _phaseOffsetNs;
+	}
+
 	public int getFrequency() {
-		return frequency;
+		return frequency == 0 ? 60 : frequency;
 	}
 
 	public void setFrequency(int _frequency) {
@@ -73,7 +91,7 @@ public class BreakerHub implements IIdentical<BreakerHub> {
 	@Override
 	public boolean isIdentical(BreakerHub _o) {
 		if (this == _o) return true;
-		return hub == _o.hub && Double.compare(_o.voltageCalibrationFactor, voltageCalibrationFactor) == 0 && Double.compare(_o.portCalibrationFactor, portCalibrationFactor) == 0 && frequency == _o.frequency && Objects.equals(bluetoothMac, _o.bluetoothMac);
+		return hub == _o.hub && Double.compare(_o.voltageCalibrationFactor, voltageCalibrationFactor) == 0 && Double.compare(_o.portCalibrationFactor, portCalibrationFactor) == 0 && getPhaseCnt() == _o.getPhaseCnt() && getPhaseOffsetNs() == _o.getPhaseOffsetNs() && getFrequency() == _o.getFrequency() && Objects.equals(bluetoothMac, _o.bluetoothMac);
 	}
 
 	@Override

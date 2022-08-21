@@ -14,7 +14,7 @@ public class BinarySwitchReportRequest extends RequestMessage {
 	@Override
 	public void fromPayload(byte[] _payload) {
 		nodeId = _payload[5];
-		level = _payload[9];
+		level = 0xFF & _payload[9];
 	}
 
 	public int getLevel() {

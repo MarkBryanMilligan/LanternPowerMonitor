@@ -28,6 +28,8 @@ public class BreakerHubSerializer extends AbstractDaoSerializer<BreakerHub>
 		d.put("hub", _o.getHub());
 		d.put("voltage_calibration_factor", _o.getRawVoltageCalibrationFactor());
 		d.put("port_calibration_factor", _o.getRawPortCalibrationFactor());
+		d.put("phase_cnt", _o.getPhaseCnt());
+		d.put("phase_offset_ns", _o.getPhaseOffsetNs());
 		d.put("frequency", _o.getFrequency());
 		d.put("bluetooth_mac", _o.getBluetoothMac());
 		return d;
@@ -40,6 +42,8 @@ public class BreakerHubSerializer extends AbstractDaoSerializer<BreakerHub>
 		o.setHub(DaoSerializer.getInteger(_d, "hub"));
 		o.setVoltageCalibrationFactor(DaoSerializer.getDouble(_d, "voltage_calibration_factor"));
 		o.setPortCalibrationFactor(DaoSerializer.getDouble(_d, "port_calibration_factor"));
+		o.setPhaseCnt(DaoSerializer.getInteger(_d, "phase_cnt"));
+		o.setPhaseOffsetNs(DaoSerializer.getInteger(_d, "phase_offset_ns"));
 		o.setFrequency(DaoSerializer.getInteger(_d, "frequency"));
 		o.setBluetoothMac(DaoSerializer.getString(_d, "bluetooth_mac"));
 		return o;

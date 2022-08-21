@@ -11,13 +11,16 @@ import com.lanternsoftware.datamodel.rules.Criteria;
 import com.lanternsoftware.datamodel.rules.Event;
 import com.lanternsoftware.datamodel.rules.EventId;
 import com.lanternsoftware.datamodel.rules.EventType;
+import com.lanternsoftware.datamodel.rules.FcmDevice;
 import com.lanternsoftware.datamodel.rules.Rule;
 import com.lanternsoftware.rules.actions.ActionImpl;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
-import com.lanternsoftware.util.external.LanternFiles;
+import com.lanternsoftware.util.cloudservices.google.FirebaseHelper;
+import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.dao.mongo.MongoConfig;
+import com.lanternsoftware.util.external.LanternFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +39,7 @@ import java.util.concurrent.Executors;
 
 public class RulesEngine {
 	protected static final Logger LOG = LoggerFactory.getLogger(RulesEngine.class);
+	protected static final FirebaseHelper firebaseHelper = new FirebaseHelper(LanternFiles.CONFIG_PATH + "google_account_key.json");
 
 	private static RulesEngine INSTANCE;
 	private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -67,6 +71,15 @@ public class RulesEngine {
 
 	public RulesDataAccess dao() {
 		return dao;
+	}
+
+	public void sendFcmMessage(int _accountId, Object _payload) {
+		List<FcmDevice> devices = RulesEngine.instance().dao().getFcmDevicesForAccount(_accountId);
+		if (devices.isEmpty())
+			return;
+		for (FcmDevice device : devices) {
+			firebaseHelper.sendMessage(device.getToken(), new DaoEntity("payload", DaoSerializer.toBase64ZipBson(_payload)).and("payloadClass", _payload.getClass().getCanonicalName()));
+		}
 	}
 
 	public void fireEvent(Event _event) {
@@ -108,6 +121,8 @@ public class RulesEngine {
 			return;
 		Collection<Date> dates = CollectionUtils.aggregate(rules, _r->CollectionUtils.transform(_r.getAllCriteria(), _c->_c.getNextTriggerDate(tz)));
 		Date nextDate = CollectionUtils.getSmallest(dates);
+		if (nextDate == null)
+			return;
 		LOG.info("Scheduling next time event for account {} at {}", _accountId, DateUtils.format("MM/dd/yyyy HH:mm:ss", nextDate));
 		nextTask = new EventTimeTask(_accountId, nextDate);
 		timer.schedule(nextTask, nextDate);

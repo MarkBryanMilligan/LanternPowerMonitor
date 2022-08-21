@@ -16,6 +16,7 @@ import com.lanternsoftware.datamodel.currentmonitor.HubConfigCharacteristic;
 import com.lanternsoftware.datamodel.currentmonitor.HubConfigService;
 import com.lanternsoftware.datamodel.currentmonitor.HubPowerMinute;
 import com.lanternsoftware.datamodel.currentmonitor.NetworkStatus;
+import com.lanternsoftware.datamodel.currentmonitor.hub.HubSample;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.ResourceLoader;
@@ -65,16 +66,24 @@ public class MonitorApp {
 	private static final CurrentMonitor monitor = new CurrentMonitor();
 	private static final List<BreakerPower> readings = new ArrayList<>();
 	private static String version;
-	private static final PowerListener logger = _p -> {
-		if (!config.isDebug()) {
-			_p.setHubVersion(version);
-			if (breakerConfig != null)
-				_p.setAccountId(breakerConfig.getAccountId());
-			synchronized (readings) {
-				readings.add(_p);
-			}
-		} else
-			LOG.info("Panel{} - Space{} Power: {}W", _p.getPanel(), Breaker.toSpaceDisplay(_p.getSpace()), String.format("%.3f", _p.getPower()));
+	private static final PowerListener logger = new PowerListener() {
+		@Override
+		public void onPowerEvent(BreakerPower _power) {
+			if (!config.isDebug()) {
+				_power.setHubVersion(version);
+				if (breakerConfig != null)
+					_power.setAccountId(breakerConfig.getAccountId());
+				synchronized (readings) {
+					readings.add(_power);
+				}
+			} else
+				LOG.info("Panel{} - Space{} Power: {}W", _power.getPanel(), Breaker.toSpaceDisplay(_power.getSpace()), String.format("%.3f", _power.getPower()));
+		}
+
+		@Override
+		public void onSampleEvent(HubSample _sample) {
+			post(DaoSerializer.toZipBson(_sample), "sample");
+		}
 	};
 	private static final BleCharacteristicListener bluetoothListener = new BleCharacteristicListener() {
 		@Override
@@ -214,6 +223,7 @@ public class MonitorApp {
 		if (NullUtils.isNotEmpty(config.getHost()))
 			host = NullUtils.terminateWith(config.getHost(), "/");
 		monitor.setDebug(config.isDebug());
+		monitor.setPostSamples(config.isPostSamples());
 		LEDFlasher.setLEDOn(false);
 		if (NullUtils.isNotEmpty(config.getAuthCode()))
 			authCode = config.getAuthCode();

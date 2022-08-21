@@ -6,6 +6,9 @@ import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerHub;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPolarity;
 import com.lanternsoftware.datamodel.currentmonitor.BreakerPower;
+import com.lanternsoftware.datamodel.currentmonitor.hub.BreakerSample;
+import com.lanternsoftware.datamodel.currentmonitor.hub.HubSample;
+import com.lanternsoftware.datamodel.currentmonitor.hub.PowerSample;
 import com.lanternsoftware.pigpio.PiGpioFactory;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.concurrency.ConcurrencyUtils;
@@ -18,6 +21,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,6 +34,23 @@ public class CurrentMonitor {
 	private Sampler sampler;
 	private PowerListener listener;
 	private boolean debug = false;
+	private boolean postSamples = false;
+
+	public boolean isDebug() {
+		return debug;
+	}
+
+	public void setDebug(boolean _debug) {
+		debug = _debug;
+	}
+
+	public boolean isPostSamples() {
+		return postSamples;
+	}
+
+	public void setPostSamples(boolean _postSamples) {
+		postSamples = _postSamples;
+	}
 
 	public void stop() {
 		stopMonitoring();
@@ -38,10 +60,6 @@ public class CurrentMonitor {
 		PiGpioFactory.shutdown();
 		chips.clear();
 		LOG.info("Power Monitor Service Stopped");
-	}
-
-	public void setDebug(boolean _debug) {
-		debug = _debug;
 	}
 
 	public CalibrationResult calibrateVoltage(double _curCalibration) {
@@ -148,10 +166,10 @@ public class CurrentMonitor {
 		private boolean running = true;
 		private final BreakerHub hub;
 		private final List<List<BreakerSamples>> breakers;
-		private final int intervalNs;
+		private final long intervalNs;
 		private final int concurrentBreakerCnt;
 
-		public Sampler(BreakerHub _hub, List<Breaker> _breakers, int _intervalMs, int _concurrentBreakerCnt) {
+		public Sampler(BreakerHub _hub, List<Breaker> _breakers, long _intervalMs, int _concurrentBreakerCnt) {
 			hub = _hub;
 			MCP3008Pin voltagePin = new MCP3008Pin(getChip(0), 0);
 			breakers = CollectionUtils.transform(_breakers, _b->{
@@ -177,6 +195,10 @@ public class CurrentMonitor {
 			long interval = 0;
 			int cycle;
 			int curBreaker;
+			long intervalStart;
+			long intervalEnd;
+			long cycleEnd;
+			long curTime;
 			BreakerSamples[] cycleBreakers = new BreakerSamples[concurrentBreakerCnt];
 			try {
 				while (true) {
@@ -187,8 +209,8 @@ public class CurrentMonitor {
 						}
 					}
 					final Date readTime = new Date();
-					final long intervalStart = (interval * intervalNs) + start;
-					long intervalEnd = intervalStart + intervalNs;
+					intervalStart = (interval * intervalNs) + start;
+					intervalEnd = intervalStart + intervalNs;
 					cycle = 0;
 					final int batch = (int) (interval % BATCH_CNT);
 					while (System.nanoTime() < intervalEnd) {
@@ -197,22 +219,73 @@ public class CurrentMonitor {
 							cycleBreakers[curBreaker].incrementCycleCnt();
 						}
 						cycle++;
-						long cycleEnd = intervalStart + (cycle * (intervalNs / hub.getFrequency()));
-						while (System.nanoTime() < cycleEnd) {
+						cycleEnd = intervalStart + (cycle * (intervalNs / hub.getFrequency()));
+						curTime = System.nanoTime();
+						while (curTime < cycleEnd) {
 							for (curBreaker = 0; curBreaker < concurrentBreakerCnt; curBreaker++) {
 								PowerSample sample = cycleBreakers[curBreaker].incrementSample();
+								sample.nanoTime = curTime;
+								sample.cycle = cycle;
 								sample.voltage = cycleBreakers[curBreaker].getVoltagePin().read();
 								sample.current = cycleBreakers[curBreaker].getCurrentPin().read();
 							}
+							curTime = System.nanoTime();
 						}
 					}
 					interval++;
+					final HubSample hubSample = (postSamples && (interval == 10)) ? new HubSample() : null;
 					executor.submit(() -> {
+						long cycleLength = 1000000000/hub.getFrequency();
+						if (hubSample != null) {
+							hubSample.setSampleDate(new Date());
+							hubSample.setBreakers(new ArrayList<>());
+						}
 						for (List<BreakerSamples> breaker : breakers) {
-							double vOffset = 0.0;
-							double iOffset = 0.0;
 							BreakerSamples samples = breaker.get(batch);
 							List<PowerSample> validSamples = samples.getSamples().subList(0, samples.getSampleCnt());
+							if (hubSample != null) {
+								BreakerSample breakerSample = new BreakerSample();
+								breakerSample.setSamples(validSamples);
+								breakerSample.setPanel(samples.getBreaker().getPanel());
+								breakerSample.setSpace(samples.getBreaker().getSpace());
+								hubSample.getBreakers().add(breakerSample);
+							}
+							int phaseOffsetNs = samples.getBreaker().getPhaseOffsetNs()-hub.getPhaseOffsetNs();
+							if (phaseOffsetNs != 0) {
+								Map<Integer, List<PowerSample>> cycles = CollectionUtils.transformToMultiMap(validSamples, _p->_p.cycle);
+								for (List<PowerSample> cycleSamples : cycles.values()) {
+									long minNano;
+									long maxNano = minNano = cycleSamples.get(0).nanoTime;
+									for (PowerSample sample : cycleSamples) {
+										if (sample.nanoTime < minNano)
+											minNano = sample.nanoTime;
+										if (sample.nanoTime > maxNano)
+											maxNano = sample.nanoTime;
+									}
+									TreeMap<Long, Double> offsetSamples = new TreeMap<>();
+									for (PowerSample sample : cycleSamples) {
+										if (sample.nanoTime + phaseOffsetNs < minNano)
+											offsetSamples.put(sample.nanoTime + phaseOffsetNs + cycleLength, sample.voltage);
+										else if (sample.nanoTime + phaseOffsetNs > maxNano)
+											offsetSamples.put(sample.nanoTime + phaseOffsetNs - cycleLength, sample.voltage);
+										else
+											offsetSamples.put(sample.nanoTime + phaseOffsetNs, sample.voltage);
+									}
+									for (PowerSample sample : cycleSamples) {
+										List<Double> voltages = new ArrayList<>();
+										Entry<Long, Double> floorEntry = offsetSamples.floorEntry(sample.nanoTime);
+										if (floorEntry != null)
+											voltages.add(floorEntry.getValue());
+										Entry<Long, Double> ceilingEntry = offsetSamples.ceilingEntry(sample.nanoTime);
+										if (ceilingEntry != null)
+											voltages.add(ceilingEntry.getValue());
+										sample.voltage = CollectionUtils.mean(voltages);
+									}
+								}
+							}
+
+							double vOffset = 0.0;
+							double iOffset = 0.0;
 							for (PowerSample sample : validSamples) {
 								vOffset += sample.voltage;
 								iOffset += sample.current;
@@ -223,6 +296,7 @@ public class CurrentMonitor {
 							double pSum = 0.0;
 							double vRms = 0.0;
 							double lowPassFilter = samples.getBreaker().getLowPassFilter();
+
 							for (PowerSample sample : validSamples) {
 								sample.current -= iOffset;
 								if (Math.abs(sample.current) < lowPassFilter)
@@ -233,11 +307,15 @@ public class CurrentMonitor {
 							}
 							vRms /= validSamples.size();
 							vRms = hub.getVoltageCalibrationFactor() * Math.sqrt(vRms);
-							int lowSampleRatio = (lowSamples * 100) / samples.getSampleCnt();
-							double realPower = Math.abs((hub.getVoltageCalibrationFactor() * hub.getPortCalibrationFactor() * samples.getBreaker().getFinalCalibrationFactor() * pSum) / samples.getSampleCnt());
-							if ((lowSampleRatio > 75) && realPower < 13.0)
+							int lowSampleRatio = (lowSamples * 100) / validSamples.size();
+							double realPower = (hub.getVoltageCalibrationFactor() * hub.getPortCalibrationFactor() * samples.getBreaker().getFinalCalibrationFactor() * pSum) / validSamples.size();
+							if ((lowSampleRatio > 75) && Math.abs(realPower) < 13.0)
 								realPower = 0.0;
-							if (samples.getBreaker().getPolarity() == BreakerPolarity.SOLAR)
+							if (samples.getBreaker().getPolarity() == BreakerPolarity.NORMAL)
+								realPower = Math.abs(realPower);
+							else if (samples.getBreaker().getPolarity() == BreakerPolarity.SOLAR)
+								realPower = -Math.abs(realPower);
+							else if (samples.getBreaker().getPolarity() == BreakerPolarity.BI_DIRECTIONAL_INVERTED)
 								realPower = -realPower;
 							if (samples.getBreaker().isDoublePower())
 								realPower *= 2.0;
@@ -263,6 +341,8 @@ public class CurrentMonitor {
 							samples.setCycleCnt(0);
 							listener.onPowerEvent(new BreakerPower(samples.getBreaker().getPanel(), samples.getBreaker().getSpace(), readTime, realPower, vRms));
 						}
+						if (hubSample != null)
+							listener.onSampleEvent(hubSample);
 					});
 				}
 			}

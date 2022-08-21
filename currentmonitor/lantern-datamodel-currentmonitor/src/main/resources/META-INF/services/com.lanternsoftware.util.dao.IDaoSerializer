@@ -26,3 +26,6 @@ com.lanternsoftware.datamodel.currentmonitor.dao.MeterSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.NetworkStatusSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.SequenceSerializer
 com.lanternsoftware.datamodel.currentmonitor.dao.SignupResponseSerializer
+com.lanternsoftware.datamodel.currentmonitor.hub.dao.BreakerSampleSerializer
+com.lanternsoftware.datamodel.currentmonitor.hub.dao.HubSampleSerializer
+com.lanternsoftware.datamodel.currentmonitor.hub.dao.PowerSampleSerializer

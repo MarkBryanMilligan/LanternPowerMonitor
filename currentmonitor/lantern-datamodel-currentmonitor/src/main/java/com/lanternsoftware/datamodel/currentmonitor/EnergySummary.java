@@ -140,9 +140,9 @@ public class EnergySummary {
 				idx = 0;
 				double flow = 0.0;
 				for (Float power : CollectionUtils.makeNotNull(breaker.getReadings())) {
-					if ((b.getPolarity() == BreakerPolarity.SOLAR) && (meter.flow[idx] < 0.0))
+					if (power < 0 && (meter.flow[idx] < 0.0))
 						flow -= meter.flow[idx] * (power / meter.solar[idx]);
-					else if ((b.getPolarity() != BreakerPolarity.SOLAR) && (meter.flow[idx] > 0.0))
+					else if (power > 0 && (meter.flow[idx] > 0.0))
 						flow += meter.flow[idx] * (power / meter.usage[idx]);
 					idx++;
 				}
@@ -152,11 +152,11 @@ public class EnergySummary {
 	}
 
 	public void resetEnergy(Date _readTime) {
-		if (energy == null)
-			return;
-		int idx = viewMode.blockIndex(start, _readTime, timezone);
-		if (idx < energy.length)
-			energy[idx] = 0f;
+		if (energy != null) {
+			int idx = viewMode.blockIndex(start, _readTime, timezone);
+			if (idx < energy.length)
+				energy[idx] = 0f;
+		}
 		for (EnergySummary subGroup : CollectionUtils.makeNotNull(subGroups)) {
 			subGroup.resetEnergy(_readTime);
 		}

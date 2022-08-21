@@ -21,6 +21,7 @@ public class Breaker implements IIdentical<Breaker> {
 	private String name;
 	private String description;
 	private int sizeAmps;
+	private int phaseOffsetNs;
 	private double calibrationFactor;
 	private double lowPassFilter;
 	private BreakerPolarity polarity;
@@ -138,6 +139,14 @@ public class Breaker implements IIdentical<Breaker> {
 
 	public void setSizeAmps(int _sizeAmps) {
 		sizeAmps = _sizeAmps;
+	}
+
+	public int getPhaseOffsetNs() {
+		return phaseOffsetNs;
+	}
+
+	public void setPhaseOffsetNs(int _phaseOffsetNs) {
+		phaseOffsetNs = _phaseOffsetNs;
 	}
 
 	public double getLowPassFilter() {
@@ -278,7 +287,7 @@ public class Breaker implements IIdentical<Breaker> {
 	@Override
 	public boolean isIdentical(Breaker _o) {
 		if (this == _o) return true;
-		return panel == _o.panel && space == _o.space && meter == _o.meter && hub == _o.hub && port == _o.port && sizeAmps == _o.sizeAmps && Double.compare(_o.calibrationFactor, calibrationFactor) == 0 && Double.compare(_o.lowPassFilter, lowPassFilter) == 0 && doublePower == _o.doublePower && Objects.equals(name, _o.name) && Objects.equals(description, _o.description) && polarity == _o.polarity && type == _o.type;
+		return panel == _o.panel && space == _o.space && meter == _o.meter && hub == _o.hub && port == _o.port && sizeAmps == _o.sizeAmps && phaseOffsetNs == _o.phaseOffsetNs && Double.compare(_o.calibrationFactor, calibrationFactor) == 0 && Double.compare(_o.lowPassFilter, lowPassFilter) == 0 && doublePower == _o.doublePower && Objects.equals(name, _o.name) && Objects.equals(description, _o.description) && polarity == _o.polarity && type == _o.type;
 	}
 
 	@Override

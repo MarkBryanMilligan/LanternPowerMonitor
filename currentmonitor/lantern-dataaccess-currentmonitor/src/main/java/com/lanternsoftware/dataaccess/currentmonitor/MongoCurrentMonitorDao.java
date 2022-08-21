@@ -21,6 +21,7 @@ import com.lanternsoftware.datamodel.currentmonitor.archive.ArchiveStatus;
 import com.lanternsoftware.datamodel.currentmonitor.archive.BreakerEnergyArchive;
 import com.lanternsoftware.datamodel.currentmonitor.archive.DailyEnergyArchive;
 import com.lanternsoftware.datamodel.currentmonitor.archive.MonthlyEnergyArchive;
+import com.lanternsoftware.datamodel.currentmonitor.hub.HubSample;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateRange;
 import com.lanternsoftware.util.DateUtils;
@@ -488,16 +489,12 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	}
 
 	@Override
-	public void rebuildSummariesAsync(int _accountId) {
-		executor.submit(() -> rebuildSummaries(_accountId));
-	}
-
-	@Override
 	public void rebuildSummaries(int _accountId) {
 		HubPowerMinute firstMinute = proxy.queryOne(HubPowerMinute.class, new DaoQuery("account_id", _accountId), DaoSort.sort("minute"));
 		if (firstMinute == null)
 			return;
-		rebuildSummaries(_accountId, firstMinute.getMinuteAsDate(), new Date());
+		HubPowerMinute lastMinute = proxy.queryOne(HubPowerMinute.class, new DaoQuery("account_id", _accountId), DaoSort.sortDesc("minute"));
+		rebuildSummaries(_accountId, firstMinute.getMinuteAsDate(), lastMinute.getMinuteAsDate());
 	}
 
 	@Override
@@ -810,6 +807,16 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 	@Override
 	public void deleteHubCommand(String _id) {
 		proxy.delete(HubCommand.class, new DaoQuery("_id", _id));
+	}
+
+	@Override
+	public void putHubSample(HubSample _sample) {
+		proxy.save(_sample);
+	}
+
+	@Override
+	public List<HubSample> getSamplesForAccount(int _accountId) {
+		return proxy.query(HubSample.class, new DaoQuery("account_id", _accountId));
 	}
 
 	@Override
