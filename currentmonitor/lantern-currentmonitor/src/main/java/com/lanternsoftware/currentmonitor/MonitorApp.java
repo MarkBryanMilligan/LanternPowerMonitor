@@ -219,7 +219,7 @@ public class MonitorApp {
 			config = new MonitorConfig();
 			ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 		}
-		pool = new HttpPool(10, 10, config.getSocketTimeout(), config.getConnectTimeout(), config.getSocketTimeout());
+		pool = HttpPool.builder().withValidateSSLCertificates(!config.isAcceptSelfSignedCertificates()).build();
 		if (NullUtils.isNotEmpty(config.getHost()))
 			host = NullUtils.terminateWith(config.getHost(), "/");
 		monitor.setDebug(config.isDebug());

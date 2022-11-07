@@ -76,7 +76,6 @@ public class ZWaveApp {
 	private HttpPool pool;
 	private SwitchScheduleTask nextScheduleTask;
 	private final Map<Integer, Double> sensors = new HashMap<>();
-	private final Object ZWAVE_MUTEX = new Object();
 	private ExecutorService executor = null;
 
 	public void start() {
@@ -559,17 +558,15 @@ public class ZWaveApp {
 		if (_sw.isSourceUrlValid())
 			return DaoSerializer.getDouble(DaoSerializer.parse(pool.executeToString(new HttpGet(_sw.getSourceUrl()))), "temp");
 		else if (_sw.isZWaveThermostat() && config.isMySwitch(_sw)) {
-			synchronized (ZWAVE_MUTEX) {
-				synchronized (sensors) {
-					controller.send(new MultilevelSensorGetRequest((byte) _sw.getNodeId()));
-					try {
-						sensors.wait(3000);
-					} catch (InterruptedException _e) {
-						_e.printStackTrace();
-					}
-					Double temp = sensors.get(_sw.getNodeId());
-					return (temp == null) ? 0.0 : temp;
+			synchronized (sensors) {
+				controller.send(new MultilevelSensorGetRequest((byte) _sw.getNodeId()));
+				try {
+					sensors.wait(3000);
+				} catch (InterruptedException _e) {
+					_e.printStackTrace();
 				}
+				Double temp = sensors.get(_sw.getNodeId());
+				return (temp == null) ? 0.0 : temp;
 			}
 		}
 		return 0.0;

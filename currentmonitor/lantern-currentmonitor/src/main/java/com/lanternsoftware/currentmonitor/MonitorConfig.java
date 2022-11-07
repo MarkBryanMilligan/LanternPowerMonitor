@@ -19,6 +19,7 @@ public class MonitorConfig {
     private int socketTimeout;
     private boolean postSamples = false;
     private boolean needsCalibration = true;
+    private boolean acceptSelfSignedCertificates = false;
     private String mqttBrokerUrl;
     private String mqttUserName;
     private String mqttPassword;
@@ -113,6 +114,14 @@ public class MonitorConfig {
 
     public void setNeedsCalibration(boolean _needsCalibration) {
         needsCalibration = _needsCalibration;
+    }
+
+    public boolean isAcceptSelfSignedCertificates() {
+        return acceptSelfSignedCertificates;
+    }
+
+    public void setAcceptSelfSignedCertificates(boolean _acceptSelfSignedCertificates) {
+        acceptSelfSignedCertificates = _acceptSelfSignedCertificates;
     }
 
     public String getMqttBrokerUrl() {

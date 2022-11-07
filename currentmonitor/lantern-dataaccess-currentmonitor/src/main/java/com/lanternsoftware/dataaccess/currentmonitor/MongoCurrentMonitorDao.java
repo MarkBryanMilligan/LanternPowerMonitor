@@ -662,7 +662,7 @@ public class MongoCurrentMonitorDao implements CurrentMonitorDao {
 		if (NullUtils.isEmpty(_username) || NullUtils.isEmpty(_password))
 			return null;
 		Account acct = proxy.queryOne(Account.class, new DaoQuery("username", _username.toLowerCase().trim()));
-		if ((acct == null) || !BCrypt.checkpw(_password, acct.getPassword()))
+		if ((acct == null) || !BCrypt.checkpw(_password, NullUtils.makeNotNull(acct.getPassword())))
 			return null;
 		return toAuthCode(acct.getId(), acct.getAuxiliaryAccountIds());
 	}
