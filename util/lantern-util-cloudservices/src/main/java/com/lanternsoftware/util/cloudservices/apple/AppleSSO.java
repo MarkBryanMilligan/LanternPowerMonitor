@@ -28,7 +28,7 @@ public class AppleSSO {
 	private final String audience;
 
 	public AppleSSO(String _credentialsPath) {
-		audience = ResourceLoader.loadFileAsString(_credentialsPath).trim();
+		audience = NullUtils.trim(ResourceLoader.loadFileAsString(_credentialsPath));
 	}
 
 	public String getEmailFromIdToken(String _idToken) {
