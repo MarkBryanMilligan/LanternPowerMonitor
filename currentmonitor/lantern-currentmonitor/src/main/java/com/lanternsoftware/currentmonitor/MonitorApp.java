@@ -301,10 +301,12 @@ public class MonitorApp {
 			monitor.stop();
 			pool.shutdown();
 		}, "Monitor Shutdown"));
-		try {
-			monitor.wait();
-		} catch (InterruptedException _e) {
-			LOG.error("Interrupted, shutting down", _e);
+		synchronized (monitor) {
+			try {
+				monitor.wait();
+			} catch (InterruptedException _e) {
+				LOG.error("Interrupted, shutting down", _e);
+			}
 		}
 	}
 
