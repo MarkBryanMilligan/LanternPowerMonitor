@@ -44,6 +44,7 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		d.put("mqtt_port_calibration_factor", _o.getMqttPortCalibrationFactor());
 		d.put("mqtt_frequency", _o.getMqttFrequency());
 		d.put("mqtt_breakers", DaoSerializer.toDaoEntities(_o.getMqttBreakers(), DaoProxyType.MONGO));
+		d.put("loki_url", _o.getLokiUrl());
 		return d;
 	}
 
@@ -69,6 +70,7 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		o.setMqttPortCalibrationFactor(DaoSerializer.getDouble(_d, "mqtt_port_calibration_factor"));
 		o.setMqttFrequency(DaoSerializer.getInteger(_d, "mqtt_frequency"));
 		o.setMqttBreakers(DaoSerializer.getList(_d, "mqtt_breakers", Breaker.class));
+		o.setLokiUrl(DaoSerializer.getString(_d, "loki_url"));
 		return o;
 	}
 }

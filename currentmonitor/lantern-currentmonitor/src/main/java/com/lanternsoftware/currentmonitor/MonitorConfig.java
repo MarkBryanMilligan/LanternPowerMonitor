@@ -1,6 +1,5 @@
 package com.lanternsoftware.currentmonitor;
 
-
 import com.lanternsoftware.datamodel.currentmonitor.Breaker;
 import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
@@ -27,6 +26,7 @@ public class MonitorConfig {
     private double mqttPortCalibrationFactor;
     private int mqttFrequency;
     private List<Breaker> mqttBreakers;
+    private String lokiUrl;
 
     public MonitorConfig() {
     }
@@ -188,5 +188,13 @@ public class MonitorConfig {
 
     public void setMqttBreakers(List<Breaker> _mqttBreakers) {
         mqttBreakers = _mqttBreakers;
+    }
+
+    public String getLokiUrl() {
+        return NullUtils.isEmpty(lokiUrl) ? "http://127.0.0.1:3100" : lokiUrl;
+    }
+
+    public void setLokiUrl(String _lokiUrl) {
+        lokiUrl = _lokiUrl;
     }
 }

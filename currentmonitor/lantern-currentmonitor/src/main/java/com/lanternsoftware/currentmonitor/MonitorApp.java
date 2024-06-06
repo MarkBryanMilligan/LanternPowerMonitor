@@ -219,6 +219,7 @@ public class MonitorApp {
 			config = new MonitorConfig();
 			ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 		}
+		LOG.info("Configuration loaded from: " + WORKING_DIR + "config.json");
 		pool = HttpPool.builder().withValidateSSLCertificates(!config.isAcceptSelfSignedCertificates()).build();
 		if (NullUtils.isNotEmpty(config.getHost()))
 			host = NullUtils.terminateWith(config.getHost(), "/");
