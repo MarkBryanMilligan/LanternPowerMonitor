@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <property name="log.pattern" value="%date %-5level %logger{0} - %message%n"/>
+    <property name="loki.baseurl" value="http://10.0.10.23:3100"/>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>/opt/currentmonitor/log/log.txt</file>
@@ -14,10 +15,27 @@
         </encoder>
     </appender>
 
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${loki.baseurl}/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>app=currentmonitor,host=${HOSTNAME}</pattern>
+            </label>
+            <message>
+                <pattern>%-5level [%.5(${HOSTNAME})] %.10thread %logger{20} | %msg %ex</pattern>
+            </message>
+        </format>
+    </appender>
+
     <logger name="com.lanternsoftware" level="INFO"/>
     <logger name="com.pi4j" level="INFO"/>
 
     <root level="OFF">
         <appender-ref ref="FILE"/>
+    </root>
+    <root level="DEBUG">
+        <appender-ref ref="LOKI" />
     </root>
 </configuration>
