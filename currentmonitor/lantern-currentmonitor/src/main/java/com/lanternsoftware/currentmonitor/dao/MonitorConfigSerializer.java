@@ -50,6 +50,7 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		d.put("influxdb2_apitoken", _o.getInfluxDB2ApiToken());
 		d.put("influxdb2_org", _o.getInfluxDB2Org());
 		d.put("influxdb2_bucket", _o.getInfluxDB2Bucket());
+		d.put("loki_url", _o.getLokiUrl());
 		return d;
 	}
 
@@ -75,12 +76,12 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		o.setMqttPortCalibrationFactor(DaoSerializer.getDouble(_d, "mqtt_port_calibration_factor"));
 		o.setMqttFrequency(DaoSerializer.getInteger(_d, "mqtt_frequency"));
 		o.setMqttBreakers(DaoSerializer.getList(_d, "mqtt_breakers", Breaker.class));
-		o.setLokiUrl(DaoSerializer.getString(_d, "loki_url"));
 		o.setInfluxDB2Enabled(DaoSerializer.getBoolean(_d, "influxdb2_enabled"));
 		o.setInfluxDB2Url(DaoSerializer.getString(_d, "influxdb2_url"));
 		o.setInfluxDB2ApiToken(DaoSerializer.getString(_d, "influxdb2_apitoken"));
 		o.setInfluxDB2Org(DaoSerializer.getString(_d, "influxdb2_org"));
 		o.setInfluxDB2Bucket(DaoSerializer.getString(_d, "influxdb2_bucket"));
+		o.setLokiUrl(DaoSerializer.getString(_d, "loki_url"));
 		return o;
 	}
 }
