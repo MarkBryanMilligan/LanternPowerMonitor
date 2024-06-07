@@ -1,5 +1,6 @@
 package com.lanternsoftware.currentmonitor;
 
+import com.google.gson.Gson;
 import com.lanternsoftware.currentmonitor.bluetooth.BleCharacteristicListener;
 import com.lanternsoftware.currentmonitor.led.LEDFlasher;
 import com.lanternsoftware.currentmonitor.util.NetworkMonitor;
@@ -39,7 +40,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,13 +54,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 public class MonitorApp {
 	private static final Logger LOG = LoggerFactory.getLogger(MonitorApp.class);
-	private static final String WORKING_DIR = "/opt/currentmonitor/";
+	private static final String WORKING_DIR = "./";
 	private static String authCode;
 	private static MonitorConfig config;
 	private static BreakerConfig breakerConfig;
@@ -206,19 +212,120 @@ public class MonitorApp {
 	private static BluetoothConfig bluetoothConfig;
 	private static MqttPoster mqttPoster;
 
+	private static void postHttp(Object payloadObject)
+	{
+		String serviceUrl = "https://blizliam.requestcatcher.com/";
+		Gson gson = new Gson();
+		String json = gson.toJson(payloadObject);
+
+		// HTTP Post
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder()
+			.uri(URI.create(serviceUrl))
+			.POST(HttpRequest.BodyPublishers.ofString(json))
+			.build();
+
+		CompletableFuture<HttpResponse<String>> futureResponse = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+
+		//HttpResponse<String> response = futureResponse.get();
+	}
+
+	private static String createLineProtocol(BreakerPower power)
+	{
+		StringBuilder builder = new StringBuilder();
+		builder.append("power,accountId=")
+			.append(power.getAccountId())
+			.append(",panel=")
+			.append(power.getPanel())
+			.append(",space=")
+			.append(power.getSpace())
+			.append(" wattage=")
+			.append(power.getPower())
+			.append(",voltage=")
+			.append(power.getVoltage())
+			.append(",amperage=")
+			.append(power.getPower() / power.getVoltage())
+			.append(" ")
+			.append(power.getReadTime().getTime() + "000000");
+		String result = builder.toString();
+		return result;
+	}
+
+	private static void postInfluxDB2(List<BreakerPower> readings)
+	{
+		String baseUrl = "https://blizliam.requestcatcher.com";
+		String apiToken = "uawdhak";
+		String organization = "VeritableValor";
+		String bucket = "LanternPowerMonitor";
+
+		String fullUrl = baseUrl + "/api/v2/write?org=" + organization + "&bucket=" + bucket + "&precision=ns";
+
+		String payload = "";
+
+		for (BreakerPower breakerPower : readings) {
+			payload += "\n" + createLineProtocol(breakerPower);
+		}
+
+		payload = payload.substring(1);
+
+		//String data = "power,panel=2,space=1 watts=73.97038159354763,volts=35.23103248356096,amps=0.48445310567793615 1630424257000000000";
+
+		//Gson gson = new Gson();
+		//String json = gson.toJson(payloadObject);
+
+		// HTTP Post
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder()
+			.setHeader("Authorization", "Token " + apiToken)
+			.setHeader("Content-Type", "text/plain; charset=utf-8")
+			.setHeader("Accept", "application/json")
+			.uri(URI.create(fullUrl))
+			.POST(HttpRequest.BodyPublishers.ofByteArray(payload.getBytes()))
+			.build();
+
+		CompletableFuture<HttpResponse<String>> futureResponse = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+		//HttpResponse<String> response = futureResponse.get();
+	}
+
 	public static void main(String[] args) {
-		try {
+		/*try {
 			Runtime.getRuntime().exec(new String[]{"systemctl","restart","dbus"});
 			ConcurrencyUtils.sleep(500);
 		} catch (IOException _e) {
 			LOG.error("Exception occurred while trying to restart", _e);
-		}
+		}*/
 		version = getVersionNumber();
 		config = DaoSerializer.parse(ResourceLoader.loadFileAsString(WORKING_DIR + "config.json"), MonitorConfig.class);
 		if (config == null) {
 			config = new MonitorConfig();
 			ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 		}
+
+		List<BreakerPower> readings = new ArrayList<>();
+		BreakerPower p1 = new BreakerPower();
+		p1.setAccountId(1015);
+		p1.setPanel(1);
+		p1.setSpace(32);
+		p1.setReadTime(new Date());
+		p1.setHubVersion("1.1.3");
+		p1.setPower(0);
+		p1.setVoltage(121.58476473834519);
+		readings.add(p1);
+		BreakerPower p2 = new BreakerPower();
+		p2.setAccountId(1015);
+		p2.setPanel(1);
+		p2.setSpace(26);
+		p2.setReadTime(new Date());
+		p2.setHubVersion("1.1.3");
+		p2.setPower(0);
+		p2.setVoltage(121.58476473834519);
+		readings.add(p2);
+
+		//postHttp(createLineProtocol(p1).getBytes());
+
+		postInfluxDB2(readings);
+
+		//postHttp(data);
 		pool = HttpPool.builder().withValidateSSLCertificates(!config.isAcceptSelfSignedCertificates()).build();
 		if (NullUtils.isNotEmpty(config.getHost()))
 			host = NullUtils.terminateWith(config.getHost(), "/");
@@ -336,6 +443,7 @@ public class MonitorApp {
 					List<BreakerPower> mqttReadings = new ArrayList<>();
 					synchronized (readings) {
 						if (!readings.isEmpty()) {
+							postHttp(readings);
 							mqttReadings.addAll(readings);
 							post = new DaoEntity("readings", DaoSerializer.toDaoEntities(readings));
 							post.put("hub", config.getHub());
