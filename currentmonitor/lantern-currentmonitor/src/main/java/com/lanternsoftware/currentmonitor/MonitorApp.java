@@ -253,12 +253,7 @@ public class MonitorApp {
 
 	private static void postInfluxDB2(List<BreakerPower> readings)
 	{
-		String baseUrl = "https://blizliam.requestcatcher.com";
-		String apiToken = "uawdhak";
-		String organization = "VeritableValor";
-		String bucket = "LanternPowerMonitor";
-
-		String fullUrl = baseUrl + "/api/v2/write?org=" + organization + "&bucket=" + bucket + "&precision=ns";
+		String fullUrl = config.getInfluxDB2Url() + "/api/v2/write?org=" + config.getInfluxDB2Org() + "&bucket=" + config.getInfluxDB2Bucket() + "&precision=ns";
 
 		String payload = "";
 
@@ -270,13 +265,10 @@ public class MonitorApp {
 
 		//String data = "power,panel=2,space=1 watts=73.97038159354763,volts=35.23103248356096,amps=0.48445310567793615 1630424257000000000";
 
-		//Gson gson = new Gson();
-		//String json = gson.toJson(payloadObject);
-
 		// HTTP Post
 		HttpClient client = HttpClient.newHttpClient();
 		HttpRequest request = HttpRequest.newBuilder()
-			.setHeader("Authorization", "Token " + apiToken)
+			.setHeader("Authorization", "Token " + config.getInfluxDB2ApiToken())
 			.setHeader("Content-Type", "text/plain; charset=utf-8")
 			.setHeader("Accept", "application/json")
 			.uri(URI.create(fullUrl))
@@ -284,7 +276,6 @@ public class MonitorApp {
 			.build();
 
 		CompletableFuture<HttpResponse<String>> futureResponse = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-		//HttpResponse<String> response = futureResponse.get();
 	}
 
 	public static void main(String[] args) {
@@ -317,7 +308,7 @@ public class MonitorApp {
 		p2.setSpace(26);
 		p2.setReadTime(new Date());
 		p2.setHubVersion("1.1.3");
-		p2.setPower(0);
+		p2.setPower(140);
 		p2.setVoltage(121.58476473834519);
 		readings.add(p2);
 
