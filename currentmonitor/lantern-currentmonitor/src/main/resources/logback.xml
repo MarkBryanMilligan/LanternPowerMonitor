@@ -5,7 +5,7 @@
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>/opt/currentmonitor/log/log.txt</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>./log.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
+            <fileNamePattern>/opt/currentmonitor/log/log.%d{yyyy-MM-dd}.%i.txt</fileNamePattern>
             <maxFileSize>20MB</maxFileSize>
             <maxHistory>20</maxHistory>
         </rollingPolicy>
