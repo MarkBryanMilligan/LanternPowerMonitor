@@ -339,7 +339,7 @@ public class CurrentMonitor {
 							}
 							samples.setSampleCnt(0);
 							samples.setCycleCnt(0);
-							listener.onPowerEvent(new BreakerPower(samples.getBreaker().getPanel(), samples.getBreaker().getSpace(), readTime, realPower, vRms));
+							listener.onPowerEvent(new BreakerPower(samples.getBreaker().getPanel(), samples.getBreaker().getSpace(), readTime, realPower, vRms, samples.getBreaker().getName()));
 						}
 						if (hubSample != null)
 							listener.onSampleEvent(hubSample);

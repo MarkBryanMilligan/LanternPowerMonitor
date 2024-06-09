@@ -212,24 +212,6 @@ public class MonitorApp {
 	private static BluetoothConfig bluetoothConfig;
 	private static MqttPoster mqttPoster;
 
-	private static void postHttp(Object payloadObject)
-	{
-		String serviceUrl = "https://blizliam.requestcatcher.com/";
-		Gson gson = new Gson();
-		String json = gson.toJson(payloadObject);
-
-		// HTTP Post
-		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request = HttpRequest.newBuilder()
-			.uri(URI.create(serviceUrl))
-			.POST(HttpRequest.BodyPublishers.ofString(json))
-			.build();
-
-		CompletableFuture<HttpResponse<String>> futureResponse = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-
-		//HttpResponse<String> response = futureResponse.get();
-	}
-
 	private static String createLineProtocol(BreakerPower power)
 	{
 		StringBuilder builder = new StringBuilder();
@@ -239,6 +221,8 @@ public class MonitorApp {
 			.append(power.getPanel())
 			.append(",space=")
 			.append(power.getSpace())
+			.append(",name=")
+			.append(power.getName().replace(" ", "\\ ")) // May need more escaping / replacing for weird names? Not thoroughly tested
 			.append(" wattage=")
 			.append(power.getPower())
 			.append(",voltage=")
@@ -248,6 +232,7 @@ public class MonitorApp {
 			.append(" ")
 			.append(power.getReadTime().getTime() + "000000");
 		String result = builder.toString();
+		LOG.debug("Line Protocol: " + result);
 		return result;
 	}
 
@@ -256,6 +241,11 @@ public class MonitorApp {
 		// Validation
 		if (config.getInfluxDB2Enabled() == false)
 			return false;
+
+		if (readings == null || readings.size() <= 0) {
+			LOG.debug("InfluxDB2 was given no payload to post...");
+			return true;
+		}
 
 		LOG.debug("InfluxDB2 is enabled. Preparing to POST data...");
 
@@ -275,7 +265,10 @@ public class MonitorApp {
 		InputStream is = null;
 		CloseableHttpResponse resp = pool.execute(post);
 		try {
-			return (resp != null) && (resp.getStatusLine() != null) && (resp.getStatusLine().getStatusCode() == 200);
+			int statusCode = resp.getStatusLine().getStatusCode();
+			return (resp != null)
+				&& (resp.getStatusLine() != null)
+				&& (statusCode == 200 || statusCode == 204);
 		}
 		catch (Exception _e) {
 			LOG.error("Failed to make influxDB2 http request to " + post.getURI().toString(), _e);
@@ -418,7 +411,6 @@ public class MonitorApp {
 					List<BreakerPower> mqttReadings = new ArrayList<>();
 					synchronized (readings) {
 						if (!readings.isEmpty()) {
-							postHttp(readings);
 							mqttReadings.addAll(readings);
 							post = new DaoEntity("readings", DaoSerializer.toDaoEntities(readings));
 							post.put("hub", config.getHub());

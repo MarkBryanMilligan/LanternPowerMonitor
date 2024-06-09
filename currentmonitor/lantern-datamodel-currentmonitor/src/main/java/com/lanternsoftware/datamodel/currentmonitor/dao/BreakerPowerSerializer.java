@@ -35,6 +35,7 @@ public class BreakerPowerSerializer extends AbstractDaoSerializer<BreakerPower>
 		d.put("hub_version", _o.getHubVersion());
 		d.put("power", _o.getPower());
 		d.put("voltage", _o.getVoltage());
+		d.put("name", _o.getName());
 		return d;
 	}
 
@@ -49,6 +50,7 @@ public class BreakerPowerSerializer extends AbstractDaoSerializer<BreakerPower>
 		o.setHubVersion(DaoSerializer.getString(_d, "hub_version"));
 		o.setPower(DaoSerializer.getDouble(_d, "power"));
 		o.setVoltage(DaoSerializer.getDouble(_d, "voltage"));
+		o.setName(DaoSerializer.getString(_d, "name"));
 		return o;
 	}
 }
