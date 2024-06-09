@@ -61,7 +61,7 @@ import java.util.jar.Manifest;
 
 public class MonitorApp {
 	private static final Logger LOG = LoggerFactory.getLogger(MonitorApp.class);
-	private static final String WORKING_DIR = "./";
+	private static final String WORKING_DIR = "/opt/currentmonitor/";
 	private static String authCode;
 	private static MonitorConfig config;
 	private static BreakerConfig breakerConfig;
