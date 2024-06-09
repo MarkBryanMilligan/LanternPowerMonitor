@@ -251,72 +251,56 @@ public class MonitorApp {
 		return result;
 	}
 
-	private static void postInfluxDB2(List<BreakerPower> readings)
+	private static boolean postInfluxDB2(List<BreakerPower> readings)
 	{
+		// Validation
+		if (config.getInfluxDB2Enabled() == false)
+			return false;
+
+		LOG.debug("InfluxDB2 is enabled. Preparing to POST data...");
+
+		// Create URL and Payload
 		String fullUrl = config.getInfluxDB2Url() + "/api/v2/write?org=" + config.getInfluxDB2Org() + "&bucket=" + config.getInfluxDB2Bucket() + "&precision=ns";
-
 		String payload = "";
+		for (BreakerPower breakerPower : readings) { payload += "\n" + createLineProtocol(breakerPower); }
+		payload = payload.substring(1);
+		LOG.debug("InfluxDB2 payload: " + payload);
 
-		for (BreakerPower breakerPower : readings) {
-			payload += "\n" + createLineProtocol(breakerPower);
+		// POST
+		HttpPost post = new HttpPost(fullUrl);
+		post.addHeader("Authorization", "Token " + config.getInfluxDB2ApiToken());
+		post.addHeader("Content-Type", "text/plain; charset=utf-8");
+		post.addHeader("Accept", "application/json");
+		post.setEntity(new ByteArrayEntity(payload.getBytes()));
+		InputStream is = null;
+		CloseableHttpResponse resp = pool.execute(post);
+		try {
+			return (resp != null) && (resp.getStatusLine() != null) && (resp.getStatusLine().getStatusCode() == 200);
+		}
+		catch (Exception _e) {
+			LOG.error("Failed to make influxDB2 http request to " + post.getURI().toString(), _e);
+		}
+		finally {
+			IOUtils.closeQuietly(is);
+			IOUtils.closeQuietly(resp);
 		}
 
-		payload = payload.substring(1);
-
-		//String data = "power,panel=2,space=1 watts=73.97038159354763,volts=35.23103248356096,amps=0.48445310567793615 1630424257000000000";
-
-		// HTTP Post
-		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request = HttpRequest.newBuilder()
-			.setHeader("Authorization", "Token " + config.getInfluxDB2ApiToken())
-			.setHeader("Content-Type", "text/plain; charset=utf-8")
-			.setHeader("Accept", "application/json")
-			.uri(URI.create(fullUrl))
-			.POST(HttpRequest.BodyPublishers.ofByteArray(payload.getBytes()))
-			.build();
-
-		CompletableFuture<HttpResponse<String>> futureResponse = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+		return false;
 	}
 
 	public static void main(String[] args) {
-		/*try {
+		try {
 			Runtime.getRuntime().exec(new String[]{"systemctl","restart","dbus"});
 			ConcurrencyUtils.sleep(500);
 		} catch (IOException _e) {
 			LOG.error("Exception occurred while trying to restart", _e);
-		}*/
+		}
 		version = getVersionNumber();
 		config = DaoSerializer.parse(ResourceLoader.loadFileAsString(WORKING_DIR + "config.json"), MonitorConfig.class);
 		if (config == null) {
 			config = new MonitorConfig();
 			ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 		}
-
-		List<BreakerPower> readings = new ArrayList<>();
-		BreakerPower p1 = new BreakerPower();
-		p1.setAccountId(1015);
-		p1.setPanel(1);
-		p1.setSpace(32);
-		p1.setReadTime(new Date());
-		p1.setHubVersion("1.1.3");
-		p1.setPower(0);
-		p1.setVoltage(121.58476473834519);
-		readings.add(p1);
-		BreakerPower p2 = new BreakerPower();
-		p2.setAccountId(1015);
-		p2.setPanel(1);
-		p2.setSpace(26);
-		p2.setReadTime(new Date());
-		p2.setHubVersion("1.1.3");
-		p2.setPower(140);
-		p2.setVoltage(121.58476473834519);
-		readings.add(p2);
-
-		//postHttp(createLineProtocol(p1).getBytes());
-
-		postInfluxDB2(readings);
-
-		//postHttp(data);
 		pool = HttpPool.builder().withValidateSSLCertificates(!config.isAcceptSelfSignedCertificates()).build();
 		if (NullUtils.isNotEmpty(config.getHost()))
 			host = NullUtils.terminateWith(config.getHost(), "/");
@@ -490,6 +474,9 @@ public class MonitorApp {
 								}
 							}
 						}
+					}
+					if (config.getInfluxDB2Enabled() && !postInfluxDB2(mqttReadings)) {
+						LOG.warn("Failed Posting readings to InfluxDB2.");
 					}
 					if (mqttPoster != null)
 						monitor.submit(() -> mqttPoster.postPower(mqttReadings));
