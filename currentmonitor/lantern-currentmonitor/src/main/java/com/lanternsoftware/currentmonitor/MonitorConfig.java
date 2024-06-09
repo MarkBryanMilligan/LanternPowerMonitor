@@ -26,7 +26,15 @@ public class MonitorConfig {
     private double mqttPortCalibrationFactor;
     private int mqttFrequency;
     private List<Breaker> mqttBreakers;
+<<<<<<< HEAD
     private String lokiUrl;
+=======
+    private boolean influxDB2Enabled;
+    private String influxDB2Url;
+    private String influxDB2ApiToken;
+    private String influxDB2Org;
+    private String influxDB2Bucket;
+>>>>>>> a58a4ea (Added influxDB2 configuration variables.)
 
     public MonitorConfig() {
     }
@@ -196,5 +204,45 @@ public class MonitorConfig {
 
     public void setLokiUrl(String _lokiUrl) {
         lokiUrl = _lokiUrl;
+    }
+    
+    public boolean getInfluxDB2Enabled() {
+        return influxDB2Enabled;
+    }
+
+    public void setInfluxDB2Enabled(boolean _influxDB2Enabled) {
+        influxDB2Enabled = _influxDB2Enabled;
+    }
+
+    public String getInfluxDB2Url() {
+        return influxDB2Url;
+    }
+
+    public void setInfluxDB2Url(String _influxDB2Url) {
+        influxDB2Url = _influxDB2Url;
+    }
+
+    public String getInfluxDB2ApiToken() {
+        return influxDB2ApiToken;
+    }
+
+    public void setInfluxDB2ApiToken(String _influxDB2ApiToken) {
+        influxDB2ApiToken = _influxDB2ApiToken;
+    }
+
+    public String getInfluxDB2Org() {
+        return influxDB2Org;
+    }
+
+    public void setInfluxDB2Org(String _influxDB2Org) {
+        influxDB2Org = _influxDB2Org;
+    }
+
+    public String getInfluxDB2Bucket() {
+        return influxDB2Bucket;
+    }
+
+    public void setInfluxDB2Bucket(String _influxDB2Bucket) {
+        influxDB2Bucket = _influxDB2Bucket;
     }
 }
