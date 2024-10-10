@@ -194,7 +194,7 @@ public class MonitorConfig {
     public void setMqttBreakers(List<Breaker> _mqttBreakers) {
         mqttBreakers = _mqttBreakers;
     }
-    
+  
     public boolean getInfluxDB2Enabled() {
         return influxDB2Enabled;
     }
@@ -234,7 +234,7 @@ public class MonitorConfig {
     public void setInfluxDB2Bucket(String _influxDB2Bucket) {
         influxDB2Bucket = _influxDB2Bucket;
     }
-    
+  
     public String getLokiUrl() {
         return NullUtils.isEmpty(lokiUrl) ? "http://127.0.0.1:3100" : lokiUrl;
     }

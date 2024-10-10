@@ -44,7 +44,6 @@ public class MonitorConfigSerializer extends AbstractDaoSerializer<MonitorConfig
 		d.put("mqtt_port_calibration_factor", _o.getMqttPortCalibrationFactor());
 		d.put("mqtt_frequency", _o.getMqttFrequency());
 		d.put("mqtt_breakers", DaoSerializer.toDaoEntities(_o.getMqttBreakers(), DaoProxyType.MONGO));
-		d.put("loki_url", _o.getLokiUrl());
 		d.put("influxdb2_enabled", _o.getInfluxDB2Enabled());
 		d.put("influxdb2_url", _o.getInfluxDB2Url());
 		d.put("influxdb2_apitoken", _o.getInfluxDB2ApiToken());
