@@ -1,5 +1,6 @@
 package com.lanternsoftware.currentmonitor;
 
+import com.google.gson.Gson;
 import com.lanternsoftware.currentmonitor.bluetooth.BleCharacteristicListener;
 import com.lanternsoftware.currentmonitor.led.LEDFlasher;
 import com.lanternsoftware.currentmonitor.util.NetworkMonitor;
@@ -206,6 +207,75 @@ public class MonitorApp {
 	private static BluetoothConfig bluetoothConfig;
 	private static MqttPoster mqttPoster;
 
+	private static String createLineProtocol(BreakerPower power)
+	{
+		StringBuilder builder = new StringBuilder();
+		builder.append("power,accountId=")
+			.append(power.getAccountId())
+			.append(",panel=")
+			.append(power.getPanel())
+			.append(",space=")
+			.append(power.getSpace())
+			.append(",name=")
+			.append(power.getName().replace(" ", "\\ ")) // May need more escaping / replacing for weird names? Not thoroughly tested
+			.append(" wattage=")
+			.append(power.getPower())
+			.append(",voltage=")
+			.append(power.getVoltage())
+			.append(",amperage=")
+			.append(power.getPower() / power.getVoltage())
+			.append(" ")
+			.append(power.getReadTime().getTime() + "000000");
+		String result = builder.toString();
+		LOG.debug("Line Protocol: " + result);
+		return result;
+	}
+
+	private static boolean postInfluxDB2(List<BreakerPower> readings)
+	{
+		// Validation
+		if (config.getInfluxDB2Enabled() == false)
+			return false;
+
+		if (readings == null || readings.size() <= 0) {
+			LOG.debug("InfluxDB2 was given no payload to post...");
+			return true;
+		}
+
+		LOG.debug("InfluxDB2 is enabled. Preparing to POST data...");
+
+		// Create URL and Payload
+		String fullUrl = config.getInfluxDB2Url() + "/api/v2/write?org=" + config.getInfluxDB2Org() + "&bucket=" + config.getInfluxDB2Bucket() + "&precision=ns";
+		String payload = "";
+		for (BreakerPower breakerPower : readings) { payload += "\n" + createLineProtocol(breakerPower); }
+		payload = payload.substring(1);
+		LOG.debug("InfluxDB2 payload: " + payload);
+
+		// POST
+		HttpPost post = new HttpPost(fullUrl);
+		post.addHeader("Authorization", "Token " + config.getInfluxDB2ApiToken());
+		post.addHeader("Content-Type", "text/plain; charset=utf-8");
+		post.addHeader("Accept", "application/json");
+		post.setEntity(new ByteArrayEntity(payload.getBytes()));
+		InputStream is = null;
+		CloseableHttpResponse resp = pool.execute(post);
+		try {
+			int statusCode = resp.getStatusLine().getStatusCode();
+			return (resp != null)
+				&& (resp.getStatusLine() != null)
+				&& (statusCode == 200 || statusCode == 204);
+		}
+		catch (Exception _e) {
+			LOG.error("Failed to make influxDB2 http request to " + post.getURI().toString(), _e);
+		}
+		finally {
+			IOUtils.closeQuietly(is);
+			IOUtils.closeQuietly(resp);
+		}
+
+		return false;
+	}
+
 	public static void main(String[] args) {
 		try {
 			Runtime.getRuntime().exec(new String[]{"systemctl","restart","dbus"});
@@ -219,6 +289,7 @@ public class MonitorApp {
 			config = new MonitorConfig();
 			ResourceLoader.writeFile(WORKING_DIR + "config.json", DaoSerializer.toJson(config));
 		}
+		LOG.info("Configuration loaded from: " + WORKING_DIR + "config.json");
 		pool = HttpPool.builder().withValidateSSLCertificates(!config.isAcceptSelfSignedCertificates()).build();
 		if (NullUtils.isNotEmpty(config.getHost()))
 			host = NullUtils.terminateWith(config.getHost(), "/");
@@ -391,6 +462,9 @@ public class MonitorApp {
 								}
 							}
 						}
+					}
+					if (config.getInfluxDB2Enabled() && !postInfluxDB2(mqttReadings)) {
+						LOG.warn("Failed Posting readings to InfluxDB2.");
 					}
 					if (mqttPoster != null)
 						monitor.submit(() -> mqttPoster.postPower(mqttReadings));

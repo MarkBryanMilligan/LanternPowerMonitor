@@ -14,16 +14,18 @@ public class BreakerPower {
 	private String hubVersion;
 	private double power;
 	private double voltage;
+	private String name;
 
 	public BreakerPower() {
 	}
 
-	public BreakerPower(int _panel, int _space, Date _readTime, double _power, double _voltage) {
+	public BreakerPower(int _panel, int _space, Date _readTime, double _power, double _voltage, String _name) {
 		panel = _panel;
 		space = _space;
 		readTime = _readTime;
 		power = _power;
 		voltage = _voltage;
+		name = _name;
 	}
 
 	public String getId() {
@@ -88,5 +90,13 @@ public class BreakerPower {
 
 	public String getKey() {
 		return Breaker.key(panel, space);
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String _name) {
+		name = _name;
 	}
 }
