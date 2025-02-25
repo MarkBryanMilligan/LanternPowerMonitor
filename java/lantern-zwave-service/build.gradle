@@ -1,0 +1,24 @@
+plugins {
+    id 'war'
+}
+
+dependencies {
+	implementation project(':lantern-zwave-datamodel')
+	implementation project(':lantern-powermonitor-datamodel')
+	implementation project(':lantern-rules-datamodel')
+	implementation project(':lantern-util-dao-mongo')
+	implementation project(':lantern-util-http')
+	implementation project(':lantern-zwave')
+	implementation 'com.pi4j:pi4j-gpio-extension:1.3'
+	implementation 'ch.qos.logback:logback-classic:1.5.16'
+    compileOnly 'javax:javaee-api:8.0'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.web
+            groupId = group
+        }
+    }
+}

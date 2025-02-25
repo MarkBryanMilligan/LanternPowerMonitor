@@ -1,0 +1,18 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api 'commons-io:commons-io:2.18.0'
+	api 'commons-codec:commons-codec:1.17.2'
+	api 'org.slf4j:slf4j-api:2.0.16'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}

@@ -1,0 +1,18 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api project(':lantern-util-dao')
+	api project(':lantern-util-http')
+	api 'com.auth0:java-jwt:4.4.0'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}

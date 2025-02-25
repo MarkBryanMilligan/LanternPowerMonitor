@@ -1,0 +1,24 @@
+plugins {
+    id 'war'
+}
+
+dependencies {
+	implementation project(':lantern-powermonitor-dataaccess')
+	implementation project(':lantern-util-servlet')
+	implementation project(':lantern-util-cloudservices')
+	implementation project(':lantern-util-http')
+	implementation project(':lantern-rules-service')
+	implementation 'com.auth0:java-jwt:4.4.0'
+	implementation 'com.mailjet:mailjet-client:5.2.5'
+	implementation 'ch.qos.logback:logback-classic:1.5.16'
+    compileOnly 'javax:javaee-api:8.0'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.web
+            groupId = group
+        }
+    }
+}

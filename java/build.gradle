@@ -1,0 +1,13 @@
+allprojects {
+	apply plugin: 'maven-publish'
+	apply plugin: 'java'
+
+	group='com.lanternsoftware.powermonitor'
+	version='2.0.0-DEV'
+	sourceCompatibility = '17'
+
+	repositories {
+		mavenLocal()
+		mavenCentral()
+	}
+}

@@ -1,0 +1,20 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api project(':lantern-powermonitor-datamodel')
+	api project(':lantern-rules-datamodel')
+	api project(':lantern-util-dao-mongo')
+	api 'org.mindrot:jbcrypt:0.4'
+	testImplementation 'ch.qos.logback:logback-classic:1.5.16'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}

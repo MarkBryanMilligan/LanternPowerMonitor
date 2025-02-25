@@ -1,0 +1,41 @@
+plugins {
+    id 'application'
+    id 'java'
+    id 'com.gradleup.shadow' version '8.3.5'
+}
+
+application {
+    mainClass = 'com.lanternsoftware.powermonitor.CreateMongoConfig'
+}
+
+dependencies {
+    implementation project(':lantern-util-dao-mongo')
+	implementation 'ch.qos.logback:logback-classic:1.5.16'
+}
+
+shadowJar {
+    mergeServiceFiles()
+    manifest {
+        attributes(
+                'Specification-Title' : 'Lantern Power Monitor',
+                'Specification-Version' : project.version,
+                'Specification-Vendor' : 'Lantern Software, Inc.',
+        )
+    }
+}
+
+artifacts {
+    shadowJar;
+}
+
+jar.enabled = false
+assemble.dependsOn(shadowJar);
+
+publishing {
+    publications {
+        shadow(MavenPublication) {
+            from components.shadow
+            groupId = group
+        }
+    }
+}

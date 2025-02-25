@@ -1,0 +1,17 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api project(':lantern-util-dao')
+	api 'net.java.dev.jna:jna:5.5.0'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}

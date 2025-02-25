@@ -1,0 +1,24 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api project(':lantern-rules-dataaccess')
+	api project(':lantern-powermonitor-dataaccess')
+	api project(':lantern-util-servlet')
+	api project(':lantern-util-cloudservices')
+	api 'ch.qos.logback:logback-classic:1.5.16'
+	api 'com.github.hypfvieh:bluez-dbus:0.3.0'
+	api 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+	testImplementation 'ch.qos.logback:logback-classic:1.5.16'
+    compileOnly 'javax:javaee-api:8.0'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}

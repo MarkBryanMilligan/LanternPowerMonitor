@@ -1,0 +1,17 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api project(':lantern-rules-datamodel')
+	api project(':lantern-util-dao-mongo')
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}

@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api project(':lantern-util-common')
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}

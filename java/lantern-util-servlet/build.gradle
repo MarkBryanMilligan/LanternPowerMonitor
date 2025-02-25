@@ -1,0 +1,18 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+	api project(':lantern-util-dao')
+	api 'org.freemarker:freemarker:2.3.32'
+    compileOnly 'javax:javaee-api:8.0'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = group
+        }
+    }
+}
