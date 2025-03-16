@@ -2,14 +2,6 @@
 <html lang="en">
 <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-    <script src="https://apis.google.com/js/client:platform.js?onload=start" async defer></script>
-    <script>
-        function start() {
-            gapi.load('auth2', function() {
-                auth2 = gapi.auth2.init({client_id: '412929846491-r3uh0t67mpeouicjvlara580i9cfchol.apps.googleusercontent.com', cookie_policy: 'none', redirect_uri: 'postmessage'});
-            });
-        }
-    </script>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,8 +40,10 @@
                     <div class="col-1 col-lg-2"></div>
                 </div>
                 <div class="row pt-2">
-                    <div class="col-1 col-lg-2"></div>
-                    <div class="col-8 col-lg-6 d-flex"><button type="button" id="signinButton" class="gso"></button></div>
+                    <div class="col-1 col-lg-2">
+                        <div id="g_id_onload" data-client_id="412929846491-r3uh0t67mpeouicjvlara580i9cfchol.apps.googleusercontent.com" data-callback="signInCallback"></div>
+                    </div>
+                    <div class="col-8 col-lg-6 d-flex"><a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=412929846491-r3uh0t67mpeouicjvlara580i9cfchol.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Flanternsoftware.com%2Fconsole%2Fgso&response_type=code&scope=openid+email&state=${state}" type="button" id="signinButton" class="gso"></a></div>
                     <div class="col-2 d-flex justify-content-end">
                         <input type="submit" class="btn-primary border-none px-3" value="Login"/>
                     </div>
@@ -68,30 +62,6 @@
         </form>
     </div>
     <div class="login-bkgnd"></div>
-    <script>
-        $('#signinButton').click(function() {
-            auth2.grantOfflineAccess().then(signInCallback);
-        });
-        function signInCallback(authResult) {
-            if (authResult['code']) {
-                $.ajax({
-                    type: 'POST',
-                    url: 'gso',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    contentType: 'application/octet-stream; charset=utf-8',
-                    success: function(result) {
-                        window.location.replace('./');
-                    },
-                    processData: false,
-                    data: authResult['code']
-                });
-            } else {
-                // There was an error.
-            }
-        }
-    </script>
 </main>
 </body>
 </html>

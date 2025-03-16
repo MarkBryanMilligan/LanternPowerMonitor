@@ -7,6 +7,7 @@ import com.lanternsoftware.util.ResourceLoader;
 import com.lanternsoftware.util.dao.DaoEntity;
 import com.lanternsoftware.util.dao.DaoSerializer;
 import com.lanternsoftware.util.http.HttpFactory;
+import com.lanternsoftware.util.http.HttpResponsePayload;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
@@ -34,14 +35,19 @@ public class GoogleSSO {
 		List<NameValuePair> payload = new ArrayList<>();
 		payload.add(new BasicNameValuePair("grant_type", "authorization_code"));
 		payload.add(new BasicNameValuePair("code", _code));
-		payload.add(new BasicNameValuePair("redirect_uri", "https://lanternsoftware.com/console"));
+		payload.add(new BasicNameValuePair("redirect_uri", "https://lanternsoftware.com/console/gso"));
 		payload.add(new BasicNameValuePair("client_id", googleClientId));
 		payload.add(new BasicNameValuePair("client_secret", googleClientSecret));
 		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(payload, StandardCharsets.UTF_8);
 		entity.setContentType("application/x-www-form-urlencoded");
 		post.setEntity(entity);
 		post.setHeader("Content-Type", "application/x-www-form-urlencoded");
-		String idToken = DaoSerializer.getString(DaoSerializer.parse(HttpFactory.pool().executeToString(post)), "id_token");
+		HttpResponsePayload rep = HttpFactory.pool().executeToPayload(post);
+		if (!rep.isSuccess()) {
+			logger.error("Failed to exchange auth code {} for access token with response {}", _code, rep.asString());
+			return null;
+		}
+		String idToken = DaoSerializer.getString(DaoSerializer.parse(rep.asString()), "id_token");
 		if (NullUtils.isNotEmpty(idToken)) {
 			try {
 				DecodedJWT jwt = JWT.decode(idToken);

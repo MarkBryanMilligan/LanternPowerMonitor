@@ -7,6 +7,6 @@ public abstract class LanternFiles {
 	public static boolean runOpsTasks;
 
 	static {
-		ProdSupportFiles.init();
+		ProdFiles.init();
 	}
 }

@@ -249,7 +249,7 @@ public class ZWaveApp {
 			@Override
 			public void onMessage(CRC16EncapRequest _message) {
 				logger.info("Received CRC16EncapRequest");
-//				onSwitchLevelChange(_message.getNodeId(), _message.isOn()?0xFF:0);
+				onSwitchLevelChange(_message.getNodeId(), _message.isOn()?0xFF:0);
 			}
 		});
 
@@ -310,7 +310,7 @@ public class ZWaveApp {
 //		}
 		executor.submit(()->{
 //			for (int i = 0; i < 9; i++) {
-//				controller.send(new NodeNeighborUpdateRequest((byte) 7));
+				controller.send(new NodeNeighborUpdateRequest((byte) 9));
 //				ConcurrencyUtils.sleep(20000);
 //			}
 //			List<Switch> switches = CollectionUtils.filter(config.getSwitches(), _s->_s.getNodeId() < 128);
@@ -319,12 +319,12 @@ public class ZWaveApp {
 //				controller.send(new NodeNeighborUpdateRequest((byte) sw.getNodeId()));
 //				ConcurrencyUtils.sleep(60000);
 //			}
-			controller.send(new NodeNeighborUpdateRequest((byte) 19));
-			ConcurrencyUtils.sleep(60000);
-			controller.send(new NodeNeighborUpdateRequest((byte) 21));
-			ConcurrencyUtils.sleep(60000);
-			controller.send(new NodeNeighborUpdateRequest((byte) 22));
-			ConcurrencyUtils.sleep(60000);
+//			controller.send(new NodeNeighborUpdateRequest((byte) 19));
+//			ConcurrencyUtils.sleep(60000);
+//			controller.send(new NodeNeighborUpdateRequest((byte) 21));
+//			ConcurrencyUtils.sleep(60000);
+//			controller.send(new NodeNeighborUpdateRequest((byte) 22));
+//			ConcurrencyUtils.sleep(60000);
 		});
 	}
 

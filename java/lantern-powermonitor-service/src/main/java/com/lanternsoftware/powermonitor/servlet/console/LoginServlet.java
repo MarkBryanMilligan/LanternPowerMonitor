@@ -3,17 +3,23 @@ package com.lanternsoftware.powermonitor.servlet.console;
 import com.lanternsoftware.powermonitor.context.Globals;
 import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.NullUtils;
+import com.lanternsoftware.util.cryptography.AESTool;
+import com.lanternsoftware.util.dao.DaoEntity;
+import org.apache.commons.codec.binary.Hex;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 @WebServlet("/login")
 public class LoginServlet extends SecureConsoleServlet {
 	@Override
 	protected void get(HttpServletRequest _req, HttpServletResponse _rep) {
-		render(_rep, "login.ftl", model(_req));
+		DaoEntity model = model(_req);
+		model.put("state", Hex.encodeHexString(AESTool.randomIV()));
+		render(_rep, "login.ftl", model);
 	}
 
 	@Override
@@ -30,6 +36,8 @@ public class LoginServlet extends SecureConsoleServlet {
 			Cookie destination = CollectionUtils.filterOne(CollectionUtils.asArrayList(_req.getCookies()), _c-> NullUtils.isEqual(_c.getName(), "destination"));
 			redirect(_rep, destination != null ? _req.getContextPath()+destination.getValue() : _req.getContextPath());
 		}
-		render(_rep, "login.ftl", model(_req, "error", "Invalid Credentials"));
+		DaoEntity model = model(_req, "error", "Invalid Credentials");
+		model.put("state", Hex.encodeHexString(AESTool.randomIV()));
+		render(_rep, "login.ftl", model);
 	}
 }
