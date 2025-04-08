@@ -81,17 +81,17 @@ public class MongoPowerMonitorDao implements PowerMonitorDao {
 
 	public MongoPowerMonitorDao(MongoConfig _config) {
 		proxy = new MongoProxy(_config);
-//		proxy.ensureIndex(BreakerPower.class, DaoSort.sort("account_id").then("key"));
-//		proxy.ensureIndex(HubPowerMinute.class, DaoSort.sort("account_id").then("minute"));
-//		proxy.ensureIndex(EnergySummary.class, DaoSort.sort("account_id").then("group_id").then("view_mode"));
-//		proxy.ensureIndex(EnergyTotal.class, DaoSort.sort("account_id").then("group_id").then("view_mode").then("start"));
-//		proxy.ensureIndex(ChargeSummary.class, DaoSort.sort("account_id").then("plan_id").then("group_id").then("view_mode"));
-//		proxy.ensureIndex(ChargeTotal.class, DaoSort.sort("account_id").then("plan_id").then("group_id").then("view_mode").then("start"));
-//		proxy.ensureIndex(DirtyMinute.class, DaoSort.sort("posted"));
-//		proxy.ensureIndex(ArchiveStatus.class, DaoSort.sort("account_id"));
-//		for (DirtyMinute minute : proxy.queryAll(DirtyMinute.class)) {
-//			updateEnergySummaries(minute);
-//		}
+		proxy.ensureIndex(BreakerPower.class, DaoSort.sort("account_id").then("key"));
+		proxy.ensureIndex(HubPowerMinute.class, DaoSort.sort("account_id").then("minute"));
+		proxy.ensureIndex(EnergySummary.class, DaoSort.sort("account_id").then("group_id").then("view_mode"));
+		proxy.ensureIndex(EnergyTotal.class, DaoSort.sort("account_id").then("group_id").then("view_mode").then("start"));
+		proxy.ensureIndex(ChargeSummary.class, DaoSort.sort("account_id").then("plan_id").then("group_id").then("view_mode"));
+		proxy.ensureIndex(ChargeTotal.class, DaoSort.sort("account_id").then("plan_id").then("group_id").then("view_mode").then("start"));
+		proxy.ensureIndex(DirtyMinute.class, DaoSort.sort("posted"));
+		proxy.ensureIndex(ArchiveStatus.class, DaoSort.sort("account_id"));
+		for (DirtyMinute minute : proxy.queryAll(DirtyMinute.class)) {
+			updateEnergySummaries(minute);
+		}
 		proxy.delete(DirtyMinute.class, new DaoQuery());
 		if (!proxy.exists(Sequence.class, null)) {
 			proxy.save(new Sequence(1));

@@ -78,7 +78,15 @@ public class AESTool {
 	}
 
 	public static AESTool authTool() {
-		return new AESTool(ResourceLoader.loadFile(LanternFiles.CONFIG_PATH + "authKey.dat"));
+		byte[] authKey = ResourceLoader.loadFile(LanternFiles.CONFIG_PATH + "authKey.dat");
+		if (authKey != null) {
+			AESTool tool = new AESTool(authKey);
+			if ("SampleData".equals(tool.decryptToString(tool.encrypt("SampleData"))))
+				return tool;
+		}
+		authKey = AESTool.generateRandomSecretKey().getEncoded();
+		ResourceLoader.writeFile(LanternFiles.CONFIG_PATH + "authKey.dat", authKey);
+		return new AESTool(authKey);
 	}
 
 	/**
