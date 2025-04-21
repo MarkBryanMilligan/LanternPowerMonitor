@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.List;
 
 @WebServlet("/power/*")
@@ -43,6 +44,11 @@ public class PowerServlet extends SecureServiceServlet {
 				return;
 			logger.info("Hub Power from ip {}, account {}, hub {}", _req.getRemoteAddr(), m.getAccountId(), m.getHub());
 			m.setAccountId(_authCode.getAccountId());
+			synchronized (Globals.accountVoltages) {
+				float averageVoltage = DaoSerializer.toFloat(CollectionUtils.mean(Globals.accountVoltages.remove(m.getAccountId() + "-" + m.getHub())));
+				if (m.getVoltage() == 0f)
+					m.setVoltage(averageVoltage);
+			}
 			Globals.dao.putHubPowerMinute(m);
 			return;
 		}
@@ -50,12 +56,18 @@ public class PowerServlet extends SecureServiceServlet {
 			DaoEntity payload = getRequestZipBson(_req);
 			List<BreakerPower> powers = DaoSerializer.getList(payload, "readings", BreakerPower.class);
 			if (!powers.isEmpty()) {
-				CollectionUtils.edit(powers, _p->_p.setAccountId(_authCode.getAccountId()));
+				CollectionUtils.edit(powers, _p -> _p.setAccountId(_authCode.getAccountId()));
 				Globals.dao.getProxy().save(powers);
 				int hub = DaoSerializer.getInteger(payload, "hub");
 				HubCommands commands = Globals.getCommandsForHub(_authCode.getAccountId(), hub);
 				if (commands != null)
 					zipBsonResponse(_rep, commands);
+				double voltage = CollectionUtils.mean(CollectionUtils.filter(CollectionUtils.transform(powers, BreakerPower::getVoltage), _v -> _v > 0f));
+				if (voltage > 0.0) {
+					synchronized (Globals.accountVoltages) {
+						Globals.accountVoltages.computeIfAbsent(_authCode.getAccountId() + "-" + hub, _a -> new ArrayList<>()).add(voltage);
+					}
+				}
 			}
 			return;
 		}

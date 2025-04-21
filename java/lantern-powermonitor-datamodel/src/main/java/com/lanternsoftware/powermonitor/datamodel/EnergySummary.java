@@ -26,6 +26,7 @@ public class EnergySummary {
 	private Date start;
 	private List<EnergySummary> subGroups;
 	private boolean main;
+	private float[] voltage;
 	private float[] energy;
 	private float[] gridEnergy;
 	private double peakToGrid;
@@ -61,7 +62,7 @@ public class EnergySummary {
 		addEnergy(breakers, breakerKeyToGroup, _hubPower);
 	}
 
-	public void addEnergy(Map<Integer, Breaker> _breakers, Map<Integer, BreakerGroup> _breakerKeyToGroup, List<HubPowerMinute> _hubPower) {
+	private void addEnergy(Map<Integer, Breaker> _breakers, Map<Integer, BreakerGroup> _breakerKeyToGroup, List<HubPowerMinute> _hubPower) {
 		if (CollectionUtils.isEmpty(_hubPower) || CollectionUtils.anyQualify(_hubPower, _p -> _p.getAccountId() != accountId))
 			return;
 		_hubPower.sort(Comparator.comparing(HubPowerMinute::getMinute));
@@ -83,6 +84,7 @@ public class EnergySummary {
 					continue;
 				MeterMinute meter = minutes.computeIfAbsent(hubPower.getMinute(), _p -> new HashMap<>()).computeIfAbsent(b.getMeter(), _m -> new MeterMinute(b.getMeter(), minute));
 				idx = 0;
+
 				for (Float power : CollectionUtils.makeNotNull(breaker.getReadings())) {
 					if (idx >= 60)
 						break;
@@ -95,6 +97,7 @@ public class EnergySummary {
 					addEnergy(group.getId(), minute, power);
 					idx++;
 				}
+				setVoltage(group.getId(), minute, hubPower.getVoltage());
 			}
 		}
 		double curConsumption;
@@ -172,6 +175,7 @@ public class EnergySummary {
 		energy.setTimeZone(_tz);
 		energy.setSubGroups(CollectionUtils.transform(_group.getSubGroups(), _g -> EnergySummary.summary(_g, _energies, _viewMode, _start, _tz)));
 		for (EnergyTotal curEnergy : CollectionUtils.makeNotNull(_energies.get(_group.getId()))) {
+			energy.setVoltage(curEnergy.getStart(), curEnergy.getVoltage());
 			energy.addEnergy(curEnergy.getStart(), curEnergy.getJoules());
 			energy.addFlow(curEnergy.getStart(), curEnergy.getFlow());
 			if (curEnergy.getPeakFromGrid() > energy.getPeakFromGrid())
@@ -205,6 +209,27 @@ public class EnergySummary {
 		int idx = viewMode.blockIndex(start, _readTime, timezone);
 		if (idx < energy.length)
 			energy[idx] += _joules;
+	}
+
+	private boolean setVoltage(String _groupId, Date _readTime, float _voltage) {
+		if (NullUtils.isEqual(groupId, _groupId)) {
+			setVoltage(_readTime, _voltage);
+			return true;
+		} else {
+			for (EnergySummary subGroup : CollectionUtils.makeNotNull(subGroups)) {
+				if (subGroup.setVoltage(_groupId, _readTime, _voltage))
+					return true;
+			}
+		}
+		return false;
+	}
+
+	private void setVoltage(Date _readTime, float _voltage) {
+		if (voltage == null)
+			voltage = new float[blockCount()];
+		int idx = viewMode.blockIndex(start, _readTime, timezone);
+		if (idx < voltage.length)
+			voltage[idx] = _voltage;
 	}
 
 	private boolean addFlow(String _groupId, Date _readTime, double _joules) {
@@ -305,6 +330,14 @@ public class EnergySummary {
 
 	public void setMain(boolean _main) {
 		main = _main;
+	}
+
+	public float[] getVoltage() {
+		return voltage;
+	}
+
+	public void setVoltage(float[] _voltage) {
+		voltage = _voltage;
 	}
 
 	public float[] getEnergy() {
@@ -430,6 +463,35 @@ public class EnergySummary {
 		for (EnergySummary group : CollectionUtils.makeNotNull(subGroups)) {
 			group.getAllGroups(_groups);
 		}
+	}
+
+	public float[] voltageBlocks() {
+		return voltageBlocks(null);
+	}
+
+	public float[] voltageBlocks(Set<String> _selectedGroups) {
+		float[] blocks = new float[blockCount()];
+		int count = voltageBlocks(_selectedGroups, blocks);
+		if (count > 0) {
+			for (int i = 0; i < blocks.length; i++) {
+				blocks[i] /= count;
+			}
+		}
+		return blocks;
+	}
+
+	private int voltageBlocks(Set<String> _selectedGroups, float[] _voltageBlocks) {
+		int count = 0;
+		if ((voltage != null) && ((_selectedGroups == null) || _selectedGroups.contains(getGroupId()))) {
+			for (int i = 0; i < voltage.length; i++) {
+				_voltageBlocks[i] += voltage[i];
+			}
+			count = 1;
+		}
+		for (EnergySummary group : CollectionUtils.makeNotNull(subGroups)) {
+			count += group.voltageBlocks(_selectedGroups, _voltageBlocks);
+		}
+		return count;
 	}
 
 	public float[] energyBlocks() {

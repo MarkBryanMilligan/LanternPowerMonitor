@@ -320,6 +320,7 @@ public class MonitorApp {
 		private long lastPost;
 		private int lastMinute;
 		private final Map<Integer, Float[]> breakers = new HashMap<>();
+		private final Float[] voltages = new Float[60];
 
 		public PowerPoster() {
 			firstPost = (new Date().getTime()/1000)*1000;
@@ -349,6 +350,7 @@ public class MonitorApp {
 								minute.setAccountId(breakerConfig.getAccountId());
 								minute.setHub(config.getHub());
 								minute.setMinute(lastMinute);
+								minute.setVoltage(CollectionUtils.mean(CollectionUtils.transform(CollectionUtils.asArrayList(voltages), _f->(double)_f)).floatValue());
 								minute.setBreakers(CollectionUtils.transform(breakers.entrySet(), _e -> {
 									BreakerPowerMinute breaker = new BreakerPowerMinute();
 									breaker.setPanel(Breaker.toPanel(_e.getKey()));
@@ -362,7 +364,9 @@ public class MonitorApp {
 							}
 							for (BreakerPower power : readings) {
 								Float[] breakerReadings = breakers.computeIfAbsent(Breaker.toId(power.getPanel(), power.getSpace()), _i -> new Float[60]);
-								breakerReadings[(int) ((power.getReadTime().getTime() / 1000)%60)] = (float) power.getPower();
+								int second = (int) ((power.getReadTime().getTime() / 1000)%60);
+								breakerReadings[second] = (float) power.getPower();
+								voltages[second] = (float) power.getVoltage();
 							}
 							readings.clear();
 						}

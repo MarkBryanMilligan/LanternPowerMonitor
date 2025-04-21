@@ -37,6 +37,7 @@ public class BillingRateSerializer extends AbstractDaoSerializer<BillingRate>
 		d.put("month_kwh_end", _o.getMonthKWhEnd());
 		d.put("begin_effective", DaoSerializer.toLong(_o.getBeginEffective()));
 		d.put("end_effective", DaoSerializer.toLong(_o.getEndEffective()));
+		d.put("days_of_week", _o.getDaysOfWeek());
 		d.put("recurs_annually", _o.isRecursAnnually());
 		return d;
 	}
@@ -55,6 +56,7 @@ public class BillingRateSerializer extends AbstractDaoSerializer<BillingRate>
 		o.setMonthKWhEnd(DaoSerializer.getDouble(_d, "month_kwh_end"));
 		o.setBeginEffective(DaoSerializer.getDate(_d, "begin_effective"));
 		o.setEndEffective(DaoSerializer.getDate(_d, "end_effective"));
+		o.setDaysOfWeek(DaoSerializer.getList(_d, "days_of_week", Integer.class));
 		o.setRecursAnnually(DaoSerializer.getBoolean(_d, "recurs_annually"));
 		return o;
 	}

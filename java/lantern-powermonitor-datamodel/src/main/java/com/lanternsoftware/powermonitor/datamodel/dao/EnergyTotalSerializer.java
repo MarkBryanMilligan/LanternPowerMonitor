@@ -30,6 +30,7 @@ public class EnergyTotalSerializer extends AbstractDaoSerializer<EnergyTotal> {
 		d.put("view_mode", DaoSerializer.toEnumName(_o.getViewMode()));
 		d.put("start", DaoSerializer.toLong(_o.getStart()));
 		d.put("sub_groups", DaoSerializer.toDaoEntities(_o.getSubGroups(), DaoProxyType.MONGO));
+		d.put("voltage", _o.getVoltage());
 		d.put("joules", _o.getJoules());
 		d.put("flow", _o.getFlow());
 		d.put("peak_to_grid", _o.getPeakToGrid());
@@ -47,6 +48,7 @@ public class EnergyTotalSerializer extends AbstractDaoSerializer<EnergyTotal> {
 		o.setViewMode(DaoSerializer.getEnum(_d, "view_mode", EnergyViewMode.class));
 		o.setStart(DaoSerializer.getDate(_d, "start"));
 		o.setSubGroups(DaoSerializer.getList(_d, "sub_groups", EnergyTotal.class));
+		o.setVoltage(DaoSerializer.getFloat(_d, "voltage"));
 		o.setJoules(DaoSerializer.getDouble(_d, "joules"));
 		o.setFlow(DaoSerializer.getDouble(_d, "flow"));
 		o.setPeakToGrid(DaoSerializer.getDouble(_d, "peak_to_grid"));

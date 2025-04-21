@@ -25,6 +25,7 @@ public class Globals implements ServletContextListener {
 	public static PowerMonitorDao dao;
 	public static ExecutorService opsExecutor;
 	private static final Map<Integer, Map<Integer, List<HubCommand>>> commands = new HashMap<>();
+	public static final Map<String, List<Double>> accountVoltages = new HashMap<>();
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {

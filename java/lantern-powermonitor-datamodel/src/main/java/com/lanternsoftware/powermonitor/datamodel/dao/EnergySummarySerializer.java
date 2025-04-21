@@ -40,6 +40,8 @@ public class EnergySummarySerializer extends AbstractDaoSerializer<EnergySummary
 		d.put("main", _o.isMain());
 		TimeZone tz = DateUtils.defaultTimeZone(_o.getTimeZone());
 		d.put("timezone", tz.getID());
+		if (_o.getVoltage() != null)
+			d.put("voltage", CollectionUtils.toByteArray(_o.getVoltage()));
 		if (_o.getEnergy() != null)
 			d.put("energy", CollectionUtils.toByteArray(_o.getEnergy()));
 		if (_o.getGridEnergy() != null)
@@ -63,6 +65,7 @@ public class EnergySummarySerializer extends AbstractDaoSerializer<EnergySummary
 		o.setSubGroups(DaoSerializer.getList(_d, "sub_groups", EnergySummary.class));
 		o.setMain(DaoSerializer.getBoolean(_d, "main"));
 		o.setTimeZone(DateUtils.fromTimeZoneId(DaoSerializer.getString(_d, "timezone")));
+		o.setVoltage(CollectionUtils.toFloatArray(DaoSerializer.getByteArray(_d, "voltage")));
 		o.setEnergy(CollectionUtils.toFloatArray(DaoSerializer.getByteArray(_d, "energy")));
 		o.setGridEnergy(CollectionUtils.toFloatArray(DaoSerializer.getByteArray(_d, "grid_energy")));
 		o.setPeakToGrid(DaoSerializer.getDouble(_d, "peak_to_grid"));

@@ -10,6 +10,7 @@ public class HubPowerMinute {
 	private int accountId;
 	private int hub;
 	private int minute;
+	private float voltage;
 	private List<BreakerPowerMinute> breakers;
 
 	public int getAccountId() {
@@ -42,6 +43,14 @@ public class HubPowerMinute {
 
 	public void setMinute(Date _minute) {
 		minute = (int)(_minute.getTime()/60000);
+	}
+
+	public float getVoltage() {
+		return voltage;
+	}
+
+	public void setVoltage(float _voltage) {
+		voltage = _voltage;
 	}
 
 	public List<BreakerPowerMinute> getBreakers() {

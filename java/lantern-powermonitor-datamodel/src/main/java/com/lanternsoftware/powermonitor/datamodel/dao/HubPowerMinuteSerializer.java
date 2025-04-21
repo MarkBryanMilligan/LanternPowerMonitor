@@ -30,6 +30,7 @@ public class HubPowerMinuteSerializer extends AbstractDaoSerializer<HubPowerMinu
 		d.put("account_id", _o.getAccountId());
 		d.put("hub", _o.getHub());
 		d.put("minute", _o.getMinute());
+		d.put("voltage", _o.getVoltage());
 		d.put("breakers", DaoSerializer.toDaoEntities(_o.getBreakers(), DaoProxyType.MONGO));
 		return d;
 	}
@@ -41,6 +42,7 @@ public class HubPowerMinuteSerializer extends AbstractDaoSerializer<HubPowerMinu
 		o.setAccountId(DaoSerializer.getInteger(_d, "account_id"));
 		o.setHub(DaoSerializer.getInteger(_d, "hub"));
 		o.setMinute(DaoSerializer.getInteger(_d, "minute"));
+		o.setVoltage(DaoSerializer.getFloat(_d, "voltage"));
 		o.setBreakers(DaoSerializer.getList(_d, "breakers", BreakerPowerMinute.class));
 		return o;
 	}

@@ -1,11 +1,16 @@
 package com.lanternsoftware.powermonitor.datamodel;
 
+import com.lanternsoftware.util.CollectionUtils;
 import com.lanternsoftware.util.DateUtils;
+import com.lanternsoftware.util.NullUtils;
 import com.lanternsoftware.util.dao.annotations.DBSerializable;
 
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.TreeSet;
 
 @DBSerializable
 public class BillingRate {
@@ -19,6 +24,7 @@ public class BillingRate {
 	private double monthKWhEnd;
 	private Date beginEffective;
 	private Date endEffective;
+	private List<Integer> daysOfWeek;
 	boolean recursAnnually;
 
 	public int getMeter() {
@@ -101,6 +107,14 @@ public class BillingRate {
 		endEffective = _endEffective;
 	}
 
+	public List<Integer> getDaysOfWeek() {
+		return daysOfWeek;
+	}
+
+	public void setDaysOfWeek(List<Integer> _daysOfWeek) {
+		daysOfWeek = _daysOfWeek;
+	}
+
 	public boolean isRecursAnnually() {
 		return recursAnnually;
 	}
@@ -126,6 +140,9 @@ public class BillingRate {
 	}
 
 	public boolean isApplicableForDay(Date _time, TimeZone _tz) {
+		Calendar day = DateUtils.toCalendar(_time, _tz);
+		if (CollectionUtils.isNotEmpty(daysOfWeek) && !daysOfWeek.contains(day.get(Calendar.DAY_OF_WEEK)))
+			return false;
 		if ((beginEffective != null) && (endEffective != null) && recursAnnually) {
 			Date begin = beginEffective;
 			Date end = endEffective;
@@ -158,7 +175,12 @@ public class BillingRate {
 		if (this == _o) return true;
 		if (_o == null || getClass() != _o.getClass()) return false;
 		BillingRate that = (BillingRate) _o;
-		return meter == that.meter && Double.compare(that.rate, rate) == 0 && timeOfDayStart == that.timeOfDayStart && timeOfDayEnd == that.timeOfDayEnd && Double.compare(that.monthKWhStart, monthKWhStart) == 0 && Double.compare(that.monthKWhEnd, monthKWhEnd) == 0 && recursAnnually == that.recursAnnually && flow == that.flow && currency == that.currency && Objects.equals(beginEffective, that.beginEffective) && Objects.equals(endEffective, that.endEffective);
+		return meter == that.meter && Double.compare(that.rate, rate) == 0 && timeOfDayStart == that.timeOfDayStart && timeOfDayEnd == that.timeOfDayEnd && Double.compare(that.monthKWhStart, monthKWhStart) == 0 && Double.compare(that.monthKWhEnd, monthKWhEnd) == 0 && recursAnnually == that.recursAnnually && flow == that.flow && currency == that.currency && Objects.equals(beginEffective, that.beginEffective) && Objects.equals(endEffective, that.endEffective) && NullUtils.isEqual(dowKey(), that.dowKey());
+	}
+
+	public String dowKey() {
+		TreeSet<Integer> days = daysOfWeek == null ? new TreeSet<>() : new TreeSet<>(daysOfWeek);
+		return CollectionUtils.transformAndDelimit(days, String::valueOf, ",");
 	}
 
 	@Override

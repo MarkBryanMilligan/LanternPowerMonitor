@@ -16,6 +16,7 @@ public class EnergyTotal {
 	private EnergyViewMode viewMode;
 	private Date start;
 	private List<EnergyTotal> subGroups;
+	private float voltage;
 	private double joules;
 	private double flow;
 	private double peakToGrid;
@@ -32,6 +33,7 @@ public class EnergyTotal {
 		viewMode = _energy.getViewMode();
 		start = _energy.getStart();
 		subGroups = CollectionUtils.transform(_energy.getSubGroups(), EnergyTotal::new);
+		voltage = CollectionUtils.mean(_energy.getVoltage());
 		joules = _energy.joules(null, false, GridFlow.BOTH);
 		flow = _energy.flow(null, false, GridFlow.BOTH);
 		peakToGrid = _energy.getPeakToGrid();
@@ -90,6 +92,14 @@ public class EnergyTotal {
 
 	public void setSubGroups(List<EnergyTotal> _subGroups) {
 		subGroups = _subGroups;
+	}
+
+	public float getVoltage() {
+		return voltage;
+	}
+
+	public void setVoltage(float _voltage) {
+		voltage = _voltage;
 	}
 
 	public double getJoules() {

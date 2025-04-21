@@ -3,7 +3,7 @@ package com.lanternsoftware.util;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -11,7 +11,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -342,13 +341,21 @@ public class CollectionUtils {
         return sum;
     }
 
-    public static Double mean(Collection<Double> _coll) {
+    public static float mean(float[] _values) {
+        return mean(asArrayList(_values)).floatValue();
+    }
+
+    public static double mean(double[] _values) {
+        return mean(asArrayList(_values));
+    }
+
+    public static Double mean(Collection<? extends Number> _coll) {
         int cnt = 0;
         double total = 0.0;
-        for (Double val : makeNotNull(_coll)) {
+        for (Number val : makeNotNull(_coll)) {
             if (val != null) {
                 cnt++;
-                total += val;
+                total += val.doubleValue();
             }
         }
         if (cnt == 0)
@@ -412,22 +419,54 @@ public class CollectionUtils {
         return list;
     }
 
-    public static <T> ArrayList<T> asArrayList(T... _values) {
+    @SafeVarargs
+	public static <T> ArrayList<T> asArrayList(T... _values) {
         if (_values == null)
             return new ArrayList<>(0);
         ArrayList<T> list = new ArrayList<>(_values.length);
-        for (T t : _values)
-            list.add(t);
+        Collections.addAll(list, _values);
         return list;
     }
 
-    public static <T> HashSet<T> asHashSet(T... _values) {
-        HashSet<T> setValues = new HashSet<>();
+    public static ArrayList<Integer> daysOfWeek() {
+        ArrayList<Integer> list = new ArrayList<>(7);
+        list.add(Calendar.SUNDAY);
+        list.add(Calendar.MONDAY);
+        list.add(Calendar.TUESDAY);
+        list.add(Calendar.WEDNESDAY);
+        list.add(Calendar.THURSDAY);
+        list.add(Calendar.FRIDAY);
+        list.add(Calendar.SATURDAY);
+        return list;
+    }
+
+    public static ArrayList<Float> asArrayList(float... _values) {
         if (_values == null)
-            return setValues;
-        for (T t : _values)
-            setValues.add(t);
-        return setValues;
+            return new ArrayList<>(0);
+        ArrayList<Float> list = new ArrayList<>(_values.length);
+        for (float val : _values) {
+            list.add(val);
+        }
+        return list;
+    }
+
+    public static ArrayList<Double> asArrayList(double... _values) {
+        if (_values == null)
+            return new ArrayList<>(0);
+        ArrayList<Double> list = new ArrayList<>(_values.length);
+        for (double val : _values) {
+            list.add(val);
+        }
+        return list;
+    }
+
+    @SafeVarargs
+	public static <T> HashSet<T> asHashSet(T... _values) {
+        HashSet<T> set = new HashSet<>();
+        if (_values == null)
+            return set;
+        Collections.addAll(set, _values);
+        return set;
     }
 
     public static <K, V> HashMap<K, V> asHashMap(K _key, V _value) {
@@ -596,6 +635,14 @@ public class CollectionUtils {
                 listValues.add(v);
         }
         return listValues;
+    }
+
+    public static <T, V> List<V> transform(T[] _coll, ITransformer<? super T, V> _transformer) {
+        return transform(_coll, _transformer, false);
+    }
+
+    public static <T, V> List<V> transform(T[] _coll, ITransformer<? super T, V> _transformer, boolean _excludeNulls) {
+        return transform(asArrayList(_coll), _transformer, _excludeNulls);
     }
 
     @SuppressWarnings("unchecked")
