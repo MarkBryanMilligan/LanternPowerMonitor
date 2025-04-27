@@ -49,7 +49,7 @@ Gerber files and the source EasyEDA file for the Lantern Power Monitor Hub v1 pc
 
 # Ok, how do I run this thing?
 The easiest way to run the software on a hub is to download a pre-built SD card image.  One can be downloaded here:<br>
-[hub_1.1.3.zip](https://cf.lanternpowermonitor.com/hub_1.1.3.zip)
+[2.0.0.img.gz](https://cf.lanternpowermonitor.com/2.0.0.img.gz)
 <br>
 This will soon be replaced by version 2.0 which supports a new board with 30 CT ports.  I'll update this link when the new SD image is ready.
 <br><br>
