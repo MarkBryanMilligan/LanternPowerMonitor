@@ -41,7 +41,12 @@ public class MonitorConfig {
     }
 
     public void setHost(String _host) {
-        host = _host;
+        if ("https://lanternpowermonitor.com/".equals(_host))
+            host = _host + "currentmonitor";
+        else if ("https://lanternsoftware.com/".equals(_host))
+            host = _host + "currentmonitor";
+        else
+            host = _host;
     }
 
     public String getAuthCode() {
