@@ -350,7 +350,7 @@ public class MonitorApp {
 								minute.setAccountId(breakerConfig.getAccountId());
 								minute.setHub(config.getHub());
 								minute.setMinute(lastMinute);
-								minute.setVoltage(CollectionUtils.mean(CollectionUtils.transform(CollectionUtils.asArrayList(voltages), _f->(double)_f)).floatValue());
+								minute.setVoltage(CollectionUtils.mean(CollectionUtils.transform(CollectionUtils.asArrayList(voltages), DaoSerializer::toFloat)).floatValue());
 								minute.setBreakers(CollectionUtils.transform(breakers.entrySet(), _e -> {
 									BreakerPowerMinute breaker = new BreakerPowerMinute();
 									breaker.setPanel(Breaker.toPanel(_e.getKey()));

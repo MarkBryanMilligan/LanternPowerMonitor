@@ -109,7 +109,7 @@ public class PowerMonitor {
 		}
 		vRms /= offset;
 
-		double oldVrms = _curCalibration * Math.sqrt(vRms);
+		double oldVrms = _curCalibration * pcb.getVoltageCalibrationFactor() * Math.sqrt(vRms);
 		if (oldVrms < 20) {
 			LOG.error("Could not get a valid voltage read, please check that your AC/AC transformer is connected");
 			return null;
