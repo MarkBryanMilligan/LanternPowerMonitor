@@ -361,6 +361,7 @@ public class PowerMonitor {
 						if (hubSample != null)
 							listener.onSampleEvent(hubSample);
 					});
+					ConcurrencyUtils.sleep(250);
 				}
 			}
 			catch (Throwable t) {
