@@ -409,6 +409,7 @@ public class MonitorApp {
 						ConcurrencyUtils.sleep(1000 - duration);
 					}
 					lastPost = now;
+					ConcurrencyUtils.sleep(10);
 				}
 			}
 			catch (Throwable t) {
