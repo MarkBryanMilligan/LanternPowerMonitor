@@ -68,7 +68,7 @@ When you add the hub to your configuration via the app, you can change where the
 1. After that second restart, you should start seeing data. If you're not getting data in your app, the hub probably was not able to get a wifi connection. You can pull the last 10 lines of the log file and network details from the hub via bluetooth on the hub config page to troubleshoot.
 
 # Ok, but I don't like doing things the easy way.
-First, you and I will get along just fine.  Second, do a reactor build from the root folder:
+First, you and I will get along just fine.  Second, do a reactor build from the root folder. You may need to install `maven libpigpio-dev default-jdk` or similar depending on your OS if you don't already have them. Then:
 ```
 ~/LanternPowerMonitor/java$ gradlew clean build publishToMavenLocal
 ```
